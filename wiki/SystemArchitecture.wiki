@@ -1,0 +1,5 @@
+#summary CRW System Architecture
+
+= Hardware Architecture =
+
+https://docs.google.com/drawings/pub?id=1t3MM6UxFJ-xo8fGzSPCSSSKiZmFJDrX-tbR7R0BE4Lc&w=764&h=625&fake.png
