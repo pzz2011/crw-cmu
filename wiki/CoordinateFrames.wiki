@@ -1,0 +1,11 @@
+#summary The coordinate frames used within the project.
+
+= Introduction =
+
+The 3D data that is exchanged by these vehicles will be expressed in one of two coordinate frames, a vehicle frame or a world frame.  Both frames follow two simple intuitions:  they are [http://en.wikipedia.org/wiki/Right-hand_rule right-handed], and what would be considered the "vertical" direction is labeled the *+Z* axis.
+
+= Vehicle Frame =
+
+
+
+= World Frame =
