@@ -25,7 +25,7 @@ https://docs.google.com/drawings/pub?id=11yK39E0AoaIxRG4ufvyOBV01eJktsC9YZTZWsP7
 
 The motor connector is a DB15 male connector that contains DC charging leads to the internal battery, three motor phases to drive a brushless DC motor (~12V @ 10A), and lines for a high-torque steeering servo (5V @ 2A).  In order to handle these currents, the pins on the connector are paired together, so each high-current load is split across two pins.
 
-https://docs.google.com/drawings/pub?id=11yK39E0AoaIxRG4ufvyOBV01eJktsC9YZTZWsP7ulxQ&w=253&h=181&fake.png
+https://docs.google.com/drawings/pub?id=1jsFHKE0brnlFZyxNS-Skf5F1FdUmvvuCyVaf7tB8klE&w=325&h=180&fake.png
 
 || *Pin* || *Description* ||
 || 1 || N/C ||
