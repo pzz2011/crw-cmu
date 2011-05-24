@@ -1,0 +1,35 @@
+#summary Vehicle hardware interface specifications.
+
+= Introduction =
+
+There are two primary types of connectors available on the vehicles, a *sensor* connector which provides a low-power logic supply and bidirectional IO of several types, and the *motor* connector which serves as both a charging connector and a high-power driver for a drive assembly. 
+
+= Sensor Connector =
+
+The sensor connector is a watertight DB9 male connector that contains +5V DC @ 100ma power, a 0-5V analog input, a digital control line, and a bidirectional TTL serial port.
+
+|| Pin || Description ||
+|| 1 || N/C ||
+|| 2 || N/C ||
+|| 3 || N/C ||
+|| 4 || N/C ||
+|| 5 || N/C ||
+|| 6 || N/C ||
+|| 7 || N/C ||
+|| 8 || N/C ||
+|| 9 || N/C ||
+
+= Motor Connector =
+
+The motor connector is a DB15 male connector that contains DC charging leads to the internal battery, three motor phases to drive a brushless DC motor (~12V @ 10A), and lines for a high-torque steeering servo (5V @ 2A).  In order to handle these currents, the pins on the connector are paired together, so each high-current load is split across two pins.
+
+|| Pin || Description ||
+|| 1 || N/C ||
+|| 2 || N/C ||
+|| 3 || N/C ||
+|| 4 || N/C ||
+|| 5 || N/C ||
+|| 6 || N/C ||
+|| 7 || N/C ||
+|| 8 || N/C ||
+|| 9 || N/C ||
