@@ -8,6 +8,8 @@ There are two primary types of connectors available on the vehicles, a *sensor* 
 
 The sensor connector is a watertight DB9 male connector that contains +5V DC @ 100ma power, a 0-5V analog input, a digital control line, and a bidirectional TTL serial port.
 
+https://docs.google.com/drawings/pub?id=11yK39E0AoaIxRG4ufvyOBV01eJktsC9YZTZWsP7ulxQ&w=253&h=181&fake.png
+
 || *Pin* || *Description* ||
 || 1 || N/C ||
 || 2 || N/C ||
@@ -22,6 +24,8 @@ The sensor connector is a watertight DB9 male connector that contains +5V DC @ 1
 = Motor Connector =
 
 The motor connector is a DB15 male connector that contains DC charging leads to the internal battery, three motor phases to drive a brushless DC motor (~12V @ 10A), and lines for a high-torque steeering servo (5V @ 2A).  In order to handle these currents, the pins on the connector are paired together, so each high-current load is split across two pins.
+
+https://docs.google.com/drawings/pub?id=11yK39E0AoaIxRG4ufvyOBV01eJktsC9YZTZWsP7ulxQ&w=253&h=181&fake.png
 
 || *Pin* || *Description* ||
 || 1 || N/C ||
