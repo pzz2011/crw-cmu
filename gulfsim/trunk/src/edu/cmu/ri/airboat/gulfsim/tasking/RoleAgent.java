@@ -2,10 +2,10 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.cmu.ri.airboat.client.tasking;
+package edu.cmu.ri.airboat.gulfsim.tasking;
 
-import edu.cmu.ri.airboat.client.BoatSimpleProxy;
-import edu.cmu.ri.airboat.client.ProxyManager;
+import edu.cmu.ri.airboat.gulfsim.BoatSimpleProxy;
+import edu.cmu.ri.airboat.gulfsim.ProxyManager;
 
 /**
  *

@@ -2,9 +2,9 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.cmu.ri.airboat.client.tasking;
+package edu.cmu.ri.airboat.gulfsim.tasking;
 
-import edu.cmu.ri.airboat.client.ProxyManager;
+import edu.cmu.ri.airboat.gulfsim.ProxyManager;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.Position;
 import java.util.Random;

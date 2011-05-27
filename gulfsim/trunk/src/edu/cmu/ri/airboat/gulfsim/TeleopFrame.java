@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.cmu.ri.airboat.client;
+package edu.cmu.ri.airboat.gulfsim;
 
 import edu.cmu.ri.airboat.client.gui.PidPanel;
 import edu.cmu.ri.airboat.client.gui.DrivePanel;

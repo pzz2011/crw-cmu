@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package edu.cmu.ri.airboat.client;
+package edu.cmu.ri.airboat.gulfsim;
 
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.render.markers.BasicMarker;

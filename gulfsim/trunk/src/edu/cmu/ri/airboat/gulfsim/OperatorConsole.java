@@ -2,13 +2,13 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.cmu.ri.airboat.client;
+package edu.cmu.ri.airboat.gulfsim;
 
 /**
  *
  * @author pscerri
  */
-import edu.cmu.ri.airboat.client.tasking.TestTaskGenerator;
+import edu.cmu.ri.airboat.gulfsim.tasking.TestTaskGenerator;
 import edu.cmu.ri.airboat.interfaces.AirboatCommand;
 import edu.cmu.ri.airboat.interfaces.AirboatControl;
 import gov.nasa.worldwind.*;

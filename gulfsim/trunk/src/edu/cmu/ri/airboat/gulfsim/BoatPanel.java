@@ -8,7 +8,7 @@
  *
  * Created on Feb 15, 2011, 9:02:30 PM
  */
-package edu.cmu.ri.airboat.client;
+package edu.cmu.ri.airboat.gulfsim;
 
 import gov.nasa.worldwind.geom.Position;
 

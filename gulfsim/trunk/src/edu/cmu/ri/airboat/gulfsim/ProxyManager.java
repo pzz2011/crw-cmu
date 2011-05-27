@@ -2,10 +2,10 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.cmu.ri.airboat.client;
+package edu.cmu.ri.airboat.gulfsim;
 
-import edu.cmu.ri.airboat.client.tasking.PlanAgent;
-import edu.cmu.ri.airboat.client.tasking.TOP;
+import edu.cmu.ri.airboat.gulfsim.tasking.PlanAgent;
+import edu.cmu.ri.airboat.gulfsim.tasking.TOP;
 import gov.nasa.worldwind.render.Material;
 import gov.nasa.worldwind.render.markers.Marker;
 import java.util.ArrayList;

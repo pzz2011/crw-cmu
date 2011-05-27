@@ -1,4 +1,4 @@
-package edu.cmu.ri.airboat.client.tasking;
+package edu.cmu.ri.airboat.gulfsim.tasking;
 
 public class PlanOperator extends PlanElement {
     private Role role = null;
