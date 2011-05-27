@@ -3,9 +3,9 @@
  * and open the template in the editor.
  */
 
-package edu.cmu.ri.airboat.client.tasking;
+package edu.cmu.ri.airboat.gulfsim.tasking;
 
-import edu.cmu.ri.airboat.client.ProxyManager;
+import edu.cmu.ri.airboat.gulfsim.ProxyManager;
 import gov.nasa.worldwind.render.Material;
 import gov.nasa.worldwind.render.markers.BasicMarkerAttributes;
 import gov.nasa.worldwind.render.markers.BasicMarkerShape;

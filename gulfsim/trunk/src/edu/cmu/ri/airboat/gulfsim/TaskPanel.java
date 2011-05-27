@@ -9,7 +9,7 @@
  * Created on Feb 16, 2011, 2:34:37 PM
  */
 
-package edu.cmu.ri.airboat.client;
+package edu.cmu.ri.airboat.gulfsim;
 
 /**
  *

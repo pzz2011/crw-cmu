@@ -2,10 +2,10 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.cmu.ri.airboat.client;
+package edu.cmu.ri.airboat.gulfsim;
 
 import com.flat502.rox.client.XmlRpcClient;
-import edu.cmu.ri.airboat.client.tasking.RoleAgent;
+import edu.cmu.ri.airboat.gulfsim.tasking.RoleAgent;
 import edu.cmu.ri.airboat.interfaces.AirboatCommand;
 import edu.cmu.ri.airboat.interfaces.AirboatControl;
 import gov.nasa.worldwind.geom.Angle;

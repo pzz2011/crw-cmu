@@ -8,7 +8,7 @@
  *
  * Created on Feb 24, 2011, 9:25:34 PM
  */
-package edu.cmu.ri.airboat.client;
+package edu.cmu.ri.airboat.gulfsim;
 
 import com.flat502.rox.server.XmlRpcServer;
 import edu.cmu.ri.airboat.server.AirboatDummy;
