@@ -27,7 +27,7 @@ import javax.swing.JOptionPane;
  *
  * @author pkv
  */
-public class Main {
+public class BoatConfig {
 
     /**
      * @param args the command line arguments
@@ -84,7 +84,7 @@ public class Main {
                         try {
                             controller.isConnected();
                         } catch (Exception ex) {
-                            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                            Logger.getLogger(BoatConfig.class.getName()).log(Level.SEVERE, null, ex);
                             this.cancel();
 
                             synchronized(isConnected) {
@@ -105,11 +105,11 @@ public class Main {
                     }
                 }
             } catch (MalformedURLException ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(BoatConfig.class.getName()).log(Level.SEVERE, null, ex);
             } catch (IOException ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(BoatConfig.class.getName()).log(Level.SEVERE, null, ex);
             } catch (Exception ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(BoatConfig.class.getName()).log(Level.SEVERE, null, ex);
             } finally {
                 if (timer != null) timer.cancel();
             }
