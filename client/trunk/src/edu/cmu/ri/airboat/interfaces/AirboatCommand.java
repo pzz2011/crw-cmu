@@ -9,44 +9,148 @@ package edu.cmu.ri.airboat.interfaces;
  *
  */
 public interface AirboatCommand {
-	
-	// High-level Waypoint controller 
-	/*** I would probably argue that this should not be a part of the server and should be at 
-	 * 	a higher level .... In fact all amarino, arduino code should be @ driver level along with
-	 * the lowest level PID gains. One step above should be base functionality: navigation etc.
-	 * Its navigation level that should be exposed, whereas the PID, arduino, gyro should be abstracted
-	 * So you have two services running: server/boat/arduino or what I tend to call robotCntl and
-	 * waypoint, obstacle detection, navigation or what I call taskExecution. the innermost loop (robotcntl)
-	 * can run as fast we think makes sense 10hz/100hz and so on, whereas the outer loop (taskExec) 
-	 * can run slower and comms between the two would be through xml/rpc. Now, if we feel that would 
-	 * have too heavy an overhead, wewe can run them on the same service and see if we can spawn off a 
-	 * thread ... ---- comments are welcome 
-	 */
-	
-	public double[] getWaypoint();
-	public boolean setWaypoint(double[] loc);
-	public boolean isWaypointComplete();
-	/****************************************************************************************/
-	
-	// Basic vehicle status
-	public boolean isConnected();
-	public boolean isAutonomous();
-	
-	// Access vehicle controller type
-	public boolean setController(String controlName);
-	public String getController();
-	public String[] getControllers();
-	
-	// Access filtered state information
-	public double[] getPose();
-	public boolean setPose(double[] state);
-	
-	// Store UTM zone information for position
-	public boolean isUTMHemisphereNorth();
-	public int getUTMZone();
-	public boolean setUTMZone(int zone, boolean isNorth);
-	
-	// Camera control functions
-	public byte[] getImage();
-	public boolean saveImage();
+
+    /**
+     * Returns the current waypoint that the vehicle is attempting to reach as
+     * a 6D pose.  The format of this pose is [x,y,z,roll,pitch,yaw] in the
+     * world coordinate frame.
+     *
+     * @return a 6D pose describing the current waypoint
+     */
+    public double[] getWaypoint();
+
+    /**
+     * Sets the current waypoint that should be used by the vehicle controller.
+     * This change should take effect immediately, overriding any previous
+     * waypoint.  The result of changing this waypoint depends on the controller
+     * that is currently in use.
+     * 
+     * @param loc a 6D pose describing the new current waypoint
+     * @return true if the waypoint was set successfully
+     */
+    public boolean setWaypoint(double[] loc);
+
+    /**
+     * Reports the completion of a waypoint. Intuitively, this represents a 
+     * condition such as getting within a certain raduis of the current 
+     * waypoint, but its behavior is ultimately defined by the current vehicle 
+     * controller.
+     * 
+     * @return true if the waypoint has been completed according to the controller
+     */
+    public boolean isWaypointComplete();
+
+    /**
+     * Indicates whether this vehicle server is currently connected to the
+     * low-level hardware system.
+     *
+     * @return true if the vehicle server is connected to low-level hardware
+     */
+    public boolean isConnected();
+
+    /**
+     * Indicates whether the vehicle controller is enabled, allowing for
+     * autonomous waypoint navigation.  If this is disabled, the vehicle
+     * controller will not be able to actuate the boat.
+     * 
+     * This state is controlled from the AirboatControl interface, and is 
+     * intended for use with emergency stop and teleoperation interfaces.
+     * 
+     * @return true if the vehicle controller is enabled
+     */
+    public boolean isAutonomous();
+
+    /**
+     * Sets the current vehicle controller, selected from the list specified
+     * by getControllers.
+     *
+     * The vehicle can have a number of controllers which encode different
+     * behaviors, such as circling a point or trying to hold a position.
+     *
+     * @param controlName the name of the controller to apply
+     * @return true if the controller was loaded successfully
+     */
+    public boolean setController(String controlName);
+
+    /**
+     * Returns the controller that is currently in use, as selected from the 
+     * list specified by getControllers.
+     * 
+     * @return the name of the currently active controller.
+     */
+    public String getController();
+
+    /**
+     * Lists the controllers that are currently available in this vehicle 
+     * server.  This can vary depending on the available hardware and vehicle
+     * type.
+     * 
+     * @return a list of available controllers
+     */
+    public String[] getControllers();
+
+    /**
+     * Returns the current pose of the vehicle, in a UTM registered world frame.
+     * The pose is returned in a 6D [x,y,z,roll,pitch,yaw] array.
+     *
+     * @return the current pose of the vehicle
+     */
+    public double[] getPose();
+
+    /**
+     * Sets the current pose of the vehicle by recomputing the origin of the
+     * vehicle frame to match the current pose estimate with the specified
+     * pose.  This may affect other poses that are also registered to the
+     * vehicle's world frame.
+     * 
+     * This function can be used to orient the boat in a joint world frame with
+     * other boats, or to correct pose offsets that may occur over time.
+     * 
+     * @param state the current pose of the vehicle
+     * @return true if the pose was successfully updated
+     */
+    public boolean setPose(double[] state);
+
+    /**
+     * Indicated whether the world frame used by the vehicle is a UTM zone in
+     * the northern or southern hemisphere.
+     *
+     * @return true if the UTM zone of the world frame is in the northern hemisphere
+     */
+    public boolean isUTMHemisphereNorth();
+
+    /**
+     * Indicates the longitudinal UTM zone that the vehicle world frame is
+     * using as an origin.
+     *
+     * @return the UTM longitude zone code of the current world frame
+     */
+    public int getUTMZone();
+
+    /**
+     * Changes the current UTM zone of the vehicle.  Can be used in conjunction
+     * with the setPose function to reorient the vehicle in a joint or
+     * virtual world frame.
+     *
+     * @param zone the UTM longitude zone code
+     * @param isNorth true if the UTM zone is in the northern hemisphere
+     * @return true if the world frame was successfully updated
+     */
+    public boolean setUTMZone(int zone, boolean isNorth);
+
+    /**
+     * Takes an image using the onboard camera and immediately returns it
+     * as a JPEG compressed byte array.
+     *
+     * @return a byte array containing a recently-taken image
+     */
+    public byte[] getImage();
+
+    /**
+     * Takes an image using the onboard camera and saves it to onboard storage
+     * on the device running the vehicle server.
+     *
+     * @return true if the image was taken successfully
+     */
+    public boolean saveImage();
 }
