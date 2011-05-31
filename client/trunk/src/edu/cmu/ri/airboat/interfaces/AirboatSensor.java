@@ -13,8 +13,8 @@ public interface AirboatSensor {
 	// Get 3D raw gyro readings
 	public double[] getGyro();
         
-        public String[] getSensorTypes();
-        public String getSensorType(int port);
-        public boolean setSensorType(int port, String type);
-        public double[] getSensor(int port);
+        public String[] getTypes();
+        public String getType(int port);
+        public boolean setType(int port, String type);
+        public double[] read(int port);
 }
