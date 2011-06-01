@@ -92,7 +92,7 @@ public class CameraPanel extends AbstractAirboatPanel {
 
             public void run() {
                 // Take a picture, and put the resulting image into the panel
-                byte[] jpegData = _command.getImage();
+                byte[] jpegData = _sensor.getImage();
                 try {
                     BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(jpegData));
                     if (image != null) {
@@ -121,7 +121,7 @@ public class CameraPanel extends AbstractAirboatPanel {
 
             public void run() {
                 // Take a picture, and re-enable the button
-                _command.saveImage();
+                _sensor.saveImage();
                 savePictureButton.setEnabled(true);
                 savePictureButton.setSelected(false);
             }

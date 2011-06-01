@@ -7,6 +7,7 @@ package edu.cmu.ri.airboat.client.gui;
 
 import edu.cmu.ri.airboat.interfaces.AirboatCommand;
 import edu.cmu.ri.airboat.interfaces.AirboatControl;
+import edu.cmu.ri.airboat.interfaces.AirboatSensor;
 import java.util.Timer;
 import java.util.TimerTask;
 import javax.swing.JPanel;
@@ -23,6 +24,7 @@ public abstract class AbstractAirboatPanel extends JPanel implements AirboatComp
     protected Timer _timer = new Timer();
     protected AirboatControl _control = null;
     protected AirboatCommand _command = null;
+    protected AirboatSensor _sensor = null;
 
     public AbstractAirboatPanel() {
         _timer.scheduleAtFixedRate(new UpdateTask(), 0, DEFAULT_UPDATE_PERIOD);
@@ -41,6 +43,10 @@ public abstract class AbstractAirboatPanel extends JPanel implements AirboatComp
 
     public final void setCommand(AirboatCommand command) {
         _command = command;
+    }
+
+    public final void setSensor(AirboatSensor sensor) {
+        _sensor = sensor;
     }
 
     public final void setUpdateRate(long period_ms) {
