@@ -137,20 +137,4 @@ public interface AirboatCommand {
      * @return true if the world frame was successfully updated
      */
     public boolean setUTMZone(int zone, boolean isNorth);
-
-    /**
-     * Takes an image using the onboard camera and immediately returns it
-     * as a JPEG compressed byte array.
-     *
-     * @return a byte array containing a recently-taken image
-     */
-    public byte[] getImage();
-
-    /**
-     * Takes an image using the onboard camera and saves it to onboard storage
-     * on the device running the vehicle server.
-     *
-     * @return true if the image was taken successfully
-     */
-    public boolean saveImage();
 }

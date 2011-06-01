@@ -14,6 +14,7 @@ package edu.cmu.ri.airboat.client.gui;
 import com.flat502.rox.client.XmlRpcClient;
 import edu.cmu.ri.airboat.interfaces.AirboatCommand;
 import edu.cmu.ri.airboat.interfaces.AirboatControl;
+import edu.cmu.ri.airboat.interfaces.AirboatSensor;
 import java.awt.Color;
 import java.net.URL;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
     private Timer _timer = new Timer();
     private AirboatControl _control = null;
     private AirboatCommand _command = null;
+    private AirboatSensor _sensor = null;
 
     /** Creates new form ConnectionPanel */
     public ConnectionPanel() {
@@ -126,7 +128,8 @@ public class ConnectionPanel extends javax.swing.JPanel {
             XmlRpcClient client = new XmlRpcClient(new URL((String)connectCombo.getSelectedItem()));
             _control = (AirboatControl)client.proxyObject("control.", AirboatControl.class);
             _command = (AirboatCommand)client.proxyObject("command.", AirboatCommand.class);
-            fireConnectionListener(_command, _control);
+            _sensor = (AirboatSensor)client.proxyObject("sensor.", AirboatSensor.class);
+            fireConnectionListener(_command, _control, _sensor);
         } catch (Exception ex) {
             System.err.println("Failed to open XML-RPC proxies: " + ex);
         }
@@ -141,7 +144,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
     // End of variables declaration//GEN-END:variables
 
     public static interface ConnectionListener {
-        public void connectionChanged(AirboatCommand cmd, AirboatControl ctrl);
+        public void connectionChanged(AirboatCommand cmd, AirboatControl ctrl, AirboatSensor sensor);
     }
 
     private List<ConnectionListener> listeners = new ArrayList<ConnectionListener>();
@@ -154,8 +157,9 @@ public class ConnectionPanel extends javax.swing.JPanel {
         listeners.remove(l);
     }
 
-    protected void fireConnectionListener(AirboatCommand cmd, AirboatControl ctrl){
+    protected void fireConnectionListener(AirboatCommand cmd, AirboatControl ctrl, AirboatSensor snsr){
         for(int i = 0; i < listeners.size(); i++)
-            (listeners.get(i)).connectionChanged(cmd, ctrl);
+            (listeners.get(i)).connectionChanged(cmd, ctrl, snsr);
     }
 }
+

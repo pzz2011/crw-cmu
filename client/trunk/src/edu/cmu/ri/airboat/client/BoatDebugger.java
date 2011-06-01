@@ -16,6 +16,7 @@ import edu.cmu.ri.airboat.client.gui.SimpleWorldPanel;
 import edu.cmu.ri.airboat.client.gui.WaypointPanel;
 import edu.cmu.ri.airboat.interfaces.AirboatCommand;
 import edu.cmu.ri.airboat.interfaces.AirboatControl;
+import edu.cmu.ri.airboat.interfaces.AirboatSensor;
 import edu.cmu.ri.airboat.server.AirboatDummy;
 import edu.cmu.ri.airboat.server.AirboatSecurityManager;
 import java.awt.BorderLayout;
@@ -141,6 +142,13 @@ public class BoatDebugger extends javax.swing.JFrame {
             cameraPanel.setCommand(command);
         }
 
+        public void setSensor(AirboatSensor sensor) {
+            posePanel.setSensor(sensor);
+            waypointPanel.setSensor(sensor);
+            controllerPanel.setSensor(sensor);
+            cameraPanel.setSensor(sensor);
+        }
+
         public void setUpdateRate(long period_ms) {
             posePanel.setUpdateRate(period_ms);
             waypointPanel.setUpdateRate(period_ms);
@@ -193,6 +201,12 @@ public class BoatDebugger extends javax.swing.JFrame {
             drivePanel.setCommand(command);
         }
 
+        public void setSensor(AirboatSensor sensor) {
+            pidThrustPanel.setSensor(sensor);
+            pidRudderPanel.setSensor(sensor);
+            drivePanel.setSensor(sensor);
+        }
+
         public void setUpdateRate(long period_ms) {
             pidThrustPanel.setUpdateRate(period_ms);
             pidRudderPanel.setUpdateRate(period_ms);
@@ -203,14 +217,16 @@ public class BoatDebugger extends javax.swing.JFrame {
     private ConnectionPanel.ConnectionListener _connectionListener =
             new ConnectionPanel.ConnectionListener() {
 
-        public void connectionChanged(AirboatCommand cmd, AirboatControl ctrl) {
+        public void connectionChanged(AirboatCommand cmd, AirboatControl ctrl, AirboatSensor sensor) {
 
             // When the connection is changed, update all subcomponents
             _cmdPanel.setCommand(cmd);
             _cmdPanel.setControl(ctrl);
+            _cmdPanel.setSensor(sensor);
 
             _ctrlPanel.setCommand(cmd);
             _ctrlPanel.setControl(ctrl);
+            _ctrlPanel.setSensor(sensor);
         }
     };
 
