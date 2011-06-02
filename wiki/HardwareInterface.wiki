@@ -6,20 +6,22 @@ There are two primary types of connectors available on the vehicles, a *sensor* 
 
 = Sensor Connector =
 
-The sensor connector is a watertight DB9 male connector that contains +5V DC @ 100ma power, a 0-5V analog input, a digital control line, and a bidirectional TTL serial port.
+The sensor connector is a watertight DB9 male connector that contains +5V DC @ 100ma power, a 0-5V analog input, two digital control lines, and a bidirectional TTL serial port.
+
+*Note: The current connector implements a TTL-level serial port, and CANNOT handle RS-232 signal levels.  We may address RS-232 devices in future revisions, but currently, only TTL communication is supported*
 
 https://docs.google.com/drawings/pub?id=11yK39E0AoaIxRG4ufvyOBV01eJktsC9YZTZWsP7ulxQ&w=253&h=181&fake.png
 
-|| *Pin* || *Description* ||
-|| 1 || N/C ||
-|| 2 || N/C ||
-|| 3 || N/C ||
-|| 4 || N/C ||
-|| 5 || N/C ||
-|| 6 || N/C ||
-|| 7 || N/C ||
-|| 8 || N/C ||
-|| 9 || N/C ||
+|| *Pin* || *Serial Port Function* || *Description* ||
+|| 1 || Data Carrier Detect || (0-5V) Analog Input ||
+|| 2 || Received Data || RX ||
+|| 3 || Transmitted Data || TX ||
+|| 4 || Data Terminal Ready || +5V DC ||
+|| 5 || Signal Ground || GND ||
+|| 6 || Data Set Ready || TTL Digital Input ||
+|| 7 || Request to Send || N/C ||
+|| 8 || Clear to Send || N/C ||
+|| 9 || Ring Indicator || TTL Digital Input ||
 
 = Motor Connector =
 
