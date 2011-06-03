@@ -1,4 +1,4 @@
 #summary Navigation sidebar.
   * [SystemArchitecture System Architecture]
-    * [HardwareInterface Hardware Architecture]
-    * [CoordinateFrames Coordinate Frames] 
+  * [HardwareInterface Hardware Architecture]
+  * [CoordinateFrames Coordinate Frames] 
