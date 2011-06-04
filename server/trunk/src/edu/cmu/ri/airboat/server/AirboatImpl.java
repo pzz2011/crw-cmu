@@ -513,4 +513,28 @@ public class AirboatImpl implements AirboatCommand, AirboatControl, AirboatSenso
 		return true;
 	}
 
+	@Override
+	public String getType(int arg0) {
+		// TODO Auto-generated method stub
+		return "None";
+	}
+
+	@Override
+	public String[] getTypes() {
+		// TODO Auto-generated method stub
+		return new String[] {"None"};
+	}
+
+	@Override
+	public double[] read(int arg0) {
+		// TODO Auto-generated method stub
+		return new double[0];
+	}
+
+	@Override
+	public boolean setType(int arg0, String arg1) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

@@ -12,5 +12,6 @@
 	<classpathentry kind="lib" path="libs/rox-rf.jar"/>
 	<classpathentry kind="lib" path="libs/microlog4android-1.0.0.jar"/>
 	<classpathentry kind="lib" path="libs/jscience-4.3.jar"/>
+	<classpathentry kind="lib" path="libs/AirboatClient.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
