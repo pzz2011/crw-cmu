@@ -11,3 +11,12 @@ The client library contains all of the interface and utility code necessary to c
 = [http://code.google.com/p/crw-cmu/source/browse/#svn%2Fserver%2Ftrunk Server] =
 
 The server application is an Android application that implements and services the interfaces provided by the client library.  It contains filtering code to handle pose estimation from the on-phone and vehicle sensors, connects to external add-on sensors, and provides a set of low-level navigation controllers that can be selected to perform different vehicle behaviors.
+
+= [http://code.google.com/p/crw-cmu/source/browse/#svn%2Ffirmware%2Ftrunk Arduino Firmware]
+
+The vehicle interfaces with all low-level devices (serial, analog, and general purpose digital IO) through an Arduino-compatible microcontroller.  The Arduino firmware flashed onto this device provides this functionality through a series of parallel co-routines that implement the necessary functionality.  This project is fairly device specific, and may change drastically if the microcontroller is changed between vehicles.  For older microcontrollers, it may be necessary to search previous [http://code.google.com/p/crw-cmu/source/browse/#svn%2Ffirmware%2Ftags tagged firmware versions]
+
+= [http://code.google.com/p/crw-cmu/source/browse/#svn%2Fbtupdater%2Ftrunk Bluetooth Updater] =
+
+In the current implementation of the vehicles, communication is done via a serial Bluetooth link.  This project contains Arduino code that updates the firmware on a connected Bluetooth serial module, configuring it with the necessary settings to connect transparently to applications on the Android phone.
+
