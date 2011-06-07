@@ -24,7 +24,7 @@ In the current implementation of the vehicles, communication is done via a seria
 
 == [http://code.google.com/p/crw-cmu/source/browse/#svn%2Fgulfsim%2Ftrunk GulfSim] ==
 
-GulfSim is a sample application that uses the client library to demonstrate operating a fleet of boats in a pollution monitoring environment.
+!GulfSim is a sample application that uses the client library to demonstrate operating a fleet of boats in a pollution monitoring environment.
 
 = Design Sub-Repositories =
 
