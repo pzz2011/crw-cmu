@@ -4,10 +4,6 @@
 
 The [http://code.google.com/p/crw-cmu/source/browse/ SVN repository] hosted here is intended to contain all of the documentation and code necessary to build and use one of our vehicles.  Here, we describe the overall layout of the repository, and where difference pieces of code are organized.
 
-----
-<wiki:toc max_depth="2" />
-----
-
 = Code Sub-Repositories =
 
 == [http://code.google.com/p/crw-cmu/source/browse/#svn%2Fclient%2Ftrunk Client] ==
