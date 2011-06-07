@@ -1,5 +1,5 @@
 #summary Navigation sidebar.
   * [SystemArchitecture System Architecture]
-  * [HardwareInterface Hardware Architecture]
+  * [HardwareInterface Hardware Interfaces]
   * [CoordinateFrames Coordinate Frames] 
   * [RepositoryLayout Repository Layout]
