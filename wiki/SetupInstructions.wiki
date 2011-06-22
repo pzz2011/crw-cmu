@@ -1,4 +1,4 @@
-#summary A guide to setting up development for Airboats
+#summary A guide to setting up development for Airboat Server and Client
 
 = Introduction =
 
