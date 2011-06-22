@@ -1,0 +1,15 @@
+#summary A guide to setting up development for Airboats
+
+= Introduction =
+
+Development for the Airboat server and Android app is done on Eclipse Helios using the Android SDK. Instructions are pretty straightforward, and are accessible on http://developer.android.com/sdk/installing.html
+
+Development on the client side is done on Netbeans 6.9 IDE and doesn't require any majotr configuration. You should be good to go running airboat-client from netbeans. You might need to change the folder attributes however. 
+
+= Details =
+
+The above procedure has been tested to work on the following distributions
+
+Ubuntu 10.10, 11.04
+Fedora 15
+Mac OS X 10.6.7
