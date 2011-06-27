@@ -1,5 +1,6 @@
 #summary A guide to setting up development for Airboat Server and Client
-
+=Contents=
+<wiki:toc max_depth="3" />
 = Introduction =
 
 Development for the Airboat server and Android app is done on Eclipse Helios using the Android SDK. Instructions are pretty straightforward, and are accessible on http://developer.android.com/sdk/installing.html
