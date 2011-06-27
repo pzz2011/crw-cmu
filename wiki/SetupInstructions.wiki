@@ -4,28 +4,27 @@
 
 Development for the Airboat server and Android app is done on Eclipse Helios using the Android SDK. Instructions are pretty straightforward, and are accessible on http://developer.android.com/sdk/installing.html
 
-Development on the client side is done on Netbeans 6.9 IDE and doesn't require any majotr configuration. You should be good to go running airboat-client from netbeans. You might need to change the folder attributes however. 
+Development on the client side is done on Netbeans 6.9 IDE and doesn't require any major configuration. You should be good to go running airboat-client from netbeans. You might need to change the folder attributes however. 
 
 = Compiling with rosjava =
 
 Follow the instructions on http://code.google.com/p/rosjava/wiki/Welcome to download rosjava.
-
-So, check out the rosjava repository:
+For the sake of completeness, check out the rosjava repository thus:
 
 `rosinstall ~/ros http://rosjava.googlecode.com/hg/rosjava.rosinstall`
-(where ~/ros is where you'd have your default workspace)
 
+(where ~/ros is where you'd have your default workspace)
 and then run `ant dist` to build the jar files within rosjava.
 
-Now, to develop any Android application  in Eclipse utilizing rosjava, you need to include the ~/ros/rosjava/android/library android project and the ~/ros/rosjava/rosjava project for hard coded dependencies. You will probably also need to fix the libraries that are to be included in the project as the default paths are relative. These libraries should have been built in ~/ros/rosjava/rosjava/lib. Take care, however to not include rosjava.jar or mockito-all-<ver>.jar as they are already defined in /rosjava
+Now, to develop any Android application  in Eclipse utilizing rosjava, you *need* to include the `~/ros/rosjava/android/library` android project and the `~/ros/rosjava/rosjava` project for hard coded dependencies. You will probably also need to fix the libraries that are to be included in the project as the default paths are relative. These libraries should have been built in `~/ros/rosjava/rosjava/lib`. Take care, however to not include `rosjava.jar` or `mockito-all-1.85.jar` as they are already defined in `~/ros/rosjava/rosjava`
 
 ==Using the rosjava tutorials==
 
 ===Making the code run on an Android device===
-  # In ~/ros/rosjava/android goto /tutorials and /library, and modify build_projects.sh to point to android-10 (or whatever your target android sdk is) instead of (weirdly) android-9
-  # Open any /tutorials project in Eclipse. Library paths will be messed up, so deleted them, and include them from ~/ros/rosjava/rosjava/lib. Take care not to include rosjava.jar and mockito-all-<ver>.jar
-  # Library (and project) issues - use File->Import existing project to include ~/ros/rosjava/android/library and ~/ros/rosjava/rosjava
-  # You will still have errors in the Manifest file. Remove the tags stating uses=help, and the code should compile
+  # In `~/ros/rosjava/android` goto `/tutorials` and `/library`, and modify `build_projects.sh` to point to android-10 (or whatever your target android sdk is) instead of (weirdly) android-9
+  # Open any `/tutorials` project in Eclipse. Library paths will be messed up, so deleted them, and include them from `~/ros/rosjava/rosjava/lib`. Take care not to include `rosjava.jar` and `mockito-all-1.85.jar`
+  # Library (and project) issues - use File->Import existing project to include `~/ros/rosjava/android/library` and `~/ros/rosjava/rosjava`
+  # You will still have errors in the Manifest files for the tutorial and the android library project. Remove the tags stating `uses=help`, and the code should compile
 
 ===Interacting with the topics on the Android device===
 
@@ -33,17 +32,21 @@ Due to rosjava still being in alpha state the roscore seems to have issues in do
 
 To accomplish this, in the main activity class file edit the following code 
 
-`rosCore = RosCore.createPublic(11311);`
-`nodeConfiguration.setMasterUri(rosCore.getUri());`
+{{{
+rosCore = RosCore.createPublic(11311);
+nodeConfiguration.setMasterUri(rosCore.getUri());
+}}}
 
 to be
 
-`rosCore = RosCore.createPublic("128.237.241.115",11311);`
-`nodeConfiguration.setMasterUri(new URI("http://syrah.cimds.ri.cmu.edu:11311"));`
+{{{
+rosCore = RosCore.createPublic("128.237.241.115",11311);
+nodeConfiguration.setMasterUri(new URI("http://syrah.cimds.ri.cmu.edu:11311"));
+}}}
 
 where 128.237.241.115 is the IP address of the android device on the network (e.g. WiFi). This can be replaced by a request for the current IP, eliminating the need for a static IP address.
 
-What this does is that it assigns the nodes to run on the local Android IP address which can be resolved by a rostopic command running on the network rather than the default localhost which cannot be resolved by an external rostopic, giving XML-RPC errors in the process.
+What the first line does is that it assigns the nodes to run on the local Android IP address which can be resolved by a rostopic command running on the network rather than the default localhost which cannot be resolved by an external rostopic, giving XML-RPC errors in the process.
 
 The second command simply tells the code which roscore is to be utilized.
 
