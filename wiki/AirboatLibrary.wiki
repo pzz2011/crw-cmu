@@ -3,10 +3,13 @@
 
 = Introduction =
 
-Add your content here.
-
+The aim here is to create  a barebone implementation of an interface  (preferably) or an abstract class library of rosjava precompiled within itself, so that this library could be implemented in any java project. Specifically, the implementation of this library for a real airboat will declare how, say, setWaypoint() works by selecting a controller and configuring it using PIDs. However, for a simulation, these methods could be declared so as to only move in a cartesian space on the GUI, or however the simulator wants to move the boats.
 
 = Details =
+
+This library handles the basic minimum methods required to control an airboat;higher order functions like setAOI(Area Of Interest), setNewThresh(To set the 'newness' threshold for the image) and airboatStates (Which stores the state of the other boats) are not crucial to the core functionality and can be implemented with the boat control implementation of this bare bones library.
+
+Not everything required by the server needs to be published.
 
 Topics to be published by the server
 
