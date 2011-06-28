@@ -1,4 +1,5 @@
 #summary A guide to setting up development for Airboat Server and Client
+#labels Phase-Implementation,Phase-Deploy,rosjava
 =Contents=
 <wiki:toc max_depth="3" />
 = Introduction =
@@ -25,7 +26,7 @@ Now, to develop any Android application  in Eclipse utilizing rosjava, you *need
   # In `~/ros/rosjava/android` goto `/tutorials` and `/library`, and modify `build_projects.sh` to point to android-10 (or whatever your target android sdk is) instead of (weirdly) android-9
   # Open any `/tutorials` project in Eclipse. Library paths will be messed up, so deleted them, and include them from `~/ros/rosjava/rosjava/lib`. Take care not to include `rosjava.jar` and `mockito-all-1.85.jar`
   # Library (and project) issues - use File->Import existing project to include `~/ros/rosjava/android/library` and `~/ros/rosjava/rosjava`
-  # You will still have errors in the Manifest files for the tutorial and the android library project. Remove the tags stating `uses=help`, and the code should compile
+  # You will still have errors in the Manifest files for the tutorial and the android library project. Remove the argument `default="help"` from the tag {{{<project name="MainActivity" default="help">}}}, and the code should compile
 
 ===Interacting with the topics on the Android device===
 
