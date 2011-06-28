@@ -13,12 +13,12 @@ Not everything required by the server needs to be published.
 
 Topics to be published by the server
 
-|| *Name* || *Arguments* || *Description* ||
-|| state || || Published state of the Airboat||
-|| image || || Publishes the captured image ||
-|| sensor1 || || Publishes sensor data ||
-|| sensor2 || || -do- ||
-|| sensor3 || || -do- ||
+|| *Name*  || *Description* ||
+|| state  || Published state of the Airboat||
+|| image  || Publishes the captured image ||
+|| sensor1 || Publishes sensor data ||
+|| sensor2 || -do- ||
+|| sensor3 || -do- ||
 
 Service methods implemented for the server
 
