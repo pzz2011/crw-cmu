@@ -31,8 +31,6 @@
     <path refid="jar.classpath" />
   </path>
 
-  <echo message="${toString:classpath}" />
-
   <target name="check-msg-gen-skip">
     <available file="${msg-gen}" type="dir" property="msg-gen.skip" />
   </target>
@@ -45,7 +43,6 @@
 
       <!-- list of packages to generate messages for -->
       <arg value="actionlib_msgs" />
-      <arg value="actionlib_tutorials" />
     </exec>
   </target>
 
@@ -69,16 +66,12 @@
       <fileset dir="src">
         <exclude name="**/*.java" />
       </fileset>
-      <fileset dir="tutorials">
-        <exclude name="**/*.java" />
-      </fileset>
     </copy>
 
     <javac debug="true" debuglevel="${debuglevel}" destdir="${build}" source="${javac-source}"
         target="${javac-target}" includeantruntime="false">
       <classpath refid="classpath" />
       <src path="src" />
-      <src path="tutorials" />
       <src path="${msg-gen}" />
       <!-- <src path="${srv-gen}" /> -->
     </javac>
@@ -112,7 +105,8 @@
     </junitreport>
   </target>
 
-  <target name="jar">
+  <target name="jar" depends="compile">
+    <mkdir dir="${dist}" />
     <manifestclasspath property="jar.crwlib.classpath" jarfile="${jar.crwlib}">
       <classpath>
         <path refid="jar.classpath"/>
@@ -122,10 +116,12 @@
       <manifest>
         <attribute name="Class-Path" value="${jar.crwlib.classpath}" />
       </manifest>
+      <!-- Use this to exclude sample code from distribution package
       <fileset dir="${build}">
-      	<exclude name="org/ros/message/crwlib_tutorials/**" />
-        <exclude name="org/ros/crwlib/example/**" />
-      </fileset>
+      	<exclude name="org/ros/message/actionlib_tutorials/**" />
+        <exclude name="org/ros/actionlib/example/**" />
+      </fileset> 
+      -->
     </jar>
     <copy file="${jar.crwlib}" todir="lib" />
   </target>
