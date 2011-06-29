@@ -42,8 +42,8 @@
       <arg value="-o ${msg-gen}" />
 
       <!-- list of packages to generate messages for -->
-      <arg value="crwlib_msgs" />
-      <arg value="crwlib_tutorials" />
+      <arg value="std_msgs" />
+      <arg value="geometry_msgs" />
     </exec>
   </target>
 
