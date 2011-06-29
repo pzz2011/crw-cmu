@@ -8,7 +8,7 @@
 
   <import file="${rosjava.path}/../build-common.xml" />
 
-  <property name="lib" location="${rosjava.path}/../lib" />
+  <property name="lib" location="${rosjava.path}/lib" />
   <property name="msg-gen" location="${gen}/msg_gen/java" />
   <property name="srv-gen" location="${gen}/srv_gen/java" />
 
@@ -31,6 +31,8 @@
     <path refid="jar.classpath" />
   </path>
 
+  <echo message="${toString:classpath}" />
+
   <target name="check-msg-gen-skip">
     <available file="${msg-gen}" type="dir" property="msg-gen.skip" />
   </target>
@@ -38,12 +40,12 @@
   <target name="msg-gen" depends="check-msg-gen-skip" unless="msg-gen.skip">
     <echo message="Building commonly used ROS messages..." />
 
-    <exec executable="${rosjava.path}/../rosjava/scripts/java_msgs.py">
+    <exec executable="${rosjava.path}/scripts/java_msgs.py">
       <arg value="-o ${msg-gen}" />
 
       <!-- list of packages to generate messages for -->
-      <arg value="std_msgs" />
-      <arg value="geometry_msgs" />
+      <arg value="actionlib_msgs" />
+      <arg value="actionlib_tutorials" />
     </exec>
   </target>
 
@@ -54,7 +56,7 @@
   <target name="srv-gen" depends="check-srv-gen-skip" unless="srv-gen.skip">
     <echo message="Building commonly used ROS services..." />
 
-    <exec executable="${rosjava.path}/../rosjava/scripts/java_srvs.py">
+    <exec executable="${rosjava.path}/scripts/java_srvs.py">
       <arg value="-o ${srv-gen}" />
 
       <!-- list of packages to generate for -->
