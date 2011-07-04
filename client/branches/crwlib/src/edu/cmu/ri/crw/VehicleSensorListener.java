@@ -1,5 +1,7 @@
 package edu.cmu.ri.crw;
 
-public interface VehicleSensorListener {
-	public void recievedSensor(Object sensor);
+import java.util.EventListener;
+
+public interface VehicleSensorListener extends EventListener {
+	public void receivedSensor(Object sensor);
 }

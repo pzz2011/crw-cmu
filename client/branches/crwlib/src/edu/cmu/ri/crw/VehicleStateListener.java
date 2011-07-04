@@ -1,5 +1,7 @@
 package edu.cmu.ri.crw;
 
-public interface VehicleStateListener {
+import java.util.EventListener;
+
+public interface VehicleStateListener extends EventListener {
 	public void receivedState(Object state);
 }
