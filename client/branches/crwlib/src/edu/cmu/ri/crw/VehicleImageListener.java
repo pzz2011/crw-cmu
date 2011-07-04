@@ -1,5 +1,7 @@
 package edu.cmu.ri.crw;
 
-public interface VehicleImageListener {
+import java.util.EventListener;
+
+public interface VehicleImageListener extends EventListener {
 	public void receivedImage(Object image);
 }
