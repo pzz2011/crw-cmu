@@ -13,15 +13,15 @@ The sensor connector is a watertight DB9 male connector that contains +5V DC @ 1
 https://docs.google.com/drawings/pub?id=11yK39E0AoaIxRG4ufvyOBV01eJktsC9YZTZWsP7ulxQ&w=253&h=181&fake.png
 
 || *Pin* || *Serial Port Function* || *Description* ||
-|| 1 || Data Carrier Detect || (0-5V) Analog Input ||
+|| 1 || Data Carrier Detect || GND ||
 || 2 || Received Data || TTL RX ||
 || 3 || Transmitted Data || TTL TX ||
-|| 4 || Data Terminal Ready || +5V DC ||
-|| 5 || Signal Ground || GND ||
-|| 6 || Data Set Ready || TTL Digital Input ||
-|| 7 || Request to Send || N/C ||
-|| 8 || Clear to Send || N/C ||
-|| 9 || Ring Indicator || TTL Digital Input ||
+|| 4 || Data Terminal Ready || N/C ||
+|| 5 || Signal Ground || N/C ||
+|| 6 || Data Set Ready || GND ||
+|| 7 || Request to Send || +5V (@ 100 ma) ||
+|| 8 || Clear to Send || (0-5V) Analog Input ||
+|| 9 || Ring Indicator || N/C ||
 
 = Motor Connector =
 
