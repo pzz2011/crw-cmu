@@ -14,8 +14,8 @@ https://docs.google.com/drawings/pub?id=11yK39E0AoaIxRG4ufvyOBV01eJktsC9YZTZWsP7
 
 || *Pin* || *Serial Port Function* || *Description* ||
 || 1 || Data Carrier Detect || GND ||
-|| 2 || Received Data || TTL RX ||
-|| 3 || Transmitted Data || TTL TX ||
+|| 2 || Received Data || TTL TX (Output) ||
+|| 3 || Transmitted Data || TTL RX (Input) ||
 || 4 || Data Terminal Ready || N/C ||
 || 5 || Signal Ground || N/C ||
 || 6 || Data Set Ready || GND ||
