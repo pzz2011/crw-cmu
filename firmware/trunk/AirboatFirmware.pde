@@ -34,16 +34,12 @@
 #define SET_PID_FN 'k'
 #define GET_PID_FN 'l'
 
-#define UPDATE_INTERVAL  10
-#define TE_UPDATE_INTERVAL  100
-
-int updateCnt = 0;
+// Defines update interval in milliseconds
+#define UPDATE_INTERVAL 10
 
 // Arrays to store the actual and desired velocity of the vehicle in 6D
 float desiredVelocity[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 float actualVelocity[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-
-double gyroBias[3];
 
 // Structure storing PID constants for each axis
 struct pidConstants_t { float Kp[6], Ki[6], Kd[6]; } pid;
@@ -102,14 +98,7 @@ void update()
   updateGyro();
   updateRudder();
   updateThruster();
-  updateCnt++;
-  
-  // Update the TE sensor once a sec
-  if (updateCnt > TE_UPDATE_INTERVAL)
-  {
-      updateTE();
-      updateCnt = 0;
-  }
+  updateTE();
 }
 
 /**
