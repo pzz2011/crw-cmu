@@ -7,11 +7,15 @@
 
 #include <SoftwareSerial.h>
 
-// Define the char codes for the Amarino callback
+// Define the char code for the Amarino callback
 #define RECV_TE_FN 's'
 
 #define SENSOR_RX_PIN 8
 #define SENSOR_PWR_PIN 12
+
+#define TE_UPDATE_INTERVAL 100
+
+int updateCnt = 0;
 
 SoftwareSerial sensorSerial =  SoftwareSerial(SENSOR_RX_PIN, 0);
 int crc = 0;
@@ -92,19 +96,23 @@ float toDielectric(const int &rawDielectric) {
 }
 
 void updateTE() {
-   int d, c, t;
-   char type;
+  int d, c, t;
+  char type;
+
+  // Only update the TE sensor once every several cycles
+  updateCnt++;
+  if (updateCnt <= TE_UPDATE_INTERVAL)
+    return;
+  updateCnt = 0;   
    
-   // Read from sensor
-   read(d, c, t, type);
-   
-   // Convert and output the returned values
-   amarino.send(RECV_TE_FN);
-   amarino.send(toDielectric(d));
-   amarino.send(toConductivity(c));
-   amarino.send(toTemp(t));
-   amarino.sendln();
-   
-   delay(1000);
+  // Read from sensor
+  read(d, c, t, type);
+  
+  // Convert and output the returned values
+  amarino.send(RECV_TE_FN);
+  amarino.send(toDielectric(d));
+  amarino.send(toConductivity(c));
+  amarino.send(toTemp(t));
+  amarino.sendln();
 }
 

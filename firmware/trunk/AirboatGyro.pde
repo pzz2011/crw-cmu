@@ -18,12 +18,18 @@
 #define PWR_MGM 0x3E
 #define TO_READ 8 // 2 bytes for each gyro axis x, y, z & temp
 
-//gyro average
+// Gyro average
 int gyro_cnt = 0;
 double x_avg = 0;
 double y_avg = 0;
 double z_avg = 0;
 
+// Stores the bias values for the gyro
+double gyroBias[3];
+
+/**
+ * Sends an addressed byte command to the gyro.
+ */
 void writeTo(int device, byte address, byte val) {
   Wire.beginTransmission(device);
   Wire.send(address);
@@ -31,7 +37,9 @@ void writeTo(int device, byte address, byte val) {
   Wire.endTransmission();
 }
 
-
+/**
+ * Reads a number of bytes from a specified address on the gyro.
+ */
 void readFrom(int device, byte address, int num, byte buff[]) {
   Wire.beginTransmission(device); 
   Wire.send(address);
@@ -113,6 +121,7 @@ void updateGyro()
   
   readFrom(GYRO_ADDR, regAddress, TO_READ, buff);
   
+  // Unpack each axis, removing the steady-state bias
   temp = (buff[0] << 8) | buff[1];
   x = ((buff[2] << 8) | buff[3]) - gyroBias[0];
   y = ((buff[4] << 8) | buff[5]) - gyroBias[1];
