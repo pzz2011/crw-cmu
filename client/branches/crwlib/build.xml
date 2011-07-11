@@ -1,128 +1,42 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="default" name="java">
-  <exec executable="rospack" outputproperty="rosjava.path">
-    <arg value="find" />
-    <arg value="rosjava" />
-  </exec>
-  <echo message="Using rosjava at ${rosjava.path}" />
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="crwlib" default="default">
 
-  <import file="${rosjava.path}/../build-common.xml" />
+  <property file="ros.properties" />
+  <property name="build" location="build" />
 
-  <property name="lib" location="${rosjava.path}/lib" />
-  <property name="msg-gen" location="${gen}/msg_gen/java" />
-  <property name="srv-gen" location="${gen}/srv_gen/java" />
-
-  <property name="jar.crwlib" location="${dist}/crwlib.jar" />
-
-  <path id="jar.classpath">
-    <pathelement location="${lib}/dnsjava-2.1.1.jar" />
-    <pathelement location="${lib}/commons-codec-1.3.jar" />
-    <pathelement location="${lib}/commons-httpclient-3.1.jar" />
-    <pathelement location="${lib}/commons-logging-1.1.1.jar" />
-    <pathelement location="${lib}/guava-r07.jar" />
-    <pathelement location="${lib}/mockito-all-1.8.5.jar" />
-    <pathelement location="${lib}/netty-3.2.4.Final.jar" />
-    <pathelement location="${lib}/junit-4.8.2.jar" />
-    <pathelement location="${lib}/rosjava.jar" />
-  </path>
-
+  <property name="dist" location="dist" />
+  <property name="build" location="build" />
+  <property name="src" location="src" />
+  
   <path id="classpath">
-    <pathelement location="${build}" />
-    <path refid="jar.classpath" />
+    <pathelement path="${ros.compile.classpath}" />
   </path>
+  
+  <echo message="${toString:classpath}" />
 
-  <target name="check-msg-gen-skip">
-    <available file="${msg-gen}" type="dir" property="msg-gen.skip" />
+  <target name="default" depends="init, compile" />
+
+  <target name="init">
+    <fail unless="ros.classpath" message="ros.properties is missing.  Please type 'rosmake' first "/>
+    <mkdir dir="${build}" />
+    <mkdir dir="${dist}" />
   </target>
 
-  <target name="msg-gen" depends="check-msg-gen-skip" unless="msg-gen.skip">
-    <echo message="Building commonly used ROS messages..." />
+  <target name="compile" depends="init">
 
-    <exec executable="${rosjava.path}/scripts/java_msgs.py">
-      <arg value="-o ${msg-gen}" />
-
-      <!-- list of packages to generate messages for -->
-      <arg value="actionlib_msgs" />
-    </exec>
-  </target>
-
-  <target name="check-srv-gen-skip">
-    <available file="${srv-gen}" type="dir" property="srv-gen.skip" />
-  </target>
-
-  <target name="srv-gen" depends="check-srv-gen-skip" unless="srv-gen.skip">
-    <echo message="Building commonly used ROS services..." />
-
-    <exec executable="${rosjava.path}/scripts/java_srvs.py">
-      <arg value="-o ${srv-gen}" />
-
-      <!-- list of packages to generate for -->
-    </exec>
-  </target>
-
-  <target name="compile" depends="msg-gen">
-    <!-- copy all assets -->
-    <copy todir="${build}">
-      <fileset dir="src">
-        <exclude name="**/*.java" />
-      </fileset>
-    </copy>
-
-    <javac debug="true" debuglevel="${debuglevel}" destdir="${build}" source="${javac-source}"
-        target="${javac-target}" includeantruntime="false">
+    <javac destdir="${build}">
       <classpath refid="classpath" />
-      <src path="src" />
-      <src path="${msg-gen}" />
-      <!-- <src path="${srv-gen}" /> -->
+      <src path="${src}" />
     </javac>
   </target>
 
-  <target name="init-test">
-    <mkdir dir="${test-output}" />
+  <target name="clean">
+    <delete dir="${build}" />
+    <delete dir="${dist}" />
   </target>
 
-  <target name="test" depends="init-test">
-    <!-- clear any previous results -->
-    <delete>
-      <fileset dir="${test-output}">
-        <include name="*/**" />
-      </fileset>
-    </delete>
-    <junit printsummary="yes">
-      <classpath refid="classpath" />
-      <formatter type="xml" />
-      <batchtest todir="${test-output}">
-        <fileset dir="tests">
-          <include name="**/*Test.java" />
-        </fileset>
-      </batchtest>
-    </junit>
-    <junitreport todir="${test-output}">
-      <fileset dir="${test-output}">
-        <include name="TEST-*.xml" />
-      </fileset>
-      <report format="frames" todir="${test-output}/html" />
-    </junitreport>
-  </target>
+  <!-- required entry point -->
+  <target name="test" />
 
-  <target name="jar" depends="compile">
-    <mkdir dir="${dist}" />
-    <manifestclasspath property="jar.crwlib.classpath" jarfile="${jar.crwlib}">
-      <classpath>
-        <path refid="jar.classpath"/>
-      </classpath>
-    </manifestclasspath>
-    <jar destfile="${jar.crwlib}">
-      <manifest>
-        <attribute name="Class-Path" value="${jar.crwlib.classpath}" />
-      </manifest>
-      <!-- Use this to exclude sample code from distribution package
-      <fileset dir="${build}">
-      	<exclude name="org/ros/message/actionlib_tutorials/**" />
-        <exclude name="org/ros/actionlib/example/**" />
-      </fileset> 
-      -->
-    </jar>
-    <copy file="${jar.crwlib}" todir="lib" />
-  </target>
 </project>
+
