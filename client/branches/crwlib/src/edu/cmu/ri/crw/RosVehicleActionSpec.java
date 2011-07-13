@@ -8,37 +8,29 @@ import edu.cmu.ri.crw.RosVehicleActionClient;
 import org.ros.actionlib.server.SimpleActionServerCallbacks;
 import org.ros.exception.RosException;
 import org.ros.exception.RosInitException;
-import org.ros.message.actionlib_tutorials.AirboatNavigationAction;
-import org.ros.message.actionlib_tutorials.AirboatNavigationActionFeedback;
-import org.ros.message.actionlib_tutorials.AirboatNavigationActionGoal;
-import org.ros.message.actionlib_tutorials.AirboatNavigationActionResult;
-import org.ros.message.actionlib_tutorials.AirboatNavigationFeedback;
-import org.ros.message.actionlib_tutorials.AirboatNavigationGoal;
-import org.ros.message.actionlib_tutorials.AirboatNavigationResult;
-
+import org.ros.message.crwlib_msgs.*;
 
 public class RosVehicleActionSpec 
-extends ActionSpec<AirboatNavigationAction, AirboatNavigationActionFeedback, AirboatNavigationActionGoal, AirboatNavigationActionResult, AirboatNavigationFeedback, AirboatNavigationGoal, AirboatNavigationResult>{
+extends ActionSpec<VehicleNavigationAction, VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult>{
 
 	public RosVehicleActionSpec()
 			throws RosException {
-		super(AirboatNavigationAction.class, 
-				"actionlib_tutorials/AirboatNavigationAction",
-		        "actionlib_tutorials/AirboatNavigationActionFeedback",
-		        "actionlib_tutorials/AirboatNavigationActionGoal",
-		        "actionlib_tutorials/AirboatNavigationActionResult",
-		        "actionlib_tutorials/AirboatNavigationFeedback",
-		        "actionlib_tutorials/AirboatNavigationGoal",
-		        "actionlib_tutorials/AirboatNavigationResult"
-		        );
-		// TODO Use own package instead of actionlib_tutorials
+		super(VehicleNavigationAction.class, 
+				"crwlib_msgs/VehicleNavigationAction",
+		        "crwlib_msgs/VehicleNavigationActionFeedback",
+		        "crwlib_msgs/VehicleNavigationActionGoal",
+		        "crwlib_msgs/VehicleNavigationActionResult",
+		        "crwlib_msgs/VehicleNavigationFeedback",
+		        "crwlib_msgs/VehicleNavigationGoal",
+		        "crwlib_msgs/VehicleNavigationResult"
+		        ); 
 	}
 	  @Override
 	  public
 	      RosVehicleActionServer
 	      buildSimpleActionServer(
 	          String nameSpace,
-	          SimpleActionServerCallbacks<AirboatNavigationActionFeedback, AirboatNavigationActionGoal, AirboatNavigationActionResult, AirboatNavigationFeedback, AirboatNavigationGoal, AirboatNavigationResult> callbacks,
+	          SimpleActionServerCallbacks<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> callbacks,
 	          boolean useBlockingGoalCallback) throws RosInitException {
 
 	    return new RosVehicleActionServer(nameSpace, this, (RosVehicleServerCallbacks) callbacks, useBlockingGoalCallback);
@@ -51,7 +43,7 @@ extends ActionSpec<AirboatNavigationAction, AirboatNavigationActionFeedback, Air
 	      buildSimpleActionServer(
 	          Node node,
 	          String nameSpace,
-	          SimpleActionServerCallbacks<AirboatNavigationActionFeedback, AirboatNavigationActionGoal, AirboatNavigationActionResult, AirboatNavigationFeedback, AirboatNavigationGoal, AirboatNavigationResult>callbacks,
+	          SimpleActionServerCallbacks<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult>callbacks,
 	          boolean useBlockingGoalCallback) throws RosInitException {
 
 	    return new RosVehicleActionServer(node, nameSpace, this, (RosVehicleServerCallbacks) callbacks, useBlockingGoalCallback);

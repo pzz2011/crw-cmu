@@ -5,12 +5,7 @@ package edu.cmu.ri.crw;
 
 import org.ros.actionlib.server.SimpleActionServer;
 import org.ros.actionlib.server.SimpleActionServerCallbacks;
-import org.ros.message.actionlib_tutorials.AirboatNavigationActionFeedback;
-import org.ros.message.actionlib_tutorials.AirboatNavigationActionGoal;
-import org.ros.message.actionlib_tutorials.AirboatNavigationActionResult;
-import org.ros.message.actionlib_tutorials.AirboatNavigationFeedback;
-import org.ros.message.actionlib_tutorials.AirboatNavigationGoal;
-import org.ros.message.actionlib_tutorials.AirboatNavigationResult;
+import org.ros.message.crwlib_msgs.*;
 
 /**
  * @author kshaurya
@@ -18,11 +13,11 @@ import org.ros.message.actionlib_tutorials.AirboatNavigationResult;
  */
 public class RosVehicleServerCallbacks
 		implements
-		SimpleActionServerCallbacks<AirboatNavigationActionFeedback, AirboatNavigationActionGoal, AirboatNavigationActionResult, AirboatNavigationFeedback, AirboatNavigationGoal, AirboatNavigationResult> {
+		SimpleActionServerCallbacks<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> {
 
 	@Override
 	public void goalCallback(
-			SimpleActionServer<AirboatNavigationActionFeedback, AirboatNavigationActionGoal, AirboatNavigationActionResult, AirboatNavigationFeedback, AirboatNavigationGoal, AirboatNavigationResult> 
+			SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> 
 actionServer) {
 		// TODO Auto-generated method stub
 		System.out.println("GOAL CALLBACK");
@@ -30,7 +25,7 @@ actionServer) {
 
 	@Override
 	public void preemptCallback(
-			SimpleActionServer<AirboatNavigationActionFeedback, AirboatNavigationActionGoal, AirboatNavigationActionResult, AirboatNavigationFeedback, AirboatNavigationGoal, AirboatNavigationResult>actionServer) {
+			SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult>actionServer) {
 		// TODO Auto-generated method stub
 		System.out.println("PREEMPT CALLBACK");
 		
@@ -38,8 +33,8 @@ actionServer) {
 
 	@Override
 	public void blockingGoalCallback(
-			AirboatNavigationGoal goal,
-			SimpleActionServer<AirboatNavigationActionFeedback, AirboatNavigationActionGoal, AirboatNavigationActionResult, AirboatNavigationFeedback, AirboatNavigationGoal, AirboatNavigationResult>actionServer) {
+			VehicleNavigationGoal goal,
+			SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult>actionServer) {
 		// TODO Auto-generated method stub
 		
 		System.out.println("BLOCKING GOAL CALLBACK");

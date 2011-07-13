@@ -10,9 +10,13 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://code.google.com/p/crw-cmu/</url>
+
   <depend package="rosjava"/>
+  <depend package="actionlib_java"/>
   <depend package="std_msgs"/>
   <depend package="sensor_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="crwlib_msgs"/>
 
 </package>
 

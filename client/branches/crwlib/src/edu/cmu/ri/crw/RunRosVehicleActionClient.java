@@ -11,10 +11,7 @@ import org.ros.actionlib.state.SimpleClientGoalState;
 import org.ros.exception.RosException;
 import org.ros.internal.node.address.InetAddressFactory;
 import org.ros.message.Duration;
-import org.ros.message.actionlib_tutorials.AirboatNavigationFeedback;
-import org.ros.message.actionlib_tutorials.AirboatNavigationGoal;
-import org.ros.message.actionlib_tutorials.AirboatNavigationResult;
-
+import org.ros.message.crwlib_msgs.*;
 
 public class RunRosVehicleActionClient {
 
@@ -57,7 +54,7 @@ public class RunRosVehicleActionClient {
 			sac.waitForServer(); // will wait for infinite time
 			System.out.println("[Test] Action server started, sending goal");
 			
-			AirboatNavigationGoal goal = spec.createGoalMessage();
+			VehicleNavigationGoal goal = spec.createGoalMessage();
 		
 			goal.target_pose.position.x=1;
 			goal.target_pose.position.y=1;
@@ -68,15 +65,15 @@ public class RunRosVehicleActionClient {
 			goal.target_pose.orientation.y=1;
 			goal.target_pose.orientation.z=1;
 			
-			sac.sendGoal(goal, new SimpleActionClientCallbacks<AirboatNavigationFeedback, AirboatNavigationResult>() {
+			sac.sendGoal(goal, new SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult>() {
 		        @Override
-		        public void feedbackCallback(AirboatNavigationFeedback feedback) {
+		        public void feedbackCallback(VehicleNavigationFeedback feedback) {
 		          System.out.print("Client feedback\n\t");
 		          
 		        }
 
 		        @Override
-		        public void doneCallback(SimpleClientGoalState state, AirboatNavigationResult result) {
+		        public void doneCallback(SimpleClientGoalState state, VehicleNavigationResult result) {
 		          System.out.println("Client done " + state);
 		          
 		        }
@@ -95,7 +92,7 @@ public class RunRosVehicleActionClient {
 		        SimpleClientGoalState state = sac.getState();
 		        System.out.println("[Test] Action finished: " + state.toString());
 
-		        AirboatNavigationResult res = sac.getResult();
+		        VehicleNavigationResult res = sac.getResult();
 		        System.out.print("[Test] Final pose : " + res.final_pose);
 		       
 		        System.out.println();

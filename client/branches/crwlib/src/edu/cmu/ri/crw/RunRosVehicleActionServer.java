@@ -31,7 +31,7 @@ public class RunRosVehicleActionServer {
 		impl = new RosVehicleServerCallbacks();
 		spec = new RosVehicleActionSpec();
 		masterURI = "http://syrah.cimds.ri.cmu.edu:11311";
-		nodeName = "airboat_server";
+		nodeName = "vehicle_server";
 		
 		}
 		catch(Exception e)
