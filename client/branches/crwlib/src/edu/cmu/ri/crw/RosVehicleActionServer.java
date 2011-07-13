@@ -3,16 +3,11 @@ package edu.cmu.ri.crw;
 import org.ros.Node;
 import org.ros.actionlib.server.DefaultSimpleActionServer;
 import org.ros.exception.RosInitException;
-import org.ros.message.actionlib_tutorials.AirboatNavigationActionFeedback;
-import org.ros.message.actionlib_tutorials.AirboatNavigationActionGoal;
-import org.ros.message.actionlib_tutorials.AirboatNavigationActionResult;
-import org.ros.message.actionlib_tutorials.AirboatNavigationFeedback;
-import org.ros.message.actionlib_tutorials.AirboatNavigationGoal;
-import org.ros.message.actionlib_tutorials.AirboatNavigationResult;
+import org.ros.message.crwlib_msgs.*;
 
 public class RosVehicleActionServer
 		extends
-		DefaultSimpleActionServer<AirboatNavigationActionFeedback, AirboatNavigationActionGoal, AirboatNavigationActionResult, AirboatNavigationFeedback, AirboatNavigationGoal, AirboatNavigationResult>  {
+		DefaultSimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult>  {
 
 	public RosVehicleActionServer(
 		      String nameSpace,
