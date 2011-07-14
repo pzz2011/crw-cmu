@@ -4,7 +4,12 @@ import org.ros.Node;
 import org.ros.actionlib.server.DefaultSimpleActionServer;
 import org.ros.exception.RosInitException;
 import org.ros.message.crwlib_msgs.*;
-
+/**
+ * Wrapper for utilizing a DefaultSimpleActionServer
+ * 
+ * @author kshaurya
+ *
+ */
 public class RosVehicleActionServer
 		extends
 		DefaultSimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult>  {

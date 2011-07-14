@@ -9,7 +9,13 @@ import org.ros.actionlib.server.SimpleActionServerCallbacks;
 import org.ros.exception.RosException;
 import org.ros.exception.RosInitException;
 import org.ros.message.crwlib_msgs.*;
-
+/**
+ * Provides Actionlib specifications for the particular .action file.
+ * in this case VehicleNavigation.action
+ * 
+ * @author kshaurya
+ *
+ */
 public class RosVehicleActionSpec 
 extends ActionSpec<VehicleNavigationAction, VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult>{
 

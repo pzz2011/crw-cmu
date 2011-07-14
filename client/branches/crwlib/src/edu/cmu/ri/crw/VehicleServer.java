@@ -1,5 +1,7 @@
 package edu.cmu.ri.crw;
 
+import org.ros.message.crwlib_msgs.VehicleNavigationGoal;
+
 // TODO: add data structures to this class once they are generated 
 
 public interface VehicleServer {
@@ -22,7 +24,9 @@ public interface VehicleServer {
 	public void setPID(double axis, double[] gains);
 	public Object getPID(double axis);
 	
-	public void startWaypoint(Object waypoint);
+	public void startWaypoint(VehicleNavigationGoal waypoint);
 	public void stopWaypoint();
 	public Object getWaypoint();
+	public byte getWaypointStatus(); 
+	public void controllerUpdate();
 }
