@@ -6,6 +6,13 @@ import org.ros.actionlib.client.SimpleActionClient;
 import org.ros.exception.RosException;
 import org.ros.message.crwlib_msgs.*;
 
+/**
+ * Wrapper for utilizing a SimpleActionClient
+ * 
+ * @author kshaurya
+ *
+ */
+
 public class RosVehicleActionClient
 extends
 SimpleActionClient<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> {

@@ -1,14 +1,10 @@
 # Goal
 geometry_msgs/Pose target_pose
-#Debug stuff
-geometry_msgs/Vector3 PID_Speed
-geometry_msgs/Vector3 PID_Yaw
 ---
 # Result
 geometry_msgs/PoseStamped final_pose
+int8 pose_status
 ---
 # Feedback
-geometry_msgs/PoseStamped current_pose 
-#Debug messages
-geometry_msgs/Vector3 PID_Speed
-geometry_msgs/Vector3 PID_Yaw
+time stamp
+int8 pose_status

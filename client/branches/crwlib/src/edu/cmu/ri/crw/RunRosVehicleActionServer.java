@@ -1,38 +1,44 @@
 package edu.cmu.ri.crw;
-
 import java.net.URI;
 
 import org.ros.NodeConfiguration;
 import org.ros.NodeRunner;
 import org.ros.internal.node.address.InetAddressFactory;
 
+import edu.cmu.ri.crw.RosVehicleActionServer;
+import edu.cmu.ri.crw.RosVehicleActionSpec;
+import edu.cmu.ri.crw.RosVehicleServerCallbacks;
+import edu.cmu.ri.crw.VehicleServer;
+
 /**
- * Provides functionality for interfacing a vehicle server with ROS.
+ * Starts a Simple Actionlib server - RosVehicleActionServer.
  * 
- * @author pkv
+ * @author kshaurya
  *
  */
 public class RunRosVehicleActionServer {
 
 	protected static
-		RosVehicleServerCallbacks impl;
-		RosVehicleActionSpec spec;
-		String masterURI;
-		String nodeName;
-		VehicleServer server;
-		
+	RosVehicleServerCallbacks impl;
+	RosVehicleActionSpec spec;
+	String masterURI;
+	String nodeName;
+	VehicleServer server;
+
 	public static void main(String[] args) {
 		RunRosVehicleActionServer test = new RunRosVehicleActionServer();
+		System.out.println("Starting server...");
 		test.Launch();
 	}
 	public RunRosVehicleActionServer()
 	{
 		try{
-		impl = new RosVehicleServerCallbacks();
-		spec = new RosVehicleActionSpec();
-		masterURI = "http://syrah.cimds.ri.cmu.edu:11311";
-		nodeName = "vehicle_server";
-		
+			impl = new RosVehicleServerCallbacks();
+			spec = new RosVehicleActionSpec();
+			masterURI = "http://syrah.cimds.ri.cmu.edu:11311";	//Address of roscore instance
+			nodeName = "vehicle_server";
+			//server = new SimpleBoatSimulator();
+			//impl.setVehicle_server(server);
 		}
 		catch(Exception e)
 		{
@@ -40,19 +46,23 @@ public class RunRosVehicleActionServer {
 		}
 	}
 	public RunRosVehicleActionServer(String masterURI, String nodeName, VehicleServer server) {
-
-		this.masterURI=masterURI;
-		this.nodeName=nodeName;
-		this.server=server;
-		
-		
+		try{
+			impl = new RosVehicleServerCallbacks();
+			spec = new RosVehicleActionSpec();
+			this.masterURI=masterURI;
+			this.nodeName=nodeName;
+			this.server=server;
+		}catch(Exception e)
+		{
+			throw new RuntimeException(e);
+		}
 	}
 	public void Launch()
 	{
 		try{
 			RosVehicleActionServer sas = spec.buildSimpleActionServer(nodeName, impl, true);
 			NodeConfiguration configuration = NodeConfiguration.createDefault();
-			String host = InetAddressFactory.createNonLoopback().getHostAddress();
+			String host = InetAddressFactory.createNonLoopback().getHostAddress();	//To avoid the node referring to localhost, which is unresolvable for external methods
 			configuration.setHost(host);
 			configuration.setMasterUri(new URI(masterURI));
 			NodeRunner runner = NodeRunner.createDefault();
@@ -62,13 +72,5 @@ public class RunRosVehicleActionServer {
 		{
 			throw new RuntimeException(e);
 		}
-	}
-	
-	public void shutdown() {
-
-	}
-
-	public static VehicleServer connect(String nodeName) {
-		throw new UnsupportedOperationException("Not supported yet.");
 	}
 }
