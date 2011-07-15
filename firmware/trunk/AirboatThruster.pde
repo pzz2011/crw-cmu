@@ -38,7 +38,7 @@ void armThruster()
 
 void initThruster()
 {
-  thruster.attach(6);
+  thruster.attach(18);
   armThruster();
   
   for (int i = 0; i < 100; i++)

@@ -26,7 +26,7 @@ int send_pos_cnt = 3;
 
 void initRudder()
 {
-  rudder.attach(9);
+  rudder.attach(19);
   
   for (int i = 0; i < 100; i++)
        rBuffer[i] = 0;
