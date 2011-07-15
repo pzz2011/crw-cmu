@@ -177,4 +177,3 @@ void getPID(byte flag, byte numOfValues)
   amarino.send(pid.Kd[axis]);
   amarino.sendln();
 }
-
