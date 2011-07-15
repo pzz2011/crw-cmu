@@ -36,7 +36,10 @@ void updateRudder()
 {
   float rError = desiredVelocity[5] - actualVelocity[5];
   
-  rIndx = (rIndx >= 100)?0 : rIndx++;
+  rIndx++;
+  if (rIndx == RBUFSIZE)
+      rIndx = 0;
+  
   rBufferSum -= rBuffer[rIndx];
   rBufferSum += rError;
   rBuffer[rIndx] = rError;
@@ -50,7 +53,7 @@ void updateRudder()
   if (rPID > RMAX)
       rPID = RMAX;
       
-  pos = map((int)rPID,-1000, 1000, 30, 150);
+  pos = map((int)rPID,RMIN, RMAX, 30, 150);
   
   rudder.write(pos);
   

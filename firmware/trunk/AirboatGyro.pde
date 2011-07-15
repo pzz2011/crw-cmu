@@ -64,7 +64,7 @@ void estimateGyroBias(double gyroBias[])
   double bias[3];
   byte buff[TO_READ];
   
-  delay(30000);             // Lets wait for sometime to settle down before calibrating
+  delay(10000);             // Lets wait for sometime to settle down before calibrating
   
    for(int i = 0; i < 1000; i++)
    {

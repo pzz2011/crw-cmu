@@ -27,13 +27,13 @@ int send_thruster_cnt = 6;
 void armThruster()
 {  
   thruster.write(1000);  
-  delay(1000);
+  delay(1200);
 
   thruster.write(2000); 
-  delay(1000);
+  delay(1200);
 
   thruster.write(1000);  
-  delay(1000);
+  delay(1200);
 }
 
 void initThruster()
