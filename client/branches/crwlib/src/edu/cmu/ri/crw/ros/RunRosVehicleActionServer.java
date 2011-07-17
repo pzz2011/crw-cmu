@@ -1,14 +1,14 @@
-package edu.cmu.ri.crw;
+package edu.cmu.ri.crw.ros;
 import java.net.URI;
 
 import org.ros.NodeConfiguration;
 import org.ros.NodeRunner;
 import org.ros.internal.node.address.InetAddressFactory;
 
-import edu.cmu.ri.crw.RosVehicleActionServer;
-import edu.cmu.ri.crw.RosVehicleActionSpec;
-import edu.cmu.ri.crw.RosVehicleServerCallbacks;
 import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.ros.RosVehicleActionServer;
+import edu.cmu.ri.crw.ros.RosVehicleActionSpec;
+import edu.cmu.ri.crw.ros.RosVehicleServerCallbacks;
 
 /**
  * Starts a Simple Actionlib server - RosVehicleActionServer.
