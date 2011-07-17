@@ -1,15 +1,19 @@
 package edu.cmu.ri.crw.ros;
 
-import SimpleActionClientCallbacks;
-import VehicleNavigationFeedback;
-import VehicleNavigationResult;
-
+import java.awt.Image;
 import java.net.URI;
 import java.util.logging.Logger;
 
+import org.ros.NodeConfiguration;
+import org.ros.NodeRunner;
+import org.ros.actionlib.client.SimpleActionClientCallbacks;
+import org.ros.actionlib.state.SimpleClientGoalState;
+import org.ros.internal.node.address.InetAddressFactory;
+import org.ros.message.crwlib_msgs.VehicleNavigationFeedback;
+import org.ros.message.crwlib_msgs.VehicleNavigationResult;
+
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.UTM;
-import edu.cmu.ri.crw.VehicleServer;
 
 /**
  * Takes the node name of an existing RosVehicleServer and connects through ROS,
@@ -55,7 +59,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public Image captureImage() {
+	public Image captureImage(int width, int height) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -93,7 +97,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	@Override
 	public WaypointState getWaypointStatus() {
 		// TODO Auto-generated method stub
-		return 0;
+		return WaypointState.DONE;
 	}
 
 	@Override
