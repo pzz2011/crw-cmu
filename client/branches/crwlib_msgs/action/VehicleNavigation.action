@@ -1,8 +1,8 @@
 # Goal
-crwlib_msgs/UtmPose target
+crwlib_msgs/UtmPose targetPose
 ---
 # Result
-crwlib_msgs/UtmPoseStamped final
+crwlib_msgs/UtmPoseStamped finalPose
 int8 status
 ---
 # Feedback
