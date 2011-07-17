@@ -1,2 +1,2 @@
-UTM utm
+Utm utm
 geometry_msgs/PoseWithCovarianceStamped pose
