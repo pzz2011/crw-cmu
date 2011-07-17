@@ -6,14 +6,20 @@ import java.util.logging.Logger;
 
 import org.ros.NodeConfiguration;
 import org.ros.NodeRunner;
+import org.ros.actionlib.client.SimpleActionClient;
 import org.ros.actionlib.client.SimpleActionClientCallbacks;
 import org.ros.actionlib.state.SimpleClientGoalState;
 import org.ros.internal.node.address.InetAddressFactory;
+import org.ros.message.crwlib_msgs.VehicleNavigationActionFeedback;
+import org.ros.message.crwlib_msgs.VehicleNavigationActionGoal;
+import org.ros.message.crwlib_msgs.VehicleNavigationActionResult;
 import org.ros.message.crwlib_msgs.VehicleNavigationFeedback;
+import org.ros.message.crwlib_msgs.VehicleNavigationGoal;
 import org.ros.message.crwlib_msgs.VehicleNavigationResult;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.UTM;
+import edu.cmu.ri.crw.ros.RosVehicleNavigation.Spec;
 
 /**
  * Takes the node name of an existing RosVehicleServer and connects through ROS,
@@ -26,7 +32,7 @@ import edu.cmu.ri.crw.UTM;
  */
 public class RosVehicleProxy extends AbstractVehicleServer {
 
-	public Logger logger = Logger.getLogger(RosVehicleProxy.class.getName());
+	public static final Logger logger = Logger.getLogger(RosVehicleProxy.class.getName());
 	
 	public static final String DEFAULT_MASTER_URI = "http://localhost:11311";
 	public static final String DEFAULT_NODE_NAME = "vehicle";
@@ -47,7 +53,10 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		_masterURI = masterURI;
 		_nodeName = nodeName;
 		
-		//RosVehicleActionServer sas = spec.buildSimpleActionServer(serverNodeName, impl, true);
+		try{
+	
+			RosVehicleNavigation.Client navClient = new RosVehicleNavigation.Spec().buildSimpleActionClient(_nodeName, navigationHandler);
+		SimpleActionClient<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> sac = S
 		NodeConfiguration configuration = NodeConfiguration.createDefault();
 		String host = InetAddressFactory.createNonLoopback().getHostAddress();	//To avoid the node referring to localhost, which is unresolvable for external methods
 		configuration.setHost(host);
@@ -56,6 +65,11 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 
 		runner.run(sas, configuration);
 		logger.info("Server initialized successfully.");
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -125,7 +139,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startCamera(double interval, int width, int height) {
+	public void startCamera(int numFrames, double interval, int width, int height) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -146,6 +160,12 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	public void stopWaypoint() {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	@Override
+	public int getNumSensors() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 	
 	SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult> navigationHandler = new SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult>() {
