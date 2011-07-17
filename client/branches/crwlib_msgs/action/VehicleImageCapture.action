@@ -1,8 +1,10 @@
 # Goal
-crwlib_msgs/UtmPose target
+uint32 frames
+uint8 interval
+uint8 width
+uint8 height
 ---
 # Result
-crwlib_msgs/UtmPoseStamped final
 int8 status
 ---
 # Feedback
