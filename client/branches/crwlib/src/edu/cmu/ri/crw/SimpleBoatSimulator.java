@@ -180,4 +180,9 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		_origin = utm;
 	}
 
+	@Override
+	public int getNumSensors() {
+		return 3;
+	}
+
 }

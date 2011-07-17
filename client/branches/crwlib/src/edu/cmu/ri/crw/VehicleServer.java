@@ -24,6 +24,7 @@ public interface VehicleServer {
 	public void removeSensorListener(int channel, VehicleSensorListener s);
 	public void setSensorType(int channel, SensorType type);
 	public SensorType getSensorType(int channel);
+	public int getNumSensors();
 	
 	public void setPID(int axis, double[] gains);
 	public double[] getPID(int axis);

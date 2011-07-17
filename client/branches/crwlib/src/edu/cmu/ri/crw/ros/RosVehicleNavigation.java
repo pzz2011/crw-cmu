@@ -7,6 +7,7 @@ import org.ros.actionlib.server.DefaultSimpleActionServer;
 import org.ros.actionlib.server.SimpleActionServerCallbacks;
 import org.ros.exception.RosException;
 import org.ros.exception.RosInitException;
+import org.ros.internal.time.WallclockProvider;
 import org.ros.message.crwlib_msgs.*;
 
 /**
@@ -28,7 +29,7 @@ public class RosVehicleNavigation {
 			extends
 			SimpleActionClient<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> {
 
-		public RosVehicleActionClient(
+		public Client(
 				Node parentNode,
 				String nameSpace,
 				ActionSpec<?, VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> spec)
@@ -37,7 +38,7 @@ public class RosVehicleNavigation {
 
 		}
 
-		public RosVehicleActionClient(
+		public Client(
 				String nameSpace,
 				ActionSpec<?, VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> spec)
 				throws RosException {
@@ -56,14 +57,14 @@ public class RosVehicleNavigation {
 			extends
 			DefaultSimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> {
 
-		public RosVehicleActionServer(String nameSpace,
-				RosVehicleActionSpec spec, RosVehicleServerCallbacks callbacks,
+		public Server(String nameSpace,
+				Spec spec, SimpleActionServerCallbacks<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> callbacks,
 				boolean useBlockingGoalCallback) throws RosInitException {
 			super(nameSpace, spec, callbacks, useBlockingGoalCallback);
 		}
 
-		public RosVehicleActionServer(Node parent, String nameSpace,
-				RosVehicleActionSpec spec, RosVehicleServerCallbacks callbacks,
+		public Server(Node parent, String nameSpace,
+				Spec spec, SimpleActionServerCallbacks<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> callbacks,
 				boolean useBlockingGoalCallback) throws RosInitException {
 			super(parent, nameSpace, spec, callbacks, useBlockingGoalCallback);
 		}
@@ -77,11 +78,11 @@ public class RosVehicleNavigation {
 	 * @author kshaurya
 	 * 
 	 */
-	public class RosVehicleActionSpec
+	public class Spec
 			extends
 			ActionSpec<VehicleNavigationAction, VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> {
 
-		public RosVehicleActionSpec() throws RosException {
+		public Spec() throws RosException {
 			super(VehicleNavigationAction.class,
 					"crwlib_msgs/VehicleNavigationAction",
 					"crwlib_msgs/VehicleNavigationActionFeedback",
@@ -93,36 +94,36 @@ public class RosVehicleNavigation {
 		}
 
 		@Override
-		public RosVehicleActionServer buildSimpleActionServer(
+		public Server buildSimpleActionServer(
 				String nameSpace,
 				SimpleActionServerCallbacks<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> callbacks,
 				boolean useBlockingGoalCallback) throws RosInitException {
 
-			return new RosVehicleActionServer(nameSpace, this,
-					(RosVehicleServerCallbacks) callbacks,
+			return new Server(nameSpace, this,
+					callbacks,
 					useBlockingGoalCallback);
 
 		}
 
 		@Override
-		public RosVehicleActionServer buildSimpleActionServer(
+		public Server buildSimpleActionServer(
 				Node node,
 				String nameSpace,
 				SimpleActionServerCallbacks<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> callbacks,
 				boolean useBlockingGoalCallback) throws RosInitException {
 
-			return new RosVehicleActionServer(node, nameSpace, this,
-					(RosVehicleServerCallbacks) callbacks,
+			return new Server(node, nameSpace, this,
+					callbacks,
 					useBlockingGoalCallback);
 
 		}
 
 		@Override
-		public RosVehicleActionClient buildSimpleActionClient(String nameSpace) {
+		public Client buildSimpleActionClient(String nameSpace) {
 
-			RosVehicleActionClient sac = null;
+			Client sac = null;
 			try {
-				return new RosVehicleActionClient(nameSpace, this);
+				return new Client(nameSpace, this);
 			} catch (RosException e) {
 				e.printStackTrace();
 			}
@@ -131,12 +132,12 @@ public class RosVehicleNavigation {
 		}
 
 		@Override
-		public RosVehicleActionClient buildSimpleActionClient(Node node,
+		public Client buildSimpleActionClient(Node node,
 				String nameSpace) {
 
-			RosVehicleActionClient sac = null;
+			Client sac = null;
 			try {
-				sac = new RosVehicleActionClient(node, nameSpace, this);
+				sac = new Client(node, nameSpace, this);
 			} catch (RosException e) {
 				e.printStackTrace();
 			}
