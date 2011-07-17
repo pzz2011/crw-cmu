@@ -1,24 +1,14 @@
 package edu.cmu.ri.crw;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
 
-import org.ros.NodeConfiguration;
-import org.ros.NodeRunner;
-import org.ros.actionlib.client.SimpleActionClientCallbacks;
-import org.ros.actionlib.state.SimpleClientGoalState;
-import org.ros.actionlib.state.SimpleClientGoalState.StateEnum;
-import org.ros.exception.RosException;
-import org.ros.internal.node.address.InetAddressFactory;
-import org.ros.message.Duration;
-import org.ros.message.actionlib_tutorials.AirboatNavigationActionGoal;
-import org.ros.message.actionlib_tutorials.AirboatNavigationGoal;
-import org.ros.message.crwlib_msgs.VehicleNavigationFeedback;
-import org.ros.message.crwlib_msgs.VehicleNavigationGoal;
-import org.ros.message.crwlib_msgs.VehicleNavigationResult;
 import org.ros.message.geometry_msgs.Pose;
-import org.ros.message.geometry_msgs.PoseStamped;
-import org.ros.message.rosgraph_msgs.Log;
+
+import edu.cmu.ri.crw.AbstractVehicleServer;
+import edu.cmu.ri.crw.UTM;
 
 /**
  * A simple simulation of an unmanned boat.
@@ -36,299 +26,158 @@ import org.ros.message.rosgraph_msgs.Log;
  */
 public class SimpleBoatSimulator extends AbstractVehicleServer {
 
-	protected static
-	RosVehicleServerCallbacks impl;
-	RosVehicleActionSpec spec;
-	RosVehicleActionClient sac;
-	String masterURI;
-	String serverNodeName;
-	String clientNodeName;
+	public static final int UPDATE_INTERVAL_MS = 100;
 	
-	public SimpleBoatSimulator() {
-		try{
-			impl = new RosVehicleServerCallbacks();
-			spec = new RosVehicleActionSpec();
-			masterURI = "http://syrah.cimds.ri.cmu.edu:11311";	//Address of roscore instance
-			serverNodeName = "sim_vehicle_server";
-			clientNodeName = "sim_vehicle_client";
-			current_pose = new PoseStamped();
-			impl.setVehicle_server(this);//Todo: Try sending this as constant object ref?
-		}
-		catch(Exception e)
-		{
-			throw new RuntimeException(e);
-		}
-	}
+	public final SensorType[] _sensorTypes = new SensorType[3];
+	public final double[][] _gains = new double[6][];
+	public final double[] _state = new double[7];
+	public UTM _waypoint = null;
+	public UTM _origin = new UTM(0,0,14,true); // I just picked some random zone!
+	
+	private volatile boolean _isCapturing = false;
+	private volatile boolean _isNavigating = false;
+	
+	public SimpleBoatSimulator() { }
 
-	public static void main(String[] args) {
-
-		SimpleBoatSimulator sim = new SimpleBoatSimulator();
-		try{
-			sim.LaunchServer();
-		}catch(Exception e)
-		{
-			e.printStackTrace();
-			System.out.println("Couldn't kick up the server!");
-		}
-		try{
-			sim.LaunchClient();
-		}catch(Exception e)
-		{
-			e.printStackTrace();
-			System.out.println("Couldn't kick up the client!");
-		}
-		System.out.println("\nSo long!");
-	}
-	public void LaunchServer()
-	{
-		try{
-			RosVehicleActionServer sas = spec.buildSimpleActionServer(serverNodeName, impl, true);
-			NodeConfiguration configuration = NodeConfiguration.createDefault();
-			String host = InetAddressFactory.createNonLoopback().getHostAddress();	//To avoid the node referring to localhost, which is unresolvable for external methods
-			configuration.setHost(host);
-			configuration.setMasterUri(new URI(masterURI));
-			NodeRunner runner = NodeRunner.createDefault();
-
-			runner.run(sas, configuration);
-			System.out.println("Server initialised successfuly\n");
-		}catch(Exception e)
-		{
-			throw new RuntimeException(e);
-		}
+	@Override
+	public Image captureImage(int width, int height) {
 		
+		// Create an image and fill it with a random color
+		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
+		Graphics2D graphics = (Graphics2D)image.getGraphics();
+		graphics.setPaint(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+		graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+		
+		return image;
 	}
 
-	public void LaunchClient()
-	{
-		try {
-			NodeConfiguration configuration = NodeConfiguration.createDefault();
-			NodeRunner runner = NodeRunner.createDefault();
-			String host = InetAddressFactory.createNonLoopback().getHostAddress();
-			configuration.setHost(host);
-			configuration.setMasterUri(new URI(masterURI));
+	@Override
+	public double[] getPID(int axis) {
+		// Make a copy of the current state (for immutability) and return it
+		double[] gains = new double[_gains[axis].length];
+		System.arraycopy(_gains, 0, gains[axis], 0, _gains[axis].length);
+		return gains;
+	}
 
-			run(runner, configuration);
+	@Override
+	public SensorType getSensorType(int channel) {
+		return _sensorTypes[channel];
+	}
 
-		}catch (Exception e) {
-			e.printStackTrace();
+	@Override
+	public UTM getWaypoint() {
+		return _waypoint;
+	}
+
+	@Override
+	public void setPID(int axis, double[] gains) {
+		System.arraycopy(gains, 0, _gains[axis], 0, _gains[axis].length);
+	}
+
+	@Override
+	public void setSensorType(int channel, SensorType type) {
+		_sensorTypes[channel] = type;
+	}
+
+	@Override
+	public void setState(double[] state) {
+		for (int i = 0; i < _state.length; ++i) {
+			_state[i] = state[i];
 		}
 	}
 
+	@Override
+	public void startWaypoint(UTM waypoint) {
+		_isNavigating = true;
+		
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				while (_isNavigating) {
 
-	private void run(NodeRunner runner, NodeConfiguration configuration) {
-		try{
-
-			//RosVehicleActionSpec spec = new RosVehicleActionSpec();
-			sac = spec.buildSimpleActionClient(clientNodeName);
-
-			runner.run(sac, configuration);
-
-			//Fancy countdown
-			int i=5;
-			try {
-				do{
-					System.out.print(i+"..");
-					Thread.sleep(1000);
-				}while(i-->0);
-			} catch (InterruptedException e) {
-				// Don't care
+					// Every so often, update boat position 
+					_state[0] += 1.0;
+					_state[1] += 1.0;
+					_state[2] += 1.0;
+					
+					// Wait for a while
+					try { 
+						Thread.sleep(UPDATE_INTERVAL_MS); 
+					} catch (InterruptedException ex) {
+						return;
+					}
+				}
 			}
-
-			System.out.println("[Test] Waiting for action server to start");
-			// wait for the action server to start
-			sac.waitForServer(); // will wait for infinite time [apparently]
-			System.out.println("[Test] Action server started, sending goal");
-
-			//----End of minimum client implementation
-			//----Start dummy stuff
-			VehicleNavigationGoal goal = new VehicleNavigationGoal();
-			
-			goal.target_pose.position.x=1.0;
-			goal.target_pose.position.y=1.0;
-			goal.target_pose.position.z=1.0;
-
-			goal.target_pose.orientation.w=0.0;
-			goal.target_pose.orientation.x=0.0;
-			goal.target_pose.orientation.y=0.0;
-			goal.target_pose.orientation.z=0.0;
-			
-			startWaypoint(goal);
-		}
-		catch(Exception e)
-		{
-			e.printStackTrace();
-		}
-
+		}).start();
 	}
-
-	@Override
-	public Object captureImage() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Object getPID(double axis) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Object getSensorType(int channel) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Object getWaypoint() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setPID(double axis, double[] gains) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void setSensorType(int channel, Object type) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void setState(Object p) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void startCamera() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void startWaypoint(VehicleNavigationGoal target) {
-		/**
-		 * Set goal pose for the boat
-		 */
-		try{
-			
-			VehicleNavigationGoal goal = spec.createGoalMessage();
-			goal = target.clone();
-			
-			
-//TODO Look at sendGoalAndWait()
-			sac.sendGoal(goal, new SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult>() {
-				@Override
-				public void feedbackCallback(VehicleNavigationFeedback feedback) {
-
-					System.out.print("Client feedback\n\t");
-					System.out.println("[Time] : "+feedback.stamp.toString()+" [Status] : "+ WaypointStatus[feedback.pose_status]);
-				}
-
-				@Override
-				public void doneCallback(SimpleClientGoalState state, VehicleNavigationResult result) {
-					System.out.println("Client done " + state);
-
-				}
-				@Override
-				public void activeCallback() {
-					System.out.println("Client active");
-				}
-			});
-/*
-			// wait for the action to return
-			System.out.println("[Test] Waiting for result.");
-			boolean finished_before_timeout = sac.waitForResult(new Duration(10000));//God knows what.
-
-			if (finished_before_timeout) {
-				SimpleClientGoalState state = sac.getState();
-				System.out.println("[Test] Action finished: " + state.toString());
-
-				VehicleNavigationResult res = sac.getResult();
-				System.out.print("[Test] Final pose : " + res.final_pose);
-
-				System.out.println();
-			} else {
-				System.out.println("[Test] Action did not finish before the time out, and state is "+sac.getState());
-			}*/
-
-		}
-		catch(RosException e)
-		{
-			e.printStackTrace();
-
-		}
-
-
-	}
+	
 	@Override
 	public void stopWaypoint() {
-		/**
-		 * Send a command to sac to stop the current goal.
-		 */
-		try {
-			sac.cancelGoal();
-		} catch (RosException e) {
-			e.printStackTrace();
-		}
+		// Stop the thread that is doing the "navigation"
+		_isNavigating = false;
+		_waypoint = null;
+	}
+	
+	@Override
+	public void startCamera(double interval, final int width, final int height) {
+		_isCapturing = true;
+		
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				while (_isCapturing) {
+					// Every so often, send out a random picture 
+					sendImage(captureImage(width, height));
+					
+					// Wait for a while
+					try { 
+						Thread.sleep(UPDATE_INTERVAL_MS); 
+					} catch (InterruptedException ex) {
+						return;
+					}
+				}
+			}
+		}).start();	
+	}
 
-	}
-	public void controllerUpdate()
-	{
-		Double vel = 0.100000000000000d;
-		current_pose.pose.position.x += vel;
-		current_pose.pose.position.y += vel;
-		current_pose.pose.position.z += vel;
-	}
 	@Override
 	public void stopCamera() {
-		// TODO Auto-generated method stub
-
+		// Stop the thread that sends out images
+		_isCapturing = false;
 	}
 
-	
-
-	public byte getWaypointStatus()
+	public WaypointState getWaypointStatus()
 	{
-		boolean addCondition=true;
-		byte i=5;
-		if(sac.getState().equals(StateEnum.SUCCEEDED))	//A result message is available
-		{
-			i=0;
-		}
-		else if(sac.getState().equals(StateEnum.ACTIVE))	//A goal is present
-		{
-
-			/*if(addCondition)	//And special loiter mode is active
-			{
-				i=4;	//LOITER
-			}
-			else*/ if(addCondition)	//or current status is active
-			{
-				i=2;
-			}
-			else
-			{
-				i=1;	//then it is in the process of reading
-			}
-		}
-		else
-		{
-			if(addCondition)	//The waypoint controller is alive
-			{
-				i=0;	//WAITING
-			}
-			else
-			{
-				i=5;	//ERROR
-			}
-		}
-		return i;
+		//if (distToGoal(state, waypoint) > 0.5) {
+		return WaypointState.GOING;
+	}
+	
+	double distToGoal(Pose x, Pose y)
+	{
+		double x1=x.position.x, x2=x.position.y, x3=x.position.z;
+		double y1=y.position.x, y2=y.position.y, y3=y.position.z;
+		
+		return Math.sqrt(Math.pow(x1-y1, 2)+Math.pow(x2-y2,2)+Math.pow(x3-y3, 2));
 	}
 
+	@Override
+	public UTM getOrigin() {
+		return _origin;
+	}
+
+	@Override
+	public double[] getState() {
+		// Make a copy of the current state (for immutability) and return it
+		double[] state = new double[7];
+		System.arraycopy(_state, 0, state, 0, _state.length);
+		return state;
+	}
+
+	@Override
+	public void setOrigin(UTM utm) {
+		_origin = utm;
+	}
 
 }

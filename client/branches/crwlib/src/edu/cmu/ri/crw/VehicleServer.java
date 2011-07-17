@@ -1,32 +1,35 @@
 package edu.cmu.ri.crw;
 
-import org.ros.message.crwlib_msgs.VehicleNavigationGoal;
-
-// TODO: add data structures to this class once they are generated 
+import java.awt.Image;
 
 public interface VehicleServer {
+	
+	public enum SensorType { ANALOG, DIGITAL, TE };
+	public enum WaypointState { GOING, DONE };
 
 	public void addStateListener(VehicleStateListener l);
 	public void removeStateListener(VehicleStateListener l);
-	public void setState(Object p);
+	public void setState(double[] state);
+	public void setOrigin(UTM utm);
+	public double[] getState();
+	public UTM getOrigin();
 	
 	public void addImageListener(VehicleImageListener l);
 	public void removeImageListener(VehicleImageListener l);
-	public void startCamera();
+	public void startCamera(double interval, int width, int height);
 	public void stopCamera();
-	public Object captureImage();
+	public Image captureImage(int width, int height);
 	
 	public void addSensorListener(int channel, VehicleSensorListener s);
 	public void removeSensorListener(int channel, VehicleSensorListener s);
-	public void setSensorType(int channel, Object type);
-	public Object getSensorType(int channel);
+	public void setSensorType(int channel, SensorType type);
+	public SensorType getSensorType(int channel);
 	
-	public void setPID(double axis, double[] gains);
-	public Object getPID(double axis);
+	public void setPID(int axis, double[] gains);
+	public double[] getPID(int axis);
 	
-	public void startWaypoint(VehicleNavigationGoal waypoint);
+	public void startWaypoint(UTM waypoint);
 	public void stopWaypoint();
-	public Object getWaypoint();
-	public byte getWaypointStatus(); 
-	public void controllerUpdate();
+	public UTM getWaypoint();
+	public WaypointState getWaypointStatus(); 
 }

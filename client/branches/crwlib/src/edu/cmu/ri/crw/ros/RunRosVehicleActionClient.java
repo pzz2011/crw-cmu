@@ -1,4 +1,4 @@
-package edu.cmu.ri.crw;
+package edu.cmu.ri.crw.ros;
 
 import java.net.URI;
 import java.net.URISyntaxException;
