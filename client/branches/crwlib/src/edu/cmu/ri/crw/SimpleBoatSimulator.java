@@ -120,16 +120,20 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 	
 	@Override
-	public void startCamera(double interval, final int width, final int height) {
+	public void startCamera(final int numFrames, final double interval, final int width, final int height) {
 		_isCapturing = true;
 		
 		new Thread(new Runnable() {
 			
 			@Override
 			public void run() {
-				while (_isCapturing) {
+				int iFrame = 0;
+				
+				while (_isCapturing && (iFrame < numFrames)) {
+
 					// Every so often, send out a random picture 
 					sendImage(captureImage(width, height));
+					iFrame++;
 					
 					// Wait for a while
 					try { 

@@ -16,7 +16,7 @@ public interface VehicleServer {
 	
 	public void addImageListener(VehicleImageListener l);
 	public void removeImageListener(VehicleImageListener l);
-	public void startCamera(double interval, int width, int height);
+	public void startCamera(int numFrames, double interval, int width, int height);
 	public void stopCamera();
 	public Image captureImage(int width, int height);
 	
