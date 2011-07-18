@@ -25,7 +25,7 @@ public class RosVehicleNavigation {
 	 * @author kshaurya
 	 * 
 	 */
-	public class Client
+	public static final class Client
 			extends
 			SimpleActionClient<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> {
 
@@ -53,7 +53,7 @@ public class RosVehicleNavigation {
 	 * @author kshaurya
 	 * 
 	 */
-	public class Server
+	public static final class Server
 			extends
 			DefaultSimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> {
 
@@ -78,7 +78,7 @@ public class RosVehicleNavigation {
 	 * @author kshaurya
 	 * 
 	 */
-	public class Spec
+	public static final class Spec
 			extends
 			ActionSpec<VehicleNavigationAction, VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> {
 

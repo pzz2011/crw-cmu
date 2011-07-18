@@ -1,6 +1,7 @@
 package edu.cmu.ri.crw.ros;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -11,23 +12,10 @@ import org.ros.NodeRunner;
 import org.ros.Publisher;
 import org.ros.actionlib.server.SimpleActionServer;
 import org.ros.actionlib.server.SimpleActionServerCallbacks;
+import org.ros.exception.RosException;
 import org.ros.internal.namespace.GraphName;
 import org.ros.internal.node.address.InetAddressFactory;
-import org.ros.internal.time.WallclockProvider;
-import org.ros.message.crwlib_msgs.SensorData;
-import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
-import org.ros.message.crwlib_msgs.VehicleImageCaptureActionFeedback;
-import org.ros.message.crwlib_msgs.VehicleImageCaptureActionGoal;
-import org.ros.message.crwlib_msgs.VehicleImageCaptureActionResult;
-import org.ros.message.crwlib_msgs.VehicleImageCaptureFeedback;
-import org.ros.message.crwlib_msgs.VehicleImageCaptureGoal;
-import org.ros.message.crwlib_msgs.VehicleImageCaptureResult;
-import org.ros.message.crwlib_msgs.VehicleNavigationActionFeedback;
-import org.ros.message.crwlib_msgs.VehicleNavigationActionGoal;
-import org.ros.message.crwlib_msgs.VehicleNavigationActionResult;
-import org.ros.message.crwlib_msgs.VehicleNavigationFeedback;
-import org.ros.message.crwlib_msgs.VehicleNavigationGoal;
-import org.ros.message.crwlib_msgs.VehicleNavigationResult;
+import org.ros.message.crwlib_msgs.*;
 import org.ros.message.sensor_msgs.CameraInfo;
 import org.ros.message.sensor_msgs.CompressedImage;
 import org.ros.namespace.NameResolver;
@@ -77,7 +65,12 @@ public class RosVehicleServer {
 		NodeConfiguration configuration = NodeConfiguration.createDefault();
 		String host = InetAddressFactory.createNonLoopback().getHostAddress();	//To avoid the node referring to localhost, which is unresolvable for external methods
 		configuration.setHost(host);
-		configuration.setMasterUri(new URI(_masterURI));
+		
+		try {
+			configuration.setMasterUri(new URI(_masterURI));
+		} catch (URISyntaxException ex) {
+			logger.severe("Couldn't find master URI: " + _masterURI);
+		}
 		
 		// Start up a ROS node
 		_node = new DefaultNode(_nodeName, configuration);
@@ -102,14 +95,22 @@ public class RosVehicleServer {
 
 		// Create an action server for vehicle navigation
 		// TODO: do we need to re-instantiate spec each time here?
-		RosVehicleNavigation.Server navServer = new RosVehicleNavigation.Spec().buildSimpleActionServer(_nodeName, navigationHandler, true);
-		runner.run(navServer, configuration);
+		try {
+			RosVehicleNavigation.Server navServer = new RosVehicleNavigation.Spec().buildSimpleActionServer(_nodeName, navigationHandler, true);
+			runner.run(navServer, configuration);
+		} catch (RosException ex) {
+			logger.severe("Unable to start navigation action client: " + ex);
+		}
 		
 		// Create an action server for image capturing
 		// TODO: do we need to re-instantiate spec each time here?
-		RosVehicleImaging.Server imageServer = new RosVehicleImaging.Spec().buildSimpleActionServer(_nodeName, imageCaptureHandler, true);
-		runner.run(imageServer, configuration);
-
+		try {
+			RosVehicleImaging.Server imageServer = new RosVehicleImaging.Spec().buildSimpleActionServer(_nodeName, imageCaptureHandler, true);
+			runner.run(imageServer, configuration);
+		} catch (RosException ex) {
+			logger.severe("Unable to start navigation action client: " + ex);
+		}
+		
 		// Create ROS services for accessor and setter functions
 		// TODO: wait until services are implemented here
 		
@@ -188,6 +189,7 @@ public class RosVehicleServer {
 			logger.info("Received blocking goal: " + goal);
 			
 			System.out.println("BLOCKING GOAL CALLBACK");
+			/*
 			VehicleNavigationFeedback feedback = new VehicleNavigationFeedback();
 			do{
 				try{
@@ -209,6 +211,7 @@ public class RosVehicleServer {
 			} while(distToGoal(vehicle_server.current_pose.pose, goal.target_pose)>0.1);	//Otherwise till goal is reached.
 			System.out.println("Lalalla");
 			actionServer.setSucceeded(); //Finish it off
+			*/
 		}
 	};
 	
