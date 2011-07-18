@@ -23,6 +23,7 @@ import edu.cmu.ri.crw.UTM;
  * forwarded to the underlying ROS node.
  * 
  * @author pkv
+ * @author kss
  * 
  */
 public class RosVehicleProxy extends AbstractVehicleServer {
