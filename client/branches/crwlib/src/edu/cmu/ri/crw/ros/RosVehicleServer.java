@@ -31,6 +31,7 @@ import edu.cmu.ri.crw.VehicleStateListener;
  * of ros actions, services, and topics.
  * 
  * @author pkv
+ * @author kss
  *
  */
 public class RosVehicleServer {
