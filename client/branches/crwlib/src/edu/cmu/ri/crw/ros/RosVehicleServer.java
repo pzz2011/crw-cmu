@@ -60,7 +60,7 @@ public class RosVehicleServer {
 	protected Publisher<UtmPoseWithCovarianceStamped> _statePublisher;
 	protected Publisher<CompressedImage> _imagePublisher;
 	protected Publisher<CameraInfo> _cameraInfoPublisher;
-	protected List<Publisher<?>> _sensorPublishers;
+	protected List<Publisher<SensorData>> _sensorPublishers;
 	
 	public RosVehicleServer(VehicleServer server) {
 		this(DEFAULT_MASTER_URI, DEFAULT_NODE_NAME, server);
@@ -84,7 +84,7 @@ public class RosVehicleServer {
 		NameResolver resolver = _node.getResolver().createResolver(new GraphName("vehicle"));
 		
 		// Create publisher for state data
-		_statePublisher = _node.createPublisher(resolver.resolve("state"), "std_msgs/String");
+		_statePublisher = _node.createPublisher(resolver.resolve("state"), "crwlib_msgs/UtmPoseWithCovarianceStamped");
 	    
 	    // Create publisher for image data and camera info
 	    _imagePublisher =
@@ -94,10 +94,10 @@ public class RosVehicleServer {
 	    
 	    // Query for vehicle capabilities and create corresponding publishers
 	    int nSensors = server.getNumSensors();
-		_sensorPublishers = new ArrayList<Publisher<?>>(nSensors);
+		_sensorPublishers = new ArrayList<Publisher<SensorData>>(nSensors);
 		for (int iSensor = 0; iSensor < nSensors; ++iSensor) {
-			_sensorPublishers.set(iSensor,
-					_node.createPublisher(RosVehicleConfig.SENSOR_TOPIC_PREFIX + iSensor, "crwlib_msgs/String"));
+			Publisher<SensorData> sensorPublisher = _node.createPublisher(RosVehicleConfig.SENSOR_TOPIC_PREFIX + iSensor, "crwlib_msgs/SensorData");
+			_sensorPublishers.set(iSensor, sensorPublisher);
 		}
 
 		// Create an action server for vehicle navigation
