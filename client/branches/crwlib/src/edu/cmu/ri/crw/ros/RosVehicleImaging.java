@@ -25,7 +25,7 @@ public class RosVehicleImaging {
 	 * @author kshaurya
 	 * 
 	 */
-	public class Client
+	public static final class Client
 			extends
 			SimpleActionClient<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> {
 
@@ -53,7 +53,7 @@ public class RosVehicleImaging {
 	 * @author kshaurya
 	 * 
 	 */
-	public class Server
+	public static final class Server
 			extends
 			DefaultSimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> {
 
@@ -78,7 +78,7 @@ public class RosVehicleImaging {
 	 * @author kshaurya
 	 * 
 	 */
-	public class Spec
+	public static final class Spec
 			extends
 			ActionSpec<VehicleImageCaptureAction, VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> {
 
