@@ -186,7 +186,8 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 	@Override
 	public int getNumSensors() {
-		return 3;
+		//TODO Fix this
+		return 0;
 	}
 
 }

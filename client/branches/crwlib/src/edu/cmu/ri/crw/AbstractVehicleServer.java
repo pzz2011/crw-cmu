@@ -2,6 +2,7 @@ package edu.cmu.ri.crw;
 
 import javax.swing.event.EventListenerList;
 
+import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.PoseStamped;
 
 
@@ -20,14 +21,14 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 		listenerList.remove(VehicleStateListener.class, l);
 	}
 
-	protected void sendState(Object state) {
+	protected void sendState(UtmPoseWithCovarianceStamped pose) {
 		// Guaranteed to return a non-null array
 		Object[] listeners = listenerList.getListenerList();
 		// Process the listeners last to first, notifying
 		// those that are interested in this event
 		for (int i = listeners.length - 2; i >= 0; i -= 2) {
 			if (listeners[i] == VehicleStateListener.class) {
-				((VehicleStateListener) listeners[i + 1]).receivedState(state);
+				((VehicleStateListener) listeners[i + 1]).receivedState(pose);
 			}
 		}
 	}
@@ -74,6 +75,11 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 			}
 		}
 	}
-
+	
+	public int getNumSensors()
+	{
+		//TODO Fill this in
+		return 0;
+	}
 	
 }
