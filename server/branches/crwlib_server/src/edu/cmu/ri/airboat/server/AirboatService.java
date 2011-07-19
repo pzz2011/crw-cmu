@@ -214,17 +214,17 @@ public class AirboatService extends Service {
 	 * Access method to get underlying implementation of server functionality.
 	 * @return An interface allowing high-level control of the boat.
 	 */
-	public AirboatCommand getServer() {
+	/*public AirboatCommand getServer() {
 		return _airboatImpl;
 	}
-
+*/
 	/**
 	 * Access method to get underlying implementation of controller functionality.
 	 * @return An interface allowing low-level control of the boat.
 	 */
-	public AirboatControl getController() {
+	/*public AirboatControl getController() {
 		return _airboatImpl;
-	}
+	}*/
 	
 	/** 
      * Constructs a default filename from the current date and time.
