@@ -13,5 +13,9 @@
 	<classpathentry kind="lib" path="libs/microlog4android-1.0.0.jar"/>
 	<classpathentry kind="lib" path="libs/jscience-4.3.jar"/>
 	<classpathentry kind="lib" path="libs/AirboatClient.jar"/>
+	<classpathentry kind="lib" path="/home/kshaurya/crw-cmu/client/branches/crwlib/dist/crwlib.jar"/>
+	<classpathentry kind="lib" path="/home/kshaurya/.ros/rosjava/lib/crwlib_msgs.jar" sourcepath="/home/kshaurya/.ros/rosjava/gen/msg/crwlib_msgs"/>
+	<classpathentry kind="lib" path="/home/kshaurya/.ros/rosjava/lib/geometry_msgs.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
