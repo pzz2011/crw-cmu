@@ -38,7 +38,7 @@ public class RosVehicleServer {
 	
 	public static final Logger logger = Logger.getLogger(RosVehicleServer.class.getName());
 	
-	public static final String DEFAULT_MASTER_URI = "http://localhost:11311";
+	public static final String DEFAULT_MASTER_URI = "http://syrah.cimds.ri.cmu.edu:11311";
 	public static final String DEFAULT_NODE_NAME = "vehicle";
 	
 	protected String _masterURI;
@@ -64,27 +64,36 @@ public class RosVehicleServer {
 		// Create configuration for a ROS node
 		NodeRunner runner = NodeRunner.createDefault();
 		NodeConfiguration configuration = NodeConfiguration.createDefault();
+		NodeConfiguration navConfig = NodeConfiguration.createDefault();
+		NodeConfiguration imgConfig = NodeConfiguration.createDefault();
 		String host = InetAddressFactory.createNonLoopback().getHostAddress();	//To avoid the node referring to localhost, which is unresolvable for external methods
+		navConfig.setHost(host);
+		imgConfig.setHost(host);
 		configuration.setHost(host);
-		
+		NameResolver navResolver = NameResolver.createFromString("/NAV");
+		navConfig.setParentResolver(navResolver);
+		NameResolver imgResolver = NameResolver.createFromString("/IMG");
+		imgConfig.setParentResolver(imgResolver);
 		try {
 			configuration.setMasterUri(new URI(_masterURI));
+			navConfig.setMasterUri(new URI(_masterURI));
+			imgConfig.setMasterUri(new URI(_masterURI));
 		} catch (URISyntaxException ex) {
 			logger.severe("Couldn't find master URI: " + _masterURI);
 		}
 		
 		// Start up a ROS node
-		_node = new DefaultNode(_nodeName, configuration);
-		NameResolver resolver = _node.getResolver().createResolver(new GraphName("vehicle"));
+		_node = new DefaultNode(_nodeName+"/Broadcast", configuration);
+		
 		
 		// Create publisher for state data
-		_statePublisher = _node.createPublisher(resolver.resolve("state"), "crwlib_msgs/UtmPoseWithCovarianceStamped");
+		_statePublisher = _node.createPublisher(configuration.getParentResolver().resolve("state"), "crwlib_msgs/UtmPoseWithCovarianceStamped");
 	    
 	    // Create publisher for image data and camera info
 	    _imagePublisher =
-	        _node.createPublisher(resolver.resolve("image_raw/compressed"), "sensor_msgs/CompressedImage");
+	        _node.createPublisher(configuration.getParentResolver().resolve("image_raw/compressed"), "sensor_msgs/CompressedImage");
 	    _cameraInfoPublisher =
-	        _node.createPublisher(resolver.resolve("camera_info"), "sensor_msgs/CameraInfo");
+	        _node.createPublisher(configuration.getParentResolver().resolve("camera_info"), "sensor_msgs/CameraInfo");
 	    
 	    // Query for vehicle capabilities and create corresponding publishers
 	    int nSensors = server.getNumSensors();
@@ -97,8 +106,9 @@ public class RosVehicleServer {
 		// Create an action server for vehicle navigation
 		// TODO: do we need to re-instantiate spec each time here?
 		try {
-			RosVehicleNavigation.Server navServer = new RosVehicleNavigation.Spec().buildSimpleActionServer(_nodeName, navigationHandler, true);
-			runner.run(navServer, configuration);
+			
+			RosVehicleNavigation.Server navServer = new RosVehicleNavigation.Spec().buildSimpleActionServer(_node, _nodeName+"/NAV", navigationHandler, true);
+			runner.run(navServer, navConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
 		}
@@ -106,8 +116,9 @@ public class RosVehicleServer {
 		// Create an action server for image capturing
 		// TODO: do we need to re-instantiate spec each time here?
 		try {
-			RosVehicleImaging.Server imageServer = new RosVehicleImaging.Spec().buildSimpleActionServer(_nodeName, imageCaptureHandler, true);
-			runner.run(imageServer, configuration);
+			
+			RosVehicleImaging.Server imageServer = new RosVehicleImaging.Spec().buildSimpleActionServer(_node, _nodeName+"/IMAGE", imageCaptureHandler, true);
+			runner.run(imageServer, imgConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
 		}
@@ -127,7 +138,7 @@ public class RosVehicleServer {
 	}
 	
 	public void shutdown() {
-		// TODO: shut down the ROS node and the action lib services here 
+		// TODO: shut down the ROS node and the action lib services here p
 	}
 	
 	/**
@@ -136,8 +147,8 @@ public class RosVehicleServer {
 	public final VehicleStateListener stateHandler = new VehicleStateListener() {
 		
 		@Override
-		public void receivedState(Object state) {
-			// TODO: fill this in
+		public void receivedState(UtmPoseWithCovarianceStamped pose) {
+			_statePublisher.publish(pose);
 		}
 	};
 	
@@ -148,7 +159,7 @@ public class RosVehicleServer {
 		
 		@Override
 		public void receivedImage(Object image) {
-			// TODO: fill this in
+			_imagePublisher.publish((CompressedImage) image);
 		}
 	};
 	

@@ -13,6 +13,7 @@ import org.ros.exception.RosException;
 import org.ros.internal.node.address.InetAddressFactory;
 import org.ros.message.Duration;
 import org.ros.message.crwlib_msgs.*;
+import org.ros.namespace.NameResolver;
 
 import edu.cmu.ri.crw.ros.RosVehicleNavigation.Client;
 import edu.cmu.ri.crw.ros.RosVehicleNavigation.Spec;
@@ -29,32 +30,35 @@ public class RunRosVehicleActionClient {
 			.getName());
 	public static void main(String[] args) {
 
-		NodeConfiguration configuration = NodeConfiguration.createDefault();
-		NodeRunner runner = NodeRunner.createDefault();
-
-		String masterURI = "http://syrah.cimds.ri.cmu.edu:11311";
-		String host = InetAddressFactory.createNonLoopback().getHostAddress();
-
-		configuration.setHost(host);
-		try {
-			configuration.setMasterUri(new URI(masterURI));
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
-		}
-
-		run(runner, configuration);
+		
+		run();
 		logger.info("\nSo long!");
 	}
 
-	private static void run(NodeRunner runner, NodeConfiguration configuration) {
+	private static void run() {
 
 		try{
 
 			String _nodeName = "airboat_client";
 			//RosVehicleServer spec = new RosVehicleActionSpec();
+			NodeConfiguration navConfig = NodeConfiguration.createDefault();
+			NodeRunner runner = NodeRunner.createDefault();
+
+			String masterURI = "http://syrah.cimds.ri.cmu.edu:11311";
+			String host = InetAddressFactory.createNonLoopback().getHostAddress();
+
+			navConfig.setHost(host);
+			try {
+				navConfig.setMasterUri(new URI(masterURI));
+			} catch (URISyntaxException e) {
+				e.printStackTrace();
+			}
+
+			NameResolver navResolver = NameResolver.createFromString("/NAV");
+			navConfig.setParentResolver(navResolver);
 			RosVehicleNavigation.Client navClient = new RosVehicleNavigation.Spec().buildSimpleActionClient(_nodeName);
 
-			runner.run(navClient, configuration);
+			runner.run(navClient, navConfig);
 			int i=5;
 			try {
 				do{
