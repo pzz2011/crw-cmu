@@ -6,6 +6,7 @@ import java.util.List;
 
 import java.awt.Image;
 
+import org.ros.message.crwlib_msgs.Utm;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.geometry_msgs.Pose;
 
@@ -22,6 +23,7 @@ import edu.cmu.ri.airboat.interfaces.AirboatCommand;
 import edu.cmu.ri.airboat.interfaces.AirboatControl;
 import edu.cmu.ri.airboat.interfaces.AirboatFilter;
 import edu.cmu.ri.airboat.interfaces.AirboatSensor;
+import edu.cmu.ri.airboat.server.AirboatControllerLibrary;
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.UTM;
 
@@ -31,23 +33,29 @@ import edu.cmu.ri.crw.UTM;
  * 
  * @author pkv
  * 
+ *         --- Modified ---
+ * 
+ *         This contains the implementation for VehicleServer from crwlib
+ * 
+ * @author kss
+ * 
  */
 public class AirboatImpl extends AbstractVehicleServer {
 
 	private static final com.google.code.microlog4android.Logger logger = LoggerFactory
 			.getLogger();
 
-	// Ros'd stuff
+
 	public static final int UPDATE_INTERVAL_MS = 100;
 
 	public final SensorType[] _sensorTypes = new SensorType[3];
 	public final double[][] _gains = new double[6][];
 	public final double[] _state = new double[7];
-	public UTM _waypoint = null;
-	public UTM _origin = new UTM(0, 0, 14, true); // I just picked some random
-													// zone!
-	public UtmPose _pose = new UtmPose();
-	
+	public Pose _waypoint = null;
+	public Pose _origin = new Pose(); // I just picked some random
+										// zone!
+	public Pose _pose = new Pose();
+
 	private volatile boolean _isCapturing = false;
 	private volatile boolean _isNavigating = false;
 
@@ -91,7 +99,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * Inertial state vector, currently containing a 6D pose estimate:
 	 * [x,y,z,roll,pitch,yaw]
 	 */
-	//double[] _pose = new double[6];
+	// double[] _pose = new double[6];
 
 	/**
 	 * Filter used internally to update the current pose estimate
@@ -123,6 +131,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	protected AirboatImpl(Context context, String addr) {
 		_context = context;
 		_arduinoAddr = addr;
+
 	}
 
 	/**
@@ -135,10 +144,10 @@ public class AirboatImpl extends AbstractVehicleServer {
 	protected void update(double dt) {
 
 		// Do an intelligent state prediction update here
-		
-		//TODO Talk to the filter here
-		//_pose = filter.pose(System.currentTimeMillis());
-		//logger.info("POSE: " + Arrays.toString(_pose));
+
+		// TODO Talk to the filter here
+		// _pose = filter.pose(System.currentTimeMillis());
+		// logger.info("POSE: " + Arrays.toString(_pose));
 
 		// If the vehicle is currently autonomous and has a valid navigation
 		// controller, update the controller to get new commanded velocities
@@ -151,94 +160,15 @@ public class AirboatImpl extends AbstractVehicleServer {
 		Amarino.sendDataToArduino(_context, _arduinoAddr, SET_VELOCITY_FN,
 				new float[] { (float) _velocities[0], (float) _velocities[1],
 						(float) _velocities[2], (float) _velocities[3],
-						(float) _velocities[4], (float) _velocities[5] }); // Yes,
-																			// I
-																			// know
-																			// this
-																			// looks
-																			// silly,
-																			// but
-																			// Amarino
-																			// doesn't
-																			// handle
-																			// doubles
-	}
-
-	/**
-	 * Returns the current state estimate of vehicle pose in 6D.
-	 * 
-	 * @return a 6D pose estimate: [x,y,z,roll,pitch,yaw]
-	 */
-	/*public double[] getPose() {
-		return _pose;
-	}
-*/
-	
-	/**
-	 * Takes a 6D vehicle pose, does appropriate internal computation to change
-	 * the current estimate of vehicle state to match the specified pose. Used
-	 * for user- or multirobot- pose corrections.
-	 * 
-	 * @param pose
-	 *            the corrected 6D pose of the vehicle: [x,y,z,roll,pitch,yaw]
-	 */
-	public boolean setPose(double[] pose) {
-		if (pose.length != 6)
-			throw new IllegalArgumentException("State should have length 6");
-
-		// Change the offset of this vehicle by modifying filter
-		filter.reset(pose, System.currentTimeMillis());
-		logger.info("POSE: " + Arrays.toString(pose));
+						(float) _velocities[4], (float) _velocities[5] });
+		// Yes, I know this looks silly, but Amarino doesn't handle doubles
 		
-		_pose.pose.position.x = pose[0];
-		_pose.pose.position.y = pose[1];
-		_pose.pose.position.z = pose[2];
-		_pose.pose.orientation.w = pose[3];
-		_pose.pose.orientation.x = pose[4];
-		_pose.pose.orientation.y = pose[5];
-		_pose.pose.orientation.z = pose[6];
-		return true;
+		if(_isNavigating)
+			AirboatControllerLibrary.POINT_AND_SHOOT.controller.update(this);
 	}
 
-	/**
-	 * Returns the current estimated 6D velocity of the vehicle.
-	 * 
-	 * @see AirboatControl#getVelocity()
-	 */
-	public double[] getVelocity() {
-		return _velocities;
-	}
 
-	/**
-	 * Sets a desired 6D velocity for the vehicle.
-	 * 
-	 * @see AirboatControl#setVelocity(double[])
-	 */
-	public boolean setVelocity(double[] vel) {
-		if (vel.length != 6)
-			throw new IllegalArgumentException("Velocity should have length 6");
 
-		_velocities = vel;
-		logger.info("SETVEL: " + Arrays.toString(_velocities));
-		return true;
-	}
-
-	/**
-	 * Sets the current waypoint for the vehicle to reach. If the vehicle is set
-	 * to autonomous mode, it will use the currently specified controller to try
-	 * and reach this waypoint.
-	 * 
-	 */
-	/*
-	 * public boolean setWaypoint(double[] loc) {
-	 * 
-	 * if (loc.length != 6) throw new
-	 * IllegalArgumentException("Location should have length 6");
-	 * 
-	 * // Copy new waypoint into existing data structure System.arraycopy(loc,
-	 * 0, _waypoint, 0, _waypoint.length); logger.info("WPT: " +
-	 * Arrays.toString(loc)); return true; }
-	 */
 
 	public boolean isWaypointComplete() {
 		// TODO Auto-generated method stub
@@ -523,7 +453,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	@Override
-	public UTM getWaypoint() {
+	public Pose getWaypoint() {
 		return _waypoint;
 	}
 
@@ -537,45 +467,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 		_sensorTypes[channel] = type;
 	}
 
-	@Override
-	public void setState(double[] state) {
-		for (int i = 0; i < _state.length; ++i) {
-			_state[i] = state[i];
-		}
-	}
 
-	@Override
-	public void startWaypoint(UTM waypoint) {
-		_isNavigating = true;
-
-		new Thread(new Runnable() {
-
-			@Override
-			public void run() {
-				while (_isNavigating) {
-
-					// Every so often, update boat position
-					_state[0] += 1.0;
-					_state[1] += 1.0;
-					_state[2] += 1.0;
-
-					// Wait for a while
-					try {
-						Thread.sleep(UPDATE_INTERVAL_MS);
-					} catch (InterruptedException ex) {
-						return;
-					}
-				}
-			}
-		}).start();
-	}
-
-	@Override
-	public void stopWaypoint() {
-		// Stop the thread that is doing the "navigation"
-		_isNavigating = false;
-		_waypoint = null;
-	}
 
 	@Override
 	public void startCamera(final int numFrames, final double interval,
@@ -611,11 +503,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 		_isCapturing = false;
 	}
 
-	public WaypointState getWaypointStatus() {
-		// if (distToGoal(state, waypoint) > 0.5) {
-		return WaypointState.GOING;
-	}
-
+	
 	double distToGoal(Pose x, Pose y) {
 		double x1 = x.position.x, x2 = x.position.y, x3 = x.position.z;
 		double y1 = y.position.x, y2 = y.position.y, y3 = y.position.z;
@@ -625,21 +513,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	@Override
-	public UTM getOrigin() {
+	public Pose getOrigin() {
 		return _origin;
-	}
-
-	@Override
-	public double[] getState() {
-		// Make a copy of the current state (for immutability) and return it
-		double[] state = new double[7];
-		System.arraycopy(_state, 0, state, 0, _state.length);
-		return state;
-	}
-
-	@Override
-	public void setOrigin(UTM utm) {
-		_origin = utm;
 	}
 
 	@Override
@@ -657,12 +532,131 @@ public class AirboatImpl extends AbstractVehicleServer {
 	@Override
 	public Image captureImage(int width, int height) {
 		return null;
-		//TODO Configure and receive the image
-		//TODO Look into the possibility to use the tutorial sample code instead of previous
+		// TODO Configure and receive the image
+		// TODO Look into the possibility to use the tutorial sample code
+		// instead of previous
 	}
-	public UtmPose getPose()
-	{
+
+	@Override
+	public Pose getState() {
+		// TODO Auto-generated method stub
 		return _pose;
+
+	}
+
+	/**
+	 * Takes a 6D vehicle pose, does appropriate internal computation to change
+	 * the current estimate of vehicle state to match the specified pose. Used
+	 * for user- or multirobot- pose corrections.
+	 * 
+	 * @param pose
+	 *            the corrected 6D pose of the vehicle: [x,y,z,roll,pitch,yaw]
+	 */
+
+	@Override
+	public void setState(Pose state) {
+
+		_pose = state;
+	}
+
+	public void setState(double[] pose) {
+		if (pose.length != 6)
+			throw new IllegalArgumentException("State should have length 6");
+
+		// Change the offset of this vehicle by modifying filter
+		filter.reset(pose, System.currentTimeMillis());
+		logger.info("POSE: " + Arrays.toString(pose));
+
+		_pose.position.x = pose[0];
+		_pose.position.y = pose[1];
+		_pose.position.z = pose[2];
+		_pose.orientation.w = pose[3];
+		_pose.orientation.x = pose[4];
+		_pose.orientation.y = pose[5];
+		_pose.orientation.z = pose[6];
+	}
+
+	@Override
+	public void setOrigin(Pose origin) {
+		_origin = origin;
+
+	}
+
+	public WaypointState getWaypointStatus() {
+		// if (distToGoal(state, waypoint) > 0.5) {
+		//TODO Write code for this
+		return WaypointState.GOING;
+	}
+	@Override
+	public void startWaypoint(Utm waypoint) {
+		// TODO Set current waypoint/goal here
+		_waypoint = poseFromUtm(waypoint);
+		_isNavigating = true;
+		
+	}
+	/*public void startWaypoint_old(Pose waypoint) {
+		_isNavigating = true;
+
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				while (_isNavigating) {
+
+					// Every so often, update boat position
+					_state[0] += 1.0;
+					_state[1] += 1.0;
+					_state[2] += 1.0;
+
+					// Wait for a while
+					try {
+						Thread.sleep(UPDATE_INTERVAL_MS);
+					} catch (InterruptedException ex) {
+						return;
+					}
+				}
+			}
+		}).start();
+	}*/
+
+	@Override
+	public void stopWaypoint() {
+		// Stop the thread that is doing the "navigation"
+		_isNavigating = false;
+		_waypoint = null;
+	}
+
+	private Pose poseFromUtm(Utm waypoint) {
+		// TODO Write coordinate frame conversion code here
+		Pose temp = new Pose();
+		//This is obviously incorrect
+		temp.position.x = _origin.position.x + waypoint.easting;
+		temp.position.y = _origin.position.y + waypoint.northing;
+		
+		return temp;
+	}
+
+	/**
+	 * Returns the current estimated 6D velocity of the vehicle.
+	 * 
+	 * @see AirboatControl#getVelocity()
+	 */
+	public double[] getVelocity() {
+		return _velocities;
+	}
+
+	/**
+	 * Sets a desired 6D velocity for the vehicle.
+	 * 
+	 * @see AirboatControl#setVelocity(double[])
+	 */
+	public boolean setVelocity(double[] vel) {
+		if (vel.length != 6)
+			throw new IllegalArgumentException("Velocity should have length 6");
+
+		_velocities = vel;
+		logger.info("SETVEL: " + Arrays.toString(_velocities));
+		return true;
 	}
 
 }

@@ -5,10 +5,10 @@ import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 
+import org.ros.message.crwlib_msgs.Utm;
 import org.ros.message.geometry_msgs.Pose;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
-import edu.cmu.ri.crw.UTM;
 
 /**
  * A simple simulation of an unmanned boat.
@@ -31,8 +31,8 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	public final SensorType[] _sensorTypes = new SensorType[3];
 	public final double[][] _gains = new double[6][];
 	public final double[] _state = new double[7];
-	public UTM _waypoint = null;
-	public UTM _origin = new UTM(0,0,14,true); // I just picked some random zone!
+	public Pose _waypoint = null;
+	public Pose _origin = new Pose(); // I just picked some random zone!
 	
 	private volatile boolean _isCapturing = false;
 	private volatile boolean _isNavigating = false;
@@ -65,7 +65,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public UTM getWaypoint() {
+	public Pose getWaypoint() {
 		return _waypoint;
 	}
 
@@ -80,14 +80,14 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void setState(double[] state) {
-		for (int i = 0; i < _state.length; ++i) {
+	public void setState(Pose state) {
+		/*for (int i = 0; i < _state.length; ++i) {
 			_state[i] = state[i];
-		}
+		}*/
 	}
 
 	@Override
-	public void startWaypoint(UTM waypoint) {
+	public void startWaypoint(Utm waypoint) {
 		_isNavigating = true;
 		
 		new Thread(new Runnable() {
@@ -167,27 +167,33 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public UTM getOrigin() {
+	public Pose getOrigin() {
 		return _origin;
 	}
 
 	@Override
-	public double[] getState() {
+	public Pose getState() {
 		// Make a copy of the current state (for immutability) and return it
 		double[] state = new double[7];
 		System.arraycopy(_state, 0, state, 0, _state.length);
-		return state;
+		return null;
 	}
 
 	@Override
-	public void setOrigin(UTM utm) {
-		_origin = utm;
+	public void setOrigin(Pose Pose) {
+		_origin = Pose;
 	}
 
 	@Override
 	public int getNumSensors() {
 		//TODO Fix this
 		return 0;
+	}
+
+	@Override
+	public boolean setVelocity(double[] velocity) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }
