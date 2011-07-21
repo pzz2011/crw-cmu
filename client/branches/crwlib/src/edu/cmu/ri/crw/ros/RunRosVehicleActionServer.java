@@ -1,11 +1,5 @@
 package edu.cmu.ri.crw.ros;
 
-import java.net.URI;
-
-import org.ros.NodeConfiguration;
-import org.ros.NodeRunner;
-import org.ros.internal.node.address.InetAddressFactory;
-
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
 
@@ -55,9 +49,7 @@ public class RunRosVehicleActionServer {
 
 	public void Launch() {
 		try {
-			RosVehicleServer rosv = new RosVehicleServer(masterURI, nodeName,
-					server);
-			
+			new RosVehicleServer(masterURI, nodeName, server);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

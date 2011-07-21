@@ -7,16 +7,14 @@ import java.util.logging.Logger;
 import org.ros.NodeConfiguration;
 import org.ros.NodeRunner;
 import org.ros.actionlib.client.SimpleActionClientCallbacks;
-
 import org.ros.actionlib.state.SimpleClientGoalState;
 import org.ros.exception.RosException;
 import org.ros.internal.node.address.InetAddressFactory;
 import org.ros.message.Duration;
-import org.ros.message.crwlib_msgs.*;
+import org.ros.message.crwlib_msgs.VehicleNavigationFeedback;
+import org.ros.message.crwlib_msgs.VehicleNavigationGoal;
+import org.ros.message.crwlib_msgs.VehicleNavigationResult;
 import org.ros.namespace.NameResolver;
-
-import edu.cmu.ri.crw.ros.RosVehicleNavigation.Client;
-import edu.cmu.ri.crw.ros.RosVehicleNavigation.Spec;
 
 /**
  * Starts a Simple Actionlib client for a RosVehicleActionServer.
