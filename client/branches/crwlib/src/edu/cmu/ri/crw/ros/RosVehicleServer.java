@@ -50,7 +50,7 @@ public class RosVehicleServer {
 	
 	public static final Logger logger = Logger.getLogger(RosVehicleServer.class.getName());
 	
-	public static final String DEFAULT_MASTER_URI = "http://syrah.cimds.ri.cmu.edu:11311";
+	public static final String DEFAULT_MASTER_URI = "http://localhost:11311";
 	public static final String DEFAULT_NODE_NAME = "vehicle";
 	
 	protected String _masterURI;

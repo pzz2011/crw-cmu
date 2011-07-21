@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-import org.ros.message.crwlib_msgs.Utm;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.Pose;
@@ -72,7 +71,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startWaypoint(Utm waypoint) {
+	public void startWaypoint(UtmPose waypoint) {
 		_isNavigating = true;
 		
 		new Thread(new Runnable() {
