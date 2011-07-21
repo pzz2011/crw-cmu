@@ -1,6 +1,5 @@
 package edu.cmu.ri.crw;
 
-import org.ros.message.crwlib_msgs.Utm;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.Twist;
@@ -34,7 +33,7 @@ public interface VehicleServer {
 	public void setVelocity(Twist velocity);
 	public TwistWithCovarianceStamped getVelocity();
 	
-	public void startWaypoint(Utm waypoint);
+	public void startWaypoint(UtmPose waypoint);
 	public void stopWaypoint();
 	public UtmPose getWaypoint();
 	public WaypointState getWaypointStatus();

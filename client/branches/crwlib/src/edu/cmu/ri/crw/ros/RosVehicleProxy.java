@@ -10,7 +10,6 @@ import org.ros.actionlib.client.SimpleActionClientCallbacks;
 import org.ros.actionlib.state.SimpleClientGoalState;
 import org.ros.exception.RosException;
 import org.ros.internal.node.address.InetAddressFactory;
-import org.ros.message.crwlib_msgs.Utm;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureFeedback;
@@ -151,7 +150,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startWaypoint(Utm waypoint) {
+	public void startWaypoint(UtmPose waypoint) {
 		// TODO Auto-generated method stub
 
 	}
