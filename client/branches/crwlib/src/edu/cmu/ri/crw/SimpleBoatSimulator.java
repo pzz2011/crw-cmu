@@ -108,7 +108,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 	
 	@Override
-	public void startCamera(final int numFrames, final double interval, final int width, final int height) {
+	public void startCamera(final int numFrames, final double interval, final int width, final int height, final ImagingObserver obs) {
 		_isCapturing = true;
 		
 		new Thread(new Runnable() {
@@ -122,6 +122,10 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					// Every so often, send out a random picture 
 					sendImage(captureImage(width, height));
 					iFrame++;
+					
+					if (obs != null) {
+						obs.imagingUpdate(SimpleBoatSimulator.this);
+					}
 					
 					// Wait for a while
 					try { 
