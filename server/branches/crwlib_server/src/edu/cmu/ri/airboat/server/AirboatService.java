@@ -1,5 +1,6 @@
 package edu.cmu.ri.airboat.server;
 
+
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -42,6 +43,16 @@ import android.os.SystemClock;
 import android.util.Log;
 import at.abraxas.amarino.AmarinoIntent;
 
+import edu.cmu.ri.crw.ros.*;
+
+/**
+ * Android Service to register sensor and Amarino handlers for Android.
+ * Contains a RosVehicleServer and a VehicleServer object
+ * 
+ * @author pkv
+ * @author kshaurya
+ *
+ */
 public class AirboatService extends Service {
 	private static final String TAG = AirboatService.class.getName();
 	private static final com.google.code.microlog4android.Logger logger = LoggerFactory.getLogger();
@@ -70,7 +81,7 @@ public class AirboatService extends Service {
 	
 	// Objects implementing actual functionality
 	private AirboatImpl _airboatImpl;
-	private XmlRpcServer _rpcServer;
+	private RosVehicleServer _rosServer;
 	
 	// Timers for update function
 	private Timer _timer;
@@ -171,6 +182,7 @@ public class AirboatService extends Service {
 				long currentUpdateMs = SystemClock.elapsedRealtime();
 				long elapsedMs = (_lastUpdateMs > 0) ? currentUpdateMs - _lastUpdateMs : 0;			
 				
+					
 				// Trigger the server update function for this interval
 				_service._airboatImpl.update((elapsedMs / 1000.0));
 				_lastUpdateMs = currentUpdateMs;
@@ -214,10 +226,10 @@ public class AirboatService extends Service {
 	 * Access method to get underlying implementation of server functionality.
 	 * @return An interface allowing high-level control of the boat.
 	 */
-	/*public AirboatCommand getServer() {
+	public AirboatImpl getServer() {
 		return _airboatImpl;
 	}
-*/
+
 	/**
 	 * Access method to get underlying implementation of controller functionality.
 	 * @return An interface allowing low-level control of the boat.
@@ -252,7 +264,7 @@ public class AirboatService extends Service {
 			return Service.START_STICKY;
 		
 		// Ensure that we do not reinitialize if not necessary
-		if (_airboatImpl != null || _rpcServer != null)
+		if (_airboatImpl != null || _rosServer != null)
 			return Service.START_STICKY;
 
 		// Set up logging format to include time, tag, and value
@@ -306,16 +318,11 @@ public class AirboatService extends Service {
 		registerReceiver(_airboatImpl.dataCallback, new IntentFilter(AmarinoIntent.ACTION_RECEIVED));
 		registerReceiver(_airboatImpl.connectionCallback, amarinoFilter);
 		
-		// Create an XML-RPC service to expose the data object
+		// Create a RosVehicleServer to expose the data object
 		try {
-			_rpcServer = new XmlRpcServer(_rpcPort);
-			_rpcServer.registerProxyingHandler(null, "^command\\.(.*)", _airboatImpl);
-			_rpcServer.registerProxyingHandler(null, "^control\\.(.*)", _airboatImpl);
-			_rpcServer.start();
-		} catch (IOException e) {
-			Log.e(TAG, "XML-RPC failed", e);
-		} catch (SecurityException e) {
-			Log.e(TAG, "XML-RPC failed", e);
+			_rosServer = new RosVehicleServer(_airboatImpl);
+		} catch (Exception e) {
+			Log.e(TAG, "RosVehicleServer failed", e);
 		}
 		
 		// Start a regular update function
@@ -360,13 +367,13 @@ public class AirboatService extends Service {
 		_timer.cancel();
 		
 		// Shutdown the XML-RPC services
-		if (_rpcServer != null) {
+		if (_rosServer != null) {
 			try {
-				_rpcServer.stop();
+				_rosServer.shutdown();
 			} catch (Exception e) {
-				Log.e(TAG, "XML-RPC shutdown error", e);
+				Log.e(TAG, "RosVehicleServer shutdown error", e);
 			}
-			_rpcServer = null;
+			_rosServer = null;
 		}
 		
 		// Disconnect from the Android sensors

@@ -2,6 +2,10 @@ package edu.cmu.ri.crw;
 
 import java.awt.Image;
 
+import org.ros.message.crwlib_msgs.Utm;
+import org.ros.message.crwlib_msgs.UtmPose;
+import org.ros.message.geometry_msgs.Pose;
+
 public interface VehicleServer {
 	
 	public enum SensorType { ANALOG, DIGITAL, TE };
@@ -9,10 +13,10 @@ public interface VehicleServer {
 
 	public void addStateListener(VehicleStateListener l);
 	public void removeStateListener(VehicleStateListener l);
-	public void setState(double[] state);
-	public void setOrigin(UTM utm);
-	public double[] getState();
-	public UTM getOrigin();
+	public void setState(Pose state);
+	public void setOrigin(Pose utm);
+	public Pose getState();
+	public Pose getOrigin();
 	
 	public void addImageListener(VehicleImageListener l);
 	public void removeImageListener(VehicleImageListener l);
@@ -29,8 +33,10 @@ public interface VehicleServer {
 	public void setPID(int axis, double[] gains);
 	public double[] getPID(int axis);
 	
-	public void startWaypoint(UTM waypoint);
+	public void startWaypoint(Utm waypoint);
 	public void stopWaypoint();
-	public UTM getWaypoint();
+	public Pose getWaypoint();
 	public WaypointState getWaypointStatus(); 
+	
+	public boolean setVelocity(double[] velocity);
 }

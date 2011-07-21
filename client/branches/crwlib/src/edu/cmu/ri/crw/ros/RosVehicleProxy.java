@@ -12,9 +12,9 @@ import org.ros.actionlib.state.SimpleClientGoalState;
 import org.ros.exception.RosException;
 import org.ros.internal.node.address.InetAddressFactory;
 import org.ros.message.crwlib_msgs.*;
+import org.ros.message.geometry_msgs.Pose;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
-import edu.cmu.ri.crw.UTM;
 
 /**
  * Takes the node name of an existing RosVehicleServer and connects through ROS,
@@ -89,7 +89,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public UTM getOrigin() {
+	public Pose getOrigin() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -107,13 +107,13 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public double[] getState() {
+	public Pose getState() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public UTM getWaypoint() {
+	public Pose getWaypoint() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -125,7 +125,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void setOrigin(UTM utm) {
+	public void setOrigin(Pose Pose) {
 		// TODO Auto-generated method stub
 
 	}
@@ -143,7 +143,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void setState(double[] p) {
+	public void setState(Pose  p) {
 		// TODO Auto-generated method stub
 
 	}
@@ -156,7 +156,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startWaypoint(UTM waypoint) {
+	public void startWaypoint(Utm waypoint) {
 		// TODO Auto-generated method stub
 
 	}
@@ -216,5 +216,11 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		}
 
 	};
+
+	@Override
+	public boolean setVelocity(double[] velocity) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 
 }

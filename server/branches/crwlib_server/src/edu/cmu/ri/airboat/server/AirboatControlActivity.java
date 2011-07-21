@@ -26,6 +26,13 @@ import android.widget.TextView;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView.OnEditorActionListener;
 
+/**
+ * Android activity to display the debug screen to modify server parameters using a GUI
+ * 
+ * @author pkv
+ * @author kshaurya
+ *
+ */
 public class AirboatControlActivity extends Activity {
 	private static final com.google.code.microlog4android.Logger logger = LoggerFactory.getLogger();
 	private static final String logTag = AirboatControlActivity.class.getName();
@@ -86,7 +93,7 @@ public class AirboatControlActivity extends Activity {
 				return false;
 			
 			// Don't do anything if we can't get access to the controller
-			if ((_airboatService == null) || (_airboatService.getController() == null)) 
+			if ((_airboatService == null) || (_airboatService.getServer()== null)) 
 				return false;
 			
 			// Set the PID gains using the values from the text boxes
@@ -94,7 +101,7 @@ public class AirboatControlActivity extends Activity {
 				double kp = Double.parseDouble(_pText.getText().toString());
 				double ki = Double.parseDouble(_iText.getText().toString());
 				double kd = Double.parseDouble(_dText.getText().toString());
-				_airboatService.getController().setVelocityGain(_axis, kp, ki, kd);
+				_airboatService.getServer().setVelocityGain(_axis, kp, ki, kd);
 			} catch (NumberFormatException ex) {
 				Log.w(logTag, "Failed to parse gain.", ex);
 			}
@@ -143,12 +150,12 @@ public class AirboatControlActivity extends Activity {
         autonomousBox.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				// Don't do anything if we can't get access to the controller
-				if ((_airboatService == null) || (_airboatService.getController() == null)) 
+				if ((_airboatService == null) || (_airboatService.getServer() == null)) 
 					return;
 				
 				// Send the opposite command of current state
 				// TODO: verify that this has the correct effect (order of checking/clicking)
-				_airboatService.getController().setAutonomous(!autonomousBox.isChecked());
+				_airboatService.getServer().setAutonomous(!autonomousBox.isChecked());
 			}
 		});
         
@@ -160,7 +167,7 @@ public class AirboatControlActivity extends Activity {
 			
 			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 				// Don't do anything if we can't get access to the controller
-				if ((_airboatService == null) || (_airboatService.getController() == null)) 
+				if ((_airboatService == null) || (_airboatService.getServer() == null)) 
 					return;
 				
 				// Ignore our own update events
@@ -169,7 +176,7 @@ public class AirboatControlActivity extends Activity {
 				
 				// Send a new velocity command
 				_velocities[5] = fromProgressToRange(rudderSlider.getProgress(), RUDDER_MIN, RUDDER_MAX);
-				_airboatService.getController().setVelocity(_velocities);
+				_airboatService.getServer().setVelocity(_velocities);
 			}
 		});
         
@@ -181,7 +188,7 @@ public class AirboatControlActivity extends Activity {
 			
 			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 				// Don't do anything if we can't get access to the controller
-				if ((_airboatService == null) || (_airboatService.getController() == null)) 
+				if ((_airboatService == null) || (_airboatService.getServer() == null)) 
 					return;
 
 				// Ignore our own update events
@@ -190,7 +197,7 @@ public class AirboatControlActivity extends Activity {
 				
 				// Send a new velocity command
 				_velocities[0] = fromProgressToRange(thrustSlider.getProgress(), THRUST_MIN, THRUST_MAX);
-				_airboatService.getController().setVelocity(_velocities);
+				_airboatService.getServer().setVelocity(_velocities);
 			}
 		});
         
@@ -203,15 +210,15 @@ public class AirboatControlActivity extends Activity {
 			public void run() {				
 				
 				// Don't do anything if we can't get access to the controller
-				if ((_airboatService == null) || (_airboatService.getController() == null))
+				if ((_airboatService == null) || (_airboatService.getServer() == null))
 					return;
 					
 				// Update the autonomous and connected values
-				connectedBox.setChecked(_airboatService.getController().isConnected());
-				autonomousBox.setChecked(_airboatService.getController().isAutonomous());
+				connectedBox.setChecked(_airboatService.getServer().isConnected());
+				autonomousBox.setChecked(_airboatService.getServer().isAutonomous());
 				
 				// Update the velocities
-				System.arraycopy(_airboatService.getController().getVelocity(), 0, _velocities, 0, _velocities.length);
+				System.arraycopy(_airboatService.getServer().getVelocity(), 0, _velocities, 0, _velocities.length);
 
 				thrustValue.setText(velFormatter.format(_velocities[0]) + " m/s");
 				thrustValue.invalidate();
@@ -239,12 +246,12 @@ public class AirboatControlActivity extends Activity {
 					protected double[][] doInBackground(Void... params) {
 						
 						// Don't do anything if we can't get access to the controller
-						if ((_airboatService == null) || (_airboatService.getController() == null))
+						if ((_airboatService == null) || (_airboatService.getServer() == null))
 							return new double[][] { {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} };
 		
 						// Update the PID gains
-						double[] pidThrust = _airboatService.getController().getVelocityGain(0);
-						double[] pidRudder = _airboatService.getController().getVelocityGain(5);
+						double[] pidThrust = _airboatService.getServer().getVelocityGain(0);
+						double[] pidRudder = _airboatService.getServer().getVelocityGain(5);
 						
 						return new double[][] { pidThrust, pidRudder };
 					}
