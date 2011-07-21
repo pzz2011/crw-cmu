@@ -105,7 +105,7 @@ public class RunRosVehicleActionClient {
 
 			// wait for the action to return
 			logger.info("[Test] Waiting for result.");
-			boolean finished_before_timeout = navClient.waitForResult(new Duration(100000));//20 seconds
+			boolean finished_before_timeout = navClient.waitForResult();//Forever!
 
 			if (finished_before_timeout) {
 				SimpleClientGoalState state = navClient.getState();

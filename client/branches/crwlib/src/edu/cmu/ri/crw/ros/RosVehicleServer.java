@@ -57,6 +57,9 @@ public class RosVehicleServer {
 	protected String _nodeName;
 	protected VehicleServer _server;
 	
+	RosVehicleNavigation.Server _navServer;
+	RosVehicleImaging.Server _imgServer;
+	
 	protected DefaultNode _node;
 	protected Publisher<UtmPoseWithCovarianceStamped> _statePublisher;
 	protected Publisher<CompressedImage> _imagePublisher;
@@ -110,17 +113,18 @@ public class RosVehicleServer {
 	    // Query for vehicle capabilities and create corresponding publishers
 	    int nSensors = server.getNumSensors();
 		_sensorPublishers = new ArrayList<Publisher<SensorData>>(nSensors);
-		for (int iSensor = 0; iSensor < nSensors; ++iSensor) {
+		System.out.println(" nSensors = "+nSensors);
+		for (int iSensor = 0; iSensor < nSensors && iSensor < nSensors; ++iSensor) {
 			Publisher<SensorData> sensorPublisher = _node.createPublisher(RosVehicleConfig.SENSOR_TOPIC_PREFIX + iSensor, "crwlib_msgs/SensorData");
-			_sensorPublishers.set(iSensor, sensorPublisher);
+			_sensorPublishers.add(iSensor, sensorPublisher);
 		}
 
 		// Create an action server for vehicle navigation
 		// TODO: do we need to re-instantiate spec each time here?
 		try {
 			
-			RosVehicleNavigation.Server navServer = new RosVehicleNavigation.Spec().buildSimpleActionServer(_node, _nodeName+"/NAV", navigationHandler, true);
-			runner.run(navServer, navConfig);
+			_navServer = new RosVehicleNavigation.Spec().buildSimpleActionServer(_node, _nodeName+"/NAV", navigationHandler, true);
+			runner.run(_navServer, navConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
 		}
@@ -129,8 +133,8 @@ public class RosVehicleServer {
 		// TODO: do we need to re-instantiate spec each time here?
 		try {
 			
-			RosVehicleImaging.Server imageServer = new RosVehicleImaging.Spec().buildSimpleActionServer(_node, _nodeName+"/IMAGE", imageCaptureHandler, true);
-			runner.run(imageServer, imgConfig);
+			_imgServer = new RosVehicleImaging.Spec().buildSimpleActionServer(_node, _nodeName+"/IMAGE", imageCaptureHandler, true);
+			runner.run(_imgServer, imgConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
 		}
@@ -236,6 +240,18 @@ public class RosVehicleServer {
 			System.out.println("Lalalla");
 			actionServer.setSucceeded(); //Finish it off
 			*/
+			do{
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				logger.info("Current x = "+_server.getState().pose.pose.pose.position.x+"Current y = "+_server.getState().pose.pose.pose.position.y);
+			}while(_server.getWaypointStatus()!=VehicleServer.WaypointState.DONE);
+			
+			VehicleNavigationResult result = new VehicleNavigationResult();
+			result.finalPose.pose.pose = _server.getWaypoint().pose;
+			_navServer.setSucceeded(result, "Tada!!!");
 		}
 	};
 	
