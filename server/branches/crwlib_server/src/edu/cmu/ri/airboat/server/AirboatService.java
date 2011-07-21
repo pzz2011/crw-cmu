@@ -14,16 +14,7 @@ import javax.measure.unit.SI;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
-import org.ros.message.geometry_msgs.Twist;
-
-import com.flat502.rox.server.XmlRpcServer;
-import com.google.code.microlog4android.LoggerFactory;
-import com.google.code.microlog4android.appender.FileAppender;
-import com.google.code.microlog4android.config.PropertyConfigurator;
-import com.google.code.microlog4android.format.PatternFormatter;
-
-import edu.cmu.ri.airboat.interfaces.AirboatCommand;
-import edu.cmu.ri.airboat.interfaces.AirboatControl;
+import org.ros.message.crwlib_msgs.Utm;
 
 import android.app.Service;
 import android.content.Context;
@@ -44,7 +35,13 @@ import android.os.SystemClock;
 import android.util.Log;
 import at.abraxas.amarino.AmarinoIntent;
 
-import edu.cmu.ri.crw.ros.*;
+import com.google.code.microlog4android.LoggerFactory;
+import com.google.code.microlog4android.appender.FileAppender;
+import com.google.code.microlog4android.config.PropertyConfigurator;
+import com.google.code.microlog4android.format.PatternFormatter;
+
+import edu.cmu.ri.crw.CrwSecurityManager;
+import edu.cmu.ri.crw.ros.RosVehicleServer;
 
 /**
  * Android Service to register sensor and Amarino handlers for Android.
@@ -61,12 +58,14 @@ public class AirboatService extends Service {
 	// Default values for parameters
 	private static final String DEFAULT_LOG_PREFIX = "airboat_";
 	private static final int DEFAULT_UPDATE_RATE = 200;
-	private static final int DEFAULT_RPC_PORT = 5000; 
+	private static final String DEFAULT_ROS_MASTER_URI = "http://localhost:11311"; 
+	private static final String DEFAULT_ROS_NODE_NAME = "vehicle";
 	final int GPS_UPDATE_RATE = 200; //in milliseconds
 	
 	// Intent fields definitions
 	public static final String BD_ADDR = "BD_ADDR";
-	public static final String RPC_PORT = "RPC_PORT";
+	public static final String ROS_MASTER_URI = "ROS_MASTER_URI";
+	public static final String ROS_NODE_NAME = "ROS_NODE_NAME";
 	public static final String UPDATE_RATE = "UPDATE_RATE";
 	
 	// Binder object that receives interactions from clients.
@@ -77,8 +76,9 @@ public class AirboatService extends Service {
 
 	// Member parameters 
 	private int _updateRate;
-	private int _rpcPort; 
 	private String _arduinoAddr;
+	private String _rosMasterUri;
+	private String _rosNodeName;
 	
 	// Objects implementing actual functionality
 	private AirboatImpl _airboatImpl;
@@ -109,11 +109,17 @@ public class AirboatService extends Service {
         				LatLong.valueOf(location.getLatitude(), location.getLongitude(), NonSI.DEGREE_ANGLE), 
         				ReferenceEllipsoid.WGS84
         			);
+
+        	// Convert to UTM data structure
+        	Utm utm = new Utm();
+        	utm.northing = utmLoc.northingValue(SI.METER);
+        	utm.easting = utmLoc.eastingValue(SI.METER);
+        	utm.zone = (byte)utmLoc.longitudeZone();
+        	utm.isNorth = (utmLoc.latitudeZone() < 'n');
         	
         	// Apply update using filter object
         	if (_airboatImpl != null) {
-        		_airboatImpl.setUTMZone(utmLoc.longitudeZone(), (utmLoc.latitudeZone() > 'M'));
-        		_airboatImpl.filter.gpsUpdate(utmLoc.northingValue(SI.METER), utmLoc.eastingValue(SI.METER), location.getTime());
+        		_airboatImpl.filter.gpsUpdate(utm, location.getTime());
         		logger.info("GPS: " + utmLoc);
         	}
         }
@@ -211,7 +217,7 @@ public class AirboatService extends Service {
 		super.onCreate();
 		
 		// Disable all DNS lookups (safer for private/ad-hoc networks)
-		AirboatSecurityManager.load();
+		CrwSecurityManager.load();
 		
 		_timer = new Timer();
 		_updateTask = new UpdateTask(this);
@@ -305,7 +311,14 @@ public class AirboatService extends Service {
         // Get necessary connection parameters
 		_arduinoAddr = intent.getStringExtra(BD_ADDR);
 		_updateRate = intent.getIntExtra(UPDATE_RATE, DEFAULT_UPDATE_RATE);
-		_rpcPort = intent.getIntExtra(RPC_PORT, DEFAULT_RPC_PORT);
+		_rosMasterUri = intent.getStringExtra(ROS_MASTER_URI);
+		_rosNodeName = intent.getStringExtra(ROS_NODE_NAME);
+		
+		// Set default values if necessary
+		if (_rosMasterUri == null)
+			_rosMasterUri = DEFAULT_ROS_MASTER_URI;
+		if (_rosNodeName == null) 
+			_rosNodeName = DEFAULT_ROS_NODE_NAME;
 		
         // Create a filter that listens to Amarino connection events
         IntentFilter amarinoFilter = new IntentFilter();
@@ -321,7 +334,7 @@ public class AirboatService extends Service {
 		
 		// Create a RosVehicleServer to expose the data object
 		try {
-			_rosServer = new RosVehicleServer(_airboatImpl);
+			_rosServer = new RosVehicleServer(_rosMasterUri, _rosNodeName, _airboatImpl);
 		} catch (Exception e) {
 			Log.e(TAG, "RosVehicleServer failed", e);
 		}
@@ -339,9 +352,9 @@ public class AirboatService extends Service {
 				
 				double[] velGains;
 				if (_airboatImpl != null) {
-					velGains = _airboatImpl.getVelocityGain(0);
+					velGains = _airboatImpl.getPID(0);
 					logger.info("PIDGAINS: " + "0 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
-					velGains = _airboatImpl.getVelocityGain(5);
+					velGains = _airboatImpl.getPID(5);
 					logger.info("PIDGAINS: " + "5 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
 				}
 			}
