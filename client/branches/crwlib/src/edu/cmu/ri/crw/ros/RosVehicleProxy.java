@@ -21,6 +21,7 @@ import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CompressedImage;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
+import edu.cmu.ri.crw.WaypointObserver;
 
 /**
  * Takes the node name of an existing RosVehicleServer and connects through ROS,
@@ -150,7 +151,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startWaypoint(UtmPose waypoint) {
+	public void startWaypoint(UtmPose waypoint, WaypointObserver obs) {
 		// TODO Auto-generated method stub
 
 	}
