@@ -237,13 +237,6 @@ public class AirboatService extends Service {
 		return _airboatImpl;
 	}
 
-	/**
-	 * Access method to get underlying implementation of controller functionality.
-	 * @return An interface allowing low-level control of the boat.
-	 */
-	/*public AirboatControl getController() {
-		return _airboatImpl;
-	}*/
 	
 	/** 
      * Constructs a default filename from the current date and time.
