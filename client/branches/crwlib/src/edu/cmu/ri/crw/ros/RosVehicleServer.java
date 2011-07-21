@@ -13,9 +13,21 @@ import org.ros.Publisher;
 import org.ros.actionlib.server.SimpleActionServer;
 import org.ros.actionlib.server.SimpleActionServerCallbacks;
 import org.ros.exception.RosException;
-import org.ros.internal.namespace.GraphName;
 import org.ros.internal.node.address.InetAddressFactory;
-import org.ros.message.crwlib_msgs.*;
+import org.ros.message.crwlib_msgs.SensorData;
+import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
+import org.ros.message.crwlib_msgs.VehicleImageCaptureActionFeedback;
+import org.ros.message.crwlib_msgs.VehicleImageCaptureActionGoal;
+import org.ros.message.crwlib_msgs.VehicleImageCaptureActionResult;
+import org.ros.message.crwlib_msgs.VehicleImageCaptureFeedback;
+import org.ros.message.crwlib_msgs.VehicleImageCaptureGoal;
+import org.ros.message.crwlib_msgs.VehicleImageCaptureResult;
+import org.ros.message.crwlib_msgs.VehicleNavigationActionFeedback;
+import org.ros.message.crwlib_msgs.VehicleNavigationActionGoal;
+import org.ros.message.crwlib_msgs.VehicleNavigationActionResult;
+import org.ros.message.crwlib_msgs.VehicleNavigationFeedback;
+import org.ros.message.crwlib_msgs.VehicleNavigationGoal;
+import org.ros.message.crwlib_msgs.VehicleNavigationResult;
 import org.ros.message.sensor_msgs.CameraInfo;
 import org.ros.message.sensor_msgs.CompressedImage;
 import org.ros.namespace.NameResolver;
@@ -158,8 +170,8 @@ public class RosVehicleServer {
 	public final VehicleImageListener imageHandler = new VehicleImageListener() {
 		
 		@Override
-		public void receivedImage(Object image) {
-			_imagePublisher.publish((CompressedImage) image);
+		public void receivedImage(CompressedImage image) {
+			_imagePublisher.publish(image);
 		}
 	};
 	
@@ -172,8 +184,8 @@ public class RosVehicleServer {
 		}
 		
 		@Override
-		public void receivedSensor(Object sensor) {
-			// TODO Auto-generated method stub
+		public void receivedSensor(SensorData sensor) {
+			_publisher.publish(sensor);
 		}
 	}
 	

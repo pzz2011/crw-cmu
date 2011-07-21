@@ -1,6 +1,5 @@
 package edu.cmu.ri.crw.ros;
 
-import java.awt.Image;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.logging.Logger;
@@ -11,8 +10,16 @@ import org.ros.actionlib.client.SimpleActionClientCallbacks;
 import org.ros.actionlib.state.SimpleClientGoalState;
 import org.ros.exception.RosException;
 import org.ros.internal.node.address.InetAddressFactory;
-import org.ros.message.crwlib_msgs.*;
-import org.ros.message.geometry_msgs.Pose;
+import org.ros.message.crwlib_msgs.Utm;
+import org.ros.message.crwlib_msgs.UtmPose;
+import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
+import org.ros.message.crwlib_msgs.VehicleImageCaptureFeedback;
+import org.ros.message.crwlib_msgs.VehicleImageCaptureResult;
+import org.ros.message.crwlib_msgs.VehicleNavigationFeedback;
+import org.ros.message.crwlib_msgs.VehicleNavigationResult;
+import org.ros.message.geometry_msgs.Twist;
+import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
+import org.ros.message.sensor_msgs.CompressedImage;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
 
@@ -83,13 +90,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public Image captureImage(int width, int height) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public Pose getOrigin() {
+	public CompressedImage captureImage(int width, int height) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -107,13 +108,13 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public Pose getState() {
+	public UtmPoseWithCovarianceStamped getState() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Pose getWaypoint() {
+	public UtmPose getWaypoint() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -122,12 +123,6 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	public WaypointState getWaypointStatus() {
 		// TODO Auto-generated method stub
 		return WaypointState.DONE;
-	}
-
-	@Override
-	public void setOrigin(Pose Pose) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
@@ -143,7 +138,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void setState(Pose  p) {
+	public void setState(UtmPose p) {
 		// TODO Auto-generated method stub
 
 	}
@@ -218,9 +213,14 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	};
 
 	@Override
-	public boolean setVelocity(double[] velocity) {
+	public TwistWithCovarianceStamped getVelocity() {
 		// TODO Auto-generated method stub
-		return false;
+		return null;
 	}
 
+	@Override
+	public void setVelocity(Twist velocity) {
+		// TODO Auto-generated method stub
+		
+	}
 }

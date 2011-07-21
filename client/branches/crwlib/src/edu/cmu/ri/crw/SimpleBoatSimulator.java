@@ -2,13 +2,15 @@ package edu.cmu.ri.crw;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.image.BufferedImage;
 
 import org.ros.message.crwlib_msgs.Utm;
+import org.ros.message.crwlib_msgs.UtmPose;
+import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.Pose;
-
-import edu.cmu.ri.crw.AbstractVehicleServer;
+import org.ros.message.geometry_msgs.Twist;
+import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
+import org.ros.message.sensor_msgs.CompressedImage;
 
 /**
  * A simple simulation of an unmanned boat.
@@ -29,10 +31,8 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	public static final int UPDATE_INTERVAL_MS = 100;
 	
 	public final SensorType[] _sensorTypes = new SensorType[3];
-	public final double[][] _gains = new double[6][];
-	public final double[] _state = new double[7];
-	public Pose _waypoint = null;
-	public Pose _origin = new Pose(); // I just picked some random zone!
+	public final UtmPose _state = new UtmPose();
+	public UtmPose _waypoint = null;
 	
 	private volatile boolean _isCapturing = false;
 	private volatile boolean _isNavigating = false;
@@ -40,7 +40,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	public SimpleBoatSimulator() { }
 
 	@Override
-	public Image captureImage(int width, int height) {
+	public CompressedImage captureImage(int width, int height) {
 		
 		// Create an image and fill it with a random color
 		BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
@@ -48,15 +48,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		graphics.setPaint(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
 		graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
 		
-		return image;
-	}
-
-	@Override
-	public double[] getPID(int axis) {
-		// Make a copy of the current state (for immutability) and return it
-		double[] gains = new double[_gains[axis].length];
-		System.arraycopy(_gains, 0, gains[axis], 0, _gains[axis].length);
-		return gains;
+		return toCompressedImage(image);
 	}
 
 	@Override
@@ -65,13 +57,8 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public Pose getWaypoint() {
+	public UtmPose getWaypoint() {
 		return _waypoint;
-	}
-
-	@Override
-	public void setPID(int axis, double[] gains) {
-		System.arraycopy(gains, 0, _gains[axis], 0, _gains[axis].length);
 	}
 
 	@Override
@@ -80,10 +67,8 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void setState(Pose state) {
-		/*for (int i = 0; i < _state.length; ++i) {
-			_state[i] = state[i];
-		}*/
+	public void setState(UtmPose state) {
+		_state.setTo(state); // TODO: I have no idea what setTo does!
 	}
 
 	@Override
@@ -97,9 +82,9 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 				while (_isNavigating) {
 
 					// Every so often, update boat position 
-					_state[0] += 1.0;
-					_state[1] += 1.0;
-					_state[2] += 1.0;
+					_state.pose.position.x += 1.0;
+					_state.pose.position.y += 1.0;
+					_state.pose.position.z += 1.0;
 					
 					// Wait for a while
 					try { 
@@ -167,33 +152,25 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public Pose getOrigin() {
-		return _origin;
-	}
-
-	@Override
-	public Pose getState() {
-		// Make a copy of the current state (for immutability) and return it
-		double[] state = new double[7];
-		System.arraycopy(_state, 0, state, 0, _state.length);
-		return null;
-	}
-
-	@Override
-	public void setOrigin(Pose Pose) {
-		_origin = Pose;
+	public UtmPoseWithCovarianceStamped getState() {
+		UtmPoseWithCovarianceStamped stateMsg = new UtmPoseWithCovarianceStamped();
+		stateMsg.utm = _state.utm.clone();
+		stateMsg.pose.pose.pose = _state.pose;
+		return stateMsg;
 	}
 
 	@Override
 	public int getNumSensors() {
-		//TODO Fix this
-		return 0;
+		return _sensorTypes.length;
 	}
 
 	@Override
-	public boolean setVelocity(double[] velocity) {
-		// TODO Auto-generated method stub
-		return false;
+	public void setVelocity(Twist velocity) {
+		// TODO: do something useful here
 	}
 
+	@Override
+	public TwistWithCovarianceStamped getVelocity() {
+		return new TwistWithCovarianceStamped();
+	}
 }
