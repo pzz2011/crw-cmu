@@ -33,7 +33,7 @@ public interface VehicleServer {
 	public void setVelocity(Twist velocity);
 	public TwistWithCovarianceStamped getVelocity();
 	
-	public void startWaypoint(UtmPose waypoint);
+	public void startWaypoint(UtmPose waypoint, WaypointObserver obs);
 	public void stopWaypoint();
 	public UtmPose getWaypoint();
 	public WaypointState getWaypointStatus();

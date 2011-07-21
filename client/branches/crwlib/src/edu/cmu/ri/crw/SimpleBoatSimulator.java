@@ -71,7 +71,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startWaypoint(UtmPose waypoint) {
+	public void startWaypoint(final UtmPose waypoint, final WaypointObserver obs) {
 		_isNavigating = true;
 		
 		new Thread(new Runnable() {
@@ -84,6 +84,10 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					_state.pose.position.x += 1.0;
 					_state.pose.position.y += 1.0;
 					_state.pose.position.z += 1.0;
+					
+					if (obs != null) {
+						obs.waypointUpdate(SimpleBoatSimulator.this);
+					}
 					
 					// Wait for a while
 					try { 
