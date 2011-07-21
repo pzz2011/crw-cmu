@@ -43,6 +43,21 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 	public static final String SAVE_EXTRA = "SaveImage";
 	public static final String IMAGE_EXTRA = "ImageData";
 	
+	
+	/**
+	 * Takes a picture, blocking until the picture is complete, then returns
+	 * the JPEG data for the picture.
+	 * 
+	 * This version of the method fixes picture size at 512x384.
+	 *  
+	 * @see AirboatCameraActivity#takePhoto(Context)
+	 * @param context the context of the calling Activity or Service
+	 * @return byte array containing a JPEG-encoded image, or zero-length array on failure
+	 */
+	public static byte[] takePhoto(final Context context) {
+		return takePhoto(context, 512, 384);
+	}
+	
 	/**
 	 * Takes a picture, blocking until the picture is complete, then returns
 	 * the JPEG data for the picture.
@@ -50,7 +65,7 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 	 * @param context the context of the calling Activity or Service
 	 * @return byte array containing a JPEG-encoded image, or zero-length array on failure
 	 */
-	public static byte[] takePhoto(final Context context) {
+	public static byte[] takePhoto(final Context context, int width, int height) {
 		
 		// Set up a structure to hold the JPEG data
 		final AtomicMarkableReference<byte[]> dataRef = new AtomicMarkableReference<byte[]>(null, false);
@@ -81,8 +96,8 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // TODO: I don't know if this is the right flag here
 		intent.putExtra(SAVE_EXTRA, false);
 		intent.putExtra(QUALITY_EXTRA, 30);
-		intent.putExtra(WIDTH_EXTRA, 512);
-		intent.putExtra(HEIGHT_EXTRA, 384);
+		intent.putExtra(WIDTH_EXTRA, width);
+		intent.putExtra(HEIGHT_EXTRA, height);
 		context.startActivity(intent);
 		
 		// Wait for picture to be returned through atomic reference
