@@ -1,6 +1,14 @@
 package edu.cmu.ri.airboat.server;
 
-import edu.cmu.ri.airboat.interfaces.AirboatFilter;
+import org.ros.message.Time;
+import org.ros.message.crwlib_msgs.Utm;
+import org.ros.message.crwlib_msgs.UtmPose;
+import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
+import org.ros.message.geometry_msgs.Pose;
+import org.ros.message.geometry_msgs.Twist;
+
+import edu.cmu.ri.crw.QuaternionUtils;
+import edu.cmu.ri.crw.VehicleFilter;
 
 /**
  * A basic filter that uses weighted averages and a first-order approximate
@@ -9,7 +17,7 @@ import edu.cmu.ri.airboat.interfaces.AirboatFilter;
  * @author pkv
  *
  */
-public class SimpleFilter implements AirboatFilter {
+public class SimpleFilter implements VehicleFilter {
 	
 	// The largest allowed numerical integration timestep
 	// (larger intervals are integrated using multiple steps of this length)
@@ -24,9 +32,9 @@ public class SimpleFilter implements AirboatFilter {
 	boolean _isInitializedGps = false;
 	boolean _isInitializedCompass = false;
 	
-	// State represented by 6D pose (x,y,z,roll,pitch,yaw), and 6D vel (dx,dy,dz,rx,ry,rz)
-	double[] _pose = new double[6];
-	double[] _vels = new double[6];
+	// State represented by 6D pose
+	UtmPose _pose = new UtmPose();
+	Twist _vels = new Twist();
 	
 	// The current time in milliseconds, used to measure filter update intervals
 	long _time = System.currentTimeMillis();
@@ -35,10 +43,11 @@ public class SimpleFilter implements AirboatFilter {
 		while(_time < time) {
 			long step = Math.min(time - _time, MAX_STEP_MS);
 			double dt = step / 1000.0;
+			double yaw = QuaternionUtils.toYaw(_pose.pose.orientation);
 			
-			_pose[0] += dt * (_vels[0] * Math.cos(_pose[5]) - _vels[1] * Math.sin(_pose[5]));
-			_pose[1] += dt * (_vels[0] * Math.sin(_pose[5]) + _vels[1] * Math.cos(_pose[5]));
-			_pose[5] += dt * (_vels[5]);
+			_pose.pose.position.x += dt * (_vels.linear.x * Math.cos(yaw) - _vels.linear.y * Math.sin(yaw));
+			_pose.pose.position.y += dt * (_vels.linear.x * Math.sin(yaw) + _vels.linear.y * Math.cos(yaw));
+			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, yaw + dt * _vels.angular.z);
 			
 			_time += step;
 		}
@@ -50,43 +59,60 @@ public class SimpleFilter implements AirboatFilter {
 		
 		// On the first compass update, simply take on the initial heading
 		if (_isInitializedCompass) {
-			_pose[5] = angleAverage(ALPHA_COMPASS, _pose[5], heading);
+			double yaw = QuaternionUtils.toYaw(_pose.pose.orientation);
+			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, angleAverage(ALPHA_COMPASS, yaw, heading));
 		} else {
-			_pose[5] = heading;
+			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, heading);
 			_isInitializedCompass = true;
 		}
 	}
 
 	@Override
-	public synchronized void gpsUpdate(double northing, double easting, long time) {
+	public synchronized void gpsUpdate(Utm utm, long time) {
 		predict(time);
 		
-		// On the first GPS update, simply take on the initial readings
-		if (_isInitializedGps) {
-			_pose[0] = ALPHA_GPS * northing + (1 - ALPHA_GPS) * _pose[0];
-			_pose[1] = ALPHA_GPS * easting + (1 - ALPHA_GPS) * _pose[1];
-		} else {
-			_pose[0] = northing;
-			_pose[1] = easting;
+		// If we are in the wrong zone or are unintialized, use the GPS position
+		if (utm.zone != _pose.utm.zone || utm.isNorth != _pose.utm.isNorth || !_isInitializedGps) {
+			_pose.utm = utm.clone();
+			_pose.pose = new Pose();
+			_pose.pose.position.x = utm.easting;
+			_pose.pose.position.y = utm.northing;
 			_isInitializedGps = true;
+		} else {
+			// On other update, average together the readings
+			_pose.pose.position.x = ALPHA_GPS * utm.easting + (1 - ALPHA_GPS) * _pose.pose.position.x;
+			_pose.pose.position.y = ALPHA_GPS * utm.northing + (1 - ALPHA_GPS) * _pose.pose.position.y;
+			
+			// Just copy over the UTM coordinates from pose vector
+			_pose.utm.easting = _pose.pose.position.x;
+			_pose.utm.northing = _pose.pose.position.y;
 		}
 	}
 
 	@Override
 	public synchronized void gyroUpdate(double headingVel, long time) {
 		predict(time);
-		_vels[5] = headingVel;
+		_vels.angular.z = headingVel;
 	}
 
 	@Override
-	public synchronized double[] pose(long time) {
-		return _pose;
+	public synchronized UtmPoseWithCovarianceStamped pose(long time) {
+		
+		UtmPoseWithCovarianceStamped poseMsg = new UtmPoseWithCovarianceStamped();
+		
+		poseMsg.utm = _pose.utm.clone();
+		poseMsg.pose.pose.pose = _pose.pose.clone();
+		poseMsg.pose.header.frame_id = "/base_link";
+		poseMsg.pose.header.stamp = Time.fromMillis(System.currentTimeMillis());
+		
+		return poseMsg;
 	}
 
 	@Override
-	public synchronized void reset(double[] pose, long time) {
+	public synchronized void reset(UtmPose pose, long time) {
 		_time = time;
-		System.arraycopy(pose, 0, _pose, 0, _pose.length);
+		
+		_pose = pose.clone();
 		
 		_isInitializedGps = true;
 		_isInitializedCompass = true;

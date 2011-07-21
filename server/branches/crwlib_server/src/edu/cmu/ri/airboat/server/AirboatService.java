@@ -14,6 +14,7 @@ import javax.measure.unit.SI;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+import org.ros.message.geometry_msgs.Twist;
 
 import com.flat502.rox.server.XmlRpcServer;
 import com.google.code.microlog4android.LoggerFactory;

@@ -14,15 +14,17 @@
 	<classpathentry kind="lib" path="libs/rox-log4j.jar"/>
 	<classpathentry kind="lib" path="libs/rox-rf.jar"/>
 	<classpathentry kind="lib" path="libs/sax2.jar"/>
-	<classpathentry kind="lib" path="/home/kshaurya/ros/rosjava/rosjava_bootstrap/dist/rosjava-bootstrap.jar" sourcepath="/home/kshaurya/ros/rosjava/rosjava_bootstrap/src"/>
-	<classpathentry kind="lib" path="/home/kshaurya/ros/rosjava/rosjava/dist/rosjava.jar"/>
-	<classpathentry kind="lib" path="/home/kshaurya/.ros/rosjava/lib/actionlib.jar"/>
-	<classpathentry kind="lib" path="/home/kshaurya/.ros/rosjava/lib/actionlib_msgs.jar"/>
-	<classpathentry kind="lib" path="/home/kshaurya/.ros/rosjava/lib/actionlib_tutorials.jar"/>
-	<classpathentry kind="lib" path="/home/kshaurya/.ros/rosjava/lib/crwlib_msgs.jar" sourcepath="/home/kshaurya/.ros/rosjava/gen/msg/crwlib_msgs"/>
-	<classpathentry kind="lib" path="/home/kshaurya/.ros/rosjava/lib/geometry_msgs.jar"/>
-	<classpathentry kind="lib" path="/home/kshaurya/.ros/rosjava/lib/sensor_msgs.jar"/>
-	<classpathentry kind="lib" path="/home/kshaurya/.ros/rosjava/lib/std_msgs.jar"/>
-	<classpathentry kind="lib" path="libs/AirboatClient.jar"/>
+        <classpathentry kind="lib" path="libs/rosjava.jar"/>
+        <classpathentry kind="lib" path="libs/rosjava-bootstrap.jar"/>
+	<classpathentry kind="lib" path="../../.ros/rosjava/lib/test_ros.jar"/>
+        <classpathentry kind="lib" path="../../.ros/rosjava/lib/roscpp.jar"/>
+        <classpathentry kind="lib" path="../../.ros/rosjava/lib/topic_tools.jar"/>
+        <classpathentry kind="lib" path="../../.ros/rosjava/lib/std_msgs.jar"/>
+        <classpathentry kind="lib" path="../../.ros/rosjava/lib/rosgraph_msgs.jar"/>
+        <classpathentry kind="lib" path="../../.ros/rosjava/lib/geometry_msgs.jar"/>
+        <classpathentry kind="lib" path="../../.ros/rosjava/lib/sensor_msgs.jar"/>
+        <classpathentry kind="lib" path="../../.ros/rosjava/lib/crwlib_msgs.jar"/>
+        <classpathentry kind="lib" path="../../.ros/rosjava/lib/actionlib_msgs.jar"/>
+        <classpathentry kind="lib" path="../../.ros/rosjava/lib/actionlib.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
