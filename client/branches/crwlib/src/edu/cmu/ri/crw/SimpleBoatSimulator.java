@@ -93,9 +93,12 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					try { 
 						Thread.sleep(UPDATE_INTERVAL_MS); 
 					} catch (InterruptedException ex) {
+						_isNavigating = false;
 						return;
 					}
 				}
+				
+				_isNavigating = false;
 			}
 		}).start();
 	}
@@ -129,11 +132,14 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					
 					// Wait for a while
 					try { 
-						Thread.sleep(UPDATE_INTERVAL_MS); 
+						Thread.sleep((long)(interval * 1000.0)); 
 					} catch (InterruptedException ex) {
+						_isCapturing = false;
 						return;
 					}
 				}
+				
+				_isCapturing = false;
 			}
 		}).start();	
 	}
