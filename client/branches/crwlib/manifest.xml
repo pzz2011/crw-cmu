@@ -17,9 +17,9 @@
 	<depend package="sensor_msgs" />
 	<depend package="geometry_msgs" />
 	<depend package="crwlib_msgs" />
+
 	<export>
-		<rosjava-pathelement location="dist/crwlib.jar"
-			built="true" />
+		<rosjava-pathelement location="dist/crwlib.jar" built="true" />
 	</export>
 </package>
 
