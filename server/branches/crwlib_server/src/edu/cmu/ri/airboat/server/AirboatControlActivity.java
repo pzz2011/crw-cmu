@@ -3,7 +3,11 @@ package edu.cmu.ri.airboat.server;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 
+import org.ros.message.geometry_msgs.Twist;
+
 import com.google.code.microlog4android.LoggerFactory;
+
+import edu.cmu.ri.crw.VehicleServer.WaypointState;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -153,9 +157,8 @@ public class AirboatControlActivity extends Activity {
 				if ((_airboatService == null) || (_airboatService.getServer() == null)) 
 					return;
 				
-				// Send the opposite command of current state
-				// TODO: verify that this has the correct effect (order of checking/clicking)
-				_airboatService.getServer().setAutonomous(!autonomousBox.isChecked());
+				// Stop navigation
+				_airboatService.getServer().stopWaypoint();
 			}
 		});
         
@@ -175,8 +178,9 @@ public class AirboatControlActivity extends Activity {
 					return;
 				
 				// Send a new velocity command
-				_velocities[5] = fromProgressToRange(rudderSlider.getProgress(), RUDDER_MIN, RUDDER_MAX);
-				_airboatService.getServer().setVelocity(_velocities);
+				Twist twist = _airboatService.getServer().getVelocity().twist.twist;
+				twist.angular.z = fromProgressToRange(rudderSlider.getProgress(), RUDDER_MIN, RUDDER_MAX);
+				_airboatService.getServer().setVelocity(twist);
 			}
 		});
         
@@ -196,8 +200,9 @@ public class AirboatControlActivity extends Activity {
 					return;
 				
 				// Send a new velocity command
-				_velocities[0] = fromProgressToRange(thrustSlider.getProgress(), THRUST_MIN, THRUST_MAX);
-				_airboatService.getServer().setVelocity(_velocities);
+				Twist twist = _airboatService.getServer().getVelocity().twist.twist;
+				twist.linear.x = fromProgressToRange(thrustSlider.getProgress(), THRUST_MIN, THRUST_MAX);
+				_airboatService.getServer().setVelocity(twist);
 			}
 		});
         
@@ -215,7 +220,7 @@ public class AirboatControlActivity extends Activity {
 					
 				// Update the autonomous and connected values
 				connectedBox.setChecked(_airboatService.getServer().isConnected());
-				autonomousBox.setChecked(_airboatService.getServer().isAutonomous());
+				autonomousBox.setChecked(_airboatService.getServer().getWaypointStatus() == WaypointState.GOING);
 				
 				// Update the velocities
 				System.arraycopy(_airboatService.getServer().getVelocity(), 0, _velocities, 0, _velocities.length);
@@ -250,8 +255,8 @@ public class AirboatControlActivity extends Activity {
 							return new double[][] { {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} };
 		
 						// Update the PID gains
-						double[] pidThrust = _airboatService.getServer().getVelocityGain(0);
-						double[] pidRudder = _airboatService.getServer().getVelocityGain(5);
+						double[] pidThrust = _airboatService.getServer().getPID(0);
+						double[] pidRudder = _airboatService.getServer().getPID(5);
 						
 						return new double[][] { pidThrust, pidRudder };
 					}
