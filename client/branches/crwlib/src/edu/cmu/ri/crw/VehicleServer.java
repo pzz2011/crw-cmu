@@ -18,7 +18,7 @@ public interface VehicleServer {
 	
 	public void addImageListener(VehicleImageListener l);
 	public void removeImageListener(VehicleImageListener l);
-	public void startCamera(int numFrames, double interval, int width, int height);
+	public void startCamera(int numFrames, double interval, int width, int height, ImagingObserver obs);
 	public void stopCamera();
 	public CompressedImage captureImage(int width, int height);
 	

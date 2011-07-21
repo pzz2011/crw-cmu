@@ -21,6 +21,7 @@ import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CompressedImage;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
+import edu.cmu.ri.crw.ImagingObserver;
 import edu.cmu.ri.crw.WaypointObserver;
 
 /**
@@ -145,7 +146,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 
 	@Override
 	public void startCamera(int numFrames, double interval, int width,
-			int height) {
+			int height, ImagingObserver obs) {
 		// TODO Auto-generated method stub
 
 	}
