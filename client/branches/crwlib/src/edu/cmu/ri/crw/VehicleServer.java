@@ -10,6 +10,7 @@ public interface VehicleServer {
 	
 	public enum SensorType { ANALOG, DIGITAL, TE };
 	public enum WaypointState { GOING, DONE };
+	public enum CameraState { CAPTURING, OFF };
 
 	public void addStateListener(VehicleStateListener l);
 	public void removeStateListener(VehicleStateListener l);
@@ -18,7 +19,7 @@ public interface VehicleServer {
 	
 	public void addImageListener(VehicleImageListener l);
 	public void removeImageListener(VehicleImageListener l);
-	public void startCamera(int numFrames, double interval, int width, int height, ImagingObserver obs);
+	public void startCamera(long numFrames, double interval, int width, int height, ImagingObserver obs);
 	public void stopCamera();
 	public CompressedImage captureImage(int width, int height);
 	
@@ -40,4 +41,5 @@ public interface VehicleServer {
 	
 	public void setPID(int axis, double[] gains);
 	public double[] getPID(int axis);
+	public CameraState getCameraStatus();
 }
