@@ -1,5 +1,12 @@
 package edu.cmu.ri.crw.ros;
 
+import java.net.InetAddress;
+
+import org.ros.NodeConfiguration;
+import org.ros.NodeRunner;
+import org.ros.RosCore;
+import org.ros.message.roscpp.Logger;
+
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
 
@@ -25,9 +32,9 @@ public class RunRosVehicleActionServer {
 	public RunRosVehicleActionServer() {
 		try {
 			nav = new RosVehicleNavigation();
-			masterURI = "http://syrah.cimds.ri.cmu.edu:11311"; // Address of
-																// roscore
-																// instance
+			masterURI = RosVehicleConfig.DEFAULT_MASTER_URI; // Address of
+			// roscore
+			// instance
 			nodeName = "vehicle";
 			server = new SimpleBoatSimulator();
 		} catch (Exception e) {
@@ -49,7 +56,18 @@ public class RunRosVehicleActionServer {
 
 	public void Launch() {
 		try {
-			new RosVehicleServer(masterURI, nodeName, server);
+
+			/*if(masterURI == "local")
+			{
+				RosCore core = RosCore.createPublic(11311);
+				NodeConfiguration nodeConfiguration = NodeConfiguration.createDefault();
+				 NodeRunner.createDefault().run(core, nodeConfiguration);
+				core.awaitStart();
+				System.out.println(core.getUri().toString());
+				new RosVehicleServer(core.getUri().toString(), nodeName, server);
+			}
+			else*/
+				new RosVehicleServer(masterURI, nodeName, server);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

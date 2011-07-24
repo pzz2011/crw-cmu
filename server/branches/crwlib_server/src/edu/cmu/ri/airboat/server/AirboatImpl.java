@@ -1,7 +1,9 @@
 package edu.cmu.ri.airboat.server;
 
+import java.awt.image.ImageObserver;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Observer;
 
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
@@ -20,7 +22,9 @@ import at.abraxas.amarino.AmarinoIntent;
 import com.google.code.microlog4android.LoggerFactory;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
+import edu.cmu.ri.crw.ImagingObserver;
 import edu.cmu.ri.crw.VehicleFilter;
+import edu.cmu.ri.crw.WaypointObserver;
 
 /**
  * Contains the actual implementation of vehicle functionality, accessible as a
@@ -417,8 +421,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 
 	@Override
-	public void startCamera(final int numFrames, final double interval,
-			final int width, final int height) {
+	public void startCamera(final long numFrames, final double interval,
+			final int width, final int height, ImagingObserver obs) {
 		_isCapturing = true;
 
 		new Thread(new Runnable() {
@@ -495,7 +499,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 	
 	@Override
-	public void startWaypoint(UtmPose waypoint) {
+	public void startWaypoint(UtmPose waypoint, WaypointObserver obs ) {
 		
 		_waypoint = waypoint.clone();
 		_isNavigating = true;
@@ -522,6 +526,14 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 */
 	public void setVelocity(Twist vel) {
 		_velocities = vel.clone();
+	}
+
+
+
+	@Override
+	public CameraState getCameraStatus() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

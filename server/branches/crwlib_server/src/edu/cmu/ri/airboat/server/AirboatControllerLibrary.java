@@ -5,13 +5,8 @@ import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.Pose;
 import org.ros.message.geometry_msgs.Twist;
 
-<<<<<<< .mine
-import edu.cmu.ri.airboat.interfaces.AirboatControl;
-import edu.cmu.ri.airboat.interfaces.AirboatController;
-import edu.cmu.ri.airboat.interfaces.AirboatSensor;
-=======
+
 import edu.cmu.ri.crw.VehicleController;
->>>>>>> .r116
 import edu.cmu.ri.crw.VehicleServer;
 
 /**

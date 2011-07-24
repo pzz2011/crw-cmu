@@ -1,8 +1,12 @@
 package edu.cmu.ri.crw.ros;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.logging.Logger;
+
+import edu.cmu.ri.crw.ros.RosVehicleConfig;
 
 import org.ros.NodeConfiguration;
 import org.ros.NodeRunner;
@@ -42,9 +46,9 @@ public class RunRosVehicleActionClient {
 			NodeConfiguration navConfig = NodeConfiguration.createDefault();
 			NodeRunner runner = NodeRunner.createDefault();
 
-			String masterURI = "http://syrah.cimds.ri.cmu.edu:11311";
+			String masterURI=RosVehicleConfig.DEFAULT_MASTER_URI;
 			String host = InetAddressFactory.createNonLoopback().getHostAddress();
-
+			System.out.println("in host "+host);
 			navConfig.setHost(host);
 			try {
 				navConfig.setMasterUri(new URI(masterURI));
@@ -54,7 +58,7 @@ public class RunRosVehicleActionClient {
 
 			NameResolver navResolver = NameResolver.createFromString("/NAV");
 			navConfig.setParentResolver(navResolver);
-			RosVehicleNavigation.Client navClient = new RosVehicleNavigation.Spec().buildSimpleActionClient(_nodeName);
+			final RosVehicleNavigation.Client navClient = new RosVehicleNavigation.Spec().buildSimpleActionClient(_nodeName);
 
 			runner.run(navClient, navConfig);
 			int i=5;
@@ -74,15 +78,11 @@ public class RunRosVehicleActionClient {
 
 			VehicleNavigationGoal goal = new RosVehicleNavigation.Spec().createGoalMessage();
 
-			goal.targetPose.pose.position.x=1;
-			goal.targetPose.pose.position.y=1;
-			goal.targetPose.pose.position.z=1;
+			goal.targetPose.pose.position.x=10;
+			goal.targetPose.pose.position.y=10;
+			
 
-			goal.targetPose.pose.orientation.w=1;
-			goal.targetPose.pose.orientation.x=1;
-			goal.targetPose.pose.orientation.y=1;
-			goal.targetPose.pose.orientation.z=1;
-
+			
 			navClient.sendGoal(goal, new SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult>() {
 				@Override
 				public void feedbackCallback(VehicleNavigationFeedback feedback) {
@@ -94,7 +94,13 @@ public class RunRosVehicleActionClient {
 				@Override
 				public void doneCallback(SimpleClientGoalState state, VehicleNavigationResult result) {
 					logger.info("Client done " + state);
-
+					VehicleNavigationResult res = null;
+					try {
+						res = navClient.getResult();
+					} catch (RosException e) {
+						e.printStackTrace();
+					}
+					logger.info(res.finalPose.pose.pose.position.x+", y = "+res.finalPose.pose.pose.position.y+", z= "+res.finalPose.pose.pose.position.z);
 				}
 
 				@Override
@@ -105,7 +111,7 @@ public class RunRosVehicleActionClient {
 
 			// wait for the action to return
 			logger.info("[Test] Waiting for result.");
-			boolean finished_before_timeout = navClient.waitForResult();//Forever!
+			boolean finished_before_timeout = navClient.waitForResult(new Duration(10000));//Forever!
 
 			if (finished_before_timeout) {
 				SimpleClientGoalState state = navClient.getState();
@@ -117,7 +123,7 @@ public class RunRosVehicleActionClient {
 			} else {
 				logger.info("[Test] Action did not finish before the time out, and state is "+navClient.getState());
 			}
-
+			
 		}
 		catch(RosException e)
 		{

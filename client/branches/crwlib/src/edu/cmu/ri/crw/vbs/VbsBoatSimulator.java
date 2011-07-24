@@ -12,6 +12,7 @@ import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.ImagingObserver;
 import edu.cmu.ri.crw.QuaternionUtils;
 import edu.cmu.ri.crw.WaypointObserver;
+import edu.cmu.ri.crw.VehicleServer.CameraState;
 import edu.cmu.ri.crw.vbs.ImageServerLink.ImageEvent;
 import edu.cmu.ri.crw.vbs.ImageServerLink.ImageEventListener;
 
@@ -118,7 +119,7 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startCamera(final int numFrames, final double interval, final int width,
+	public void startCamera(final long numFrames, final double interval, final int width,
 			final int height, final ImagingObserver obs) {
 		
 		final long captureInterval = (long)(interval * 1000.0);
@@ -247,5 +248,13 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 		
 		// TODO Auto-generated method stub
 		return waypoint;
+	}
+
+	@Override
+	public CameraState getCameraStatus() {
+		if(this._isCapturing)
+			return CameraState.CAPTURING;
+		else
+			return CameraState.OFF;
 	}
 }

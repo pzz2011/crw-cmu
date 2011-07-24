@@ -145,7 +145,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startCamera(int numFrames, double interval, int width,
+	public void startCamera(long numFrames, double interval, int width,
 			int height, ImagingObserver obs) {
 		// TODO Auto-generated method stub
 
@@ -223,5 +223,11 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	public void setVelocity(Twist velocity) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public CameraState getCameraStatus() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
