@@ -1,9 +1,7 @@
 package edu.cmu.ri.airboat.server;
 
-import java.awt.image.ImageObserver;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Observer;
 
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
@@ -31,11 +29,6 @@ import edu.cmu.ri.crw.WaypointObserver;
  * singleton that is updated and maintained by a background service.
  * 
  * @author pkv
- * 
- *         --- Modified ---
- * 
- *         This contains the implementation for VehicleServer from crwlib
- * 
  * @author kss
  * 
  */
@@ -117,10 +110,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * should only be used internally when the corresponding vehicle service is
 	 * started and stopped.
 	 * 
-	 * @param context
-	 *            the application context to use
-	 * @param addr
-	 *            the bluetooth address of the vehicle controller
+	 * @param context the application context to use
+	 * @param addr the bluetooth address of the vehicle controller
 	 */
 
 	protected AirboatImpl(Context context, String addr) {
@@ -133,8 +124,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * Internal update function called at regular intervals to process command
 	 * and control events.
 	 * 
-	 * @param dt
-	 *            the elapsed time since the last update call (in seconds)
+	 * @param dt the elapsed time since the last update call (in seconds)
 	 */
 	protected void update(double dt) {
 
@@ -481,8 +471,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * the current estimate of vehicle state to match the specified pose. Used
 	 * for user- or multirobot- pose corrections.
 	 * 
-	 * @param pose
-	 *            the corrected 6D pose of the vehicle: [x,y,z,roll,pitch,yaw]
+	 * @param pose the corrected 6D pose of the vehicle: [x,y,z,roll,pitch,yaw]
 	 */
 
 	public void setState(UtmPose pose) {
@@ -528,12 +517,20 @@ public class AirboatImpl extends AbstractVehicleServer {
 		_velocities = vel.clone();
 	}
 
-
-
 	@Override
 	public CameraState getCameraStatus() {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO: fill this in with something reasonable
+		return CameraState.UNKNOWN;
+	}
+
+	@Override
+	public boolean isAutonomous() {
+		return _isAutonomous;
+	}
+
+	@Override
+	public void setAutonomous(boolean isAutonomous) {
+		_isAutonomous = isAutonomous;
 	}
 
 }
