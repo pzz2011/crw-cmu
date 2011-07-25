@@ -12,6 +12,7 @@ import org.ros.internal.node.service.ServiceResponseBuilder;
 import org.ros.internal.time.WallclockProvider;
 import org.ros.message.MessageListener;
 import org.ros.message.crwlib_msgs.SensorData;
+import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureActionFeedback;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureActionGoal;
@@ -138,9 +139,8 @@ public class RosVehicleServer {
 		
 		// TODO: do we need to re-instantiate spec each time here?
 		try {
-			_navServer = new RosVehicleNavigation.Spec()
-			.buildSimpleActionServer(_node, nodeName + "/nav",
-					navigationHandler, true);
+			_navServer = new RosVehicleNavigation.Spec().buildSimpleActionServer(
+					_node, nodeName + "/nav", navigationHandler, false);
 			runner.run(_navServer, navConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
@@ -154,7 +154,7 @@ public class RosVehicleServer {
 		// TODO: do we need to re-instantiate spec each time here?
 		try {
 			_imgServer = new RosVehicleImaging.Spec().buildSimpleActionServer(
-					_node, nodeName + "/img", imageCaptureHandler, true);
+					_node, nodeName + "/img", imageCaptureHandler, false);
 			runner.run(_imgServer, imgConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
@@ -442,8 +442,41 @@ public class RosVehicleServer {
 		@Override
 		public void goalCallback(
 				SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> actionServer) {
-			logger.info("Starting navigation");
-			// TODO: What is this callback for?
+			
+			try {
+				final VehicleNavigationGoal goal = _navServer.acceptNewGoal();
+				logger.info("Starting navigation to: " + print(goal.targetPose));
+				
+				_server.stopWaypoint();			
+				_server.startWaypoint(goal.targetPose, new WaypointObserver() {
+					
+					@Override
+					public void waypointUpdate(WaypointState status) {
+						if (status == WaypointState.DONE) {
+							VehicleNavigationResult result = new VehicleNavigationResult();
+							result.header.stamp = new WallclockProvider().getCurrentTime();
+							result.status = (byte) status.ordinal();
+							result.finalPose.pose.pose = goal.targetPose.pose; // TODO: Should this be vehicle pose or waypoint pose?
+							result.finalPose.utm = goal.targetPose.utm;
+							_navServer.setSucceeded(result, "DONE");
+						} else if (status == WaypointState.CANCELLED) {
+							VehicleNavigationResult result = new VehicleNavigationResult();
+							result.header.stamp = new WallclockProvider().getCurrentTime();
+							result.status = (byte) status.ordinal();
+							result.finalPose.pose.pose = goal.targetPose.pose; // TODO: Should this be vehicle pose or waypoint pose?
+							result.finalPose.utm = goal.targetPose.utm;
+							_navServer.setAborted(result, "CANCELLED");
+						} else {
+							VehicleNavigationFeedback feedback = new VehicleNavigationFeedback();
+							feedback.header.stamp = new WallclockProvider().getCurrentTime();
+							feedback.status = (byte) status.ordinal();
+							_navServer.publishFeedback(feedback);
+						}
+					}
+				});
+			} catch (RosException e) {
+				logger.warning("Unable to accept waypoint: " + e);
+			}
 		}
 
 		@Override
@@ -451,42 +484,14 @@ public class RosVehicleServer {
 				SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> actionServer) {
 			logger.info("Navigation cancelled: ");
 			_server.stopWaypoint();
-			_navServer.setAborted(); // TODO: is this necessary, or automatic?
+			_navServer.setAborted();
 		}
 
 		@Override
 		public void blockingGoalCallback(
 				VehicleNavigationGoal goal,
 				SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> actionServer) {
-			logger.info("Received waypoint: " + goal);
-
-			// Ignore requests that have empty goals
-			if (goal == null) return;
-			
-			// Tell vehicle server to start navigation, and register observer
-			// to forward navigation status updates to ROS
-			_server.startWaypoint(goal.targetPose, new WaypointObserver() {
-
-				@Override
-				public void waypointUpdate(VehicleServer server) {
-					WaypointState status = _server.getWaypointStatus();
-					
-					switch (status) {
-					case DONE:
-						VehicleNavigationResult result = new VehicleNavigationResult();
-						result.finalPose.pose.header.stamp = new WallclockProvider().getCurrentTime();
-						result.finalPose.pose.pose = _server.getWaypoint().pose;  // TODO: Should this be vehicle pose or waypoint pose?
-						_navServer.setSucceeded(result, "DONE");
-						break;
-					default:
-						VehicleNavigationFeedback feedback = new VehicleNavigationFeedback();
-						feedback.header.stamp = new WallclockProvider().getCurrentTime();
-						feedback.status = (byte)status.ordinal();
-						_navServer.publishFeedback(feedback);
-						break;
-					}
-				}
-			});
+			// Blocking callback is not enabled
 		}
 	};
 
@@ -499,8 +504,37 @@ public class RosVehicleServer {
 		@Override
 		public void goalCallback(
 				SimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> arg0) {
-			logger.info("Starting imaging.");
-			// TODO: What is this callback for?
+			
+			try {
+				final VehicleImageCaptureGoal goal = _imgServer.acceptNewGoal();
+				logger.info("Starting image capture: " + goal.frames + "@" + goal.interval + ", " + goal.width + "x" + goal.height);
+				
+				_server.stopCamera();
+				_server.startCamera(goal.frames, (double)goal.interval, goal.width, goal.height, new ImagingObserver() {
+					
+					@Override
+					public void imagingUpdate(CameraState status) {
+						if (status == CameraState.DONE) {
+							VehicleImageCaptureResult result = new VehicleImageCaptureResult();
+							result.header.stamp = new WallclockProvider().getCurrentTime();
+							result.status = (byte) status.ordinal();
+							_imgServer.setSucceeded(result, "DONE");
+						} else if (status == CameraState.CANCELLED) {
+							VehicleImageCaptureResult result = new VehicleImageCaptureResult();
+							result.header.stamp = new WallclockProvider().getCurrentTime();
+							result.status = (byte) status.ordinal();
+							_imgServer.setAborted(result, "CANCELLED");
+						} else {
+							VehicleImageCaptureFeedback feedback = new VehicleImageCaptureFeedback();
+							feedback.header.stamp = new WallclockProvider().getCurrentTime();
+							feedback.status = (byte) status.ordinal();
+							_imgServer.publishFeedback(feedback);
+						}
+					}
+				});
+			} catch (RosException e) {
+				logger.warning("Unable to accept image capture: " + e);
+			}
 		}
 
 		@Override
@@ -508,41 +542,17 @@ public class RosVehicleServer {
 				SimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> arg0) {
 			logger.info("Imaging cancelled.");
 			_server.stopCamera();
-			_imgServer.setAborted(); // TODO: is this necessary, or automatic?
 		}
 
 		@Override
 		public void blockingGoalCallback(
 				VehicleImageCaptureGoal goal,
 				SimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> arg1) {
-
-			// Ignore requests that have empty goals
-			if (goal == null) return;
-			
-			// Tell vehicle server to start imaging, and register observer
-			// to forward imaging status updates to ROS
-			_server.startCamera(goal.frames, goal.interval, goal.width,
-					goal.height, new ImagingObserver() {
-
-				@Override
-				public void imagingUpdate(VehicleServer server) {
-					CameraState status = _server.getCameraStatus();
-					
-					switch (status) {
-					case OFF:
-						VehicleImageCaptureResult result = new VehicleImageCaptureResult();
-						result.status = (byte)status.ordinal();
-						_imgServer.setSucceeded(result, "OFF");
-						break;
-					default:
-						VehicleImageCaptureFeedback feedback = new VehicleImageCaptureFeedback();
-						feedback.header.stamp = new WallclockProvider().getCurrentTime();
-						feedback.status = (byte)status.ordinal();
-						_imgServer.publishFeedback(feedback);
-						break;
-					}
-				}
-			});
+			// Blocking callback is not enabled
 		}
 	};
+
+	protected String print(UtmPose targetPose) {
+		return "["+targetPose.pose.position.x + "," + targetPose.pose.position.y + "," + targetPose.pose.position.z + "] @ " + targetPose.utm.zone + (targetPose.utm.isNorth ? "North" : "South");
+	}
 }

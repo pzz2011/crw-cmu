@@ -14,8 +14,10 @@ import org.ros.message.MessageListener;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureFeedback;
+import org.ros.message.crwlib_msgs.VehicleImageCaptureGoal;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureResult;
 import org.ros.message.crwlib_msgs.VehicleNavigationFeedback;
+import org.ros.message.crwlib_msgs.VehicleNavigationGoal;
 import org.ros.message.crwlib_msgs.VehicleNavigationResult;
 import org.ros.message.geometry_msgs.Twist;
 import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
@@ -314,40 +316,58 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		_node.shutdown();
 	}
 
-	SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult> navigationHandler = new SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult>() {
+	protected class NavigationHandler implements SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult> {
+		final WaypointObserver _obs;
+		
+		public NavigationHandler(WaypointObserver obs) {
+			_obs = obs;
+		}
 
 		@Override
 		public void feedbackCallback(VehicleNavigationFeedback feedback) {
-			logger.info("Vehicle feedback");
+			logger.finer("Navigation feedback");
+			if (_obs != null)
+				_obs.waypointUpdate(WaypointState.values()[feedback.status]);
 		}
 
 		@Override
 		public void doneCallback(SimpleClientGoalState state,
 				VehicleNavigationResult result) {
-			logger.info("Vehicle finished");
+			logger.fine("Navigation finished");
+			if (_obs != null)
+				_obs.waypointUpdate(WaypointState.values()[result.status]);
 		}
 
 		@Override
 		public void activeCallback() {
-			logger.info("Vehicle active");
+			logger.fine("Navigation active");
 		}
 	};
 	
-	SimpleActionClientCallbacks<VehicleImageCaptureFeedback, VehicleImageCaptureResult> imageCaptureHandler = new SimpleActionClientCallbacks<VehicleImageCaptureFeedback, VehicleImageCaptureResult>() {
-
+	protected class ImageCaptureHandler implements SimpleActionClientCallbacks<VehicleImageCaptureFeedback, VehicleImageCaptureResult> {
+		final ImagingObserver _obs;
+		
+		public ImageCaptureHandler(ImagingObserver obs) {
+			_obs = obs;
+		}
+		
 		@Override
 		public void feedbackCallback(VehicleImageCaptureFeedback feedback) {
-			logger.info("Capture feedback");
+			logger.finer("Capture feedback");
+			if (_obs != null)
+				_obs.imagingUpdate(CameraState.values()[feedback.status]);
 		}
 		
 		@Override
 		public void doneCallback(SimpleClientGoalState state, VehicleImageCaptureResult result) {
-			logger.info("Capture finished");
+			logger.fine("Capture finished");
+			if (_obs != null)
+				_obs.imagingUpdate(CameraState.values()[result.status]);
 		}
 
 		@Override
 		public void activeCallback() {
-			logger.info("Capture active");
+			logger.fine("Capture active");
 		}
 
 	};
@@ -489,14 +509,29 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	@Override
 	public void startCamera(long numFrames, double interval, int width,
 			int height, ImagingObserver obs) {
-		// TODO Auto-generated method stub
+		VehicleImageCaptureGoal goal = new VehicleImageCaptureGoal();
+		goal.frames = numFrames;
+		goal.interval = (float)interval;
+		goal.width = width;
+		goal.height = height;
 		
+		try {
+			_imgClient.sendGoal(goal, new ImageCaptureHandler(obs));
+		} catch (RosException e) {
+			logger.warning("Unable to start waypoint: " + e);
+		}
 	}
 
 	@Override
 	public void startWaypoint(UtmPose waypoint, WaypointObserver obs) {
-		// TODO Auto-generated method stub
-		
+		VehicleNavigationGoal goal = new VehicleNavigationGoal();
+		goal.targetPose = waypoint;
+	
+		try {
+			_navClient.sendGoal(goal, new NavigationHandler(obs));
+		} catch (RosException e) {
+			logger.warning("Unable to start waypoint: " + e);
+		}
 	}
 
 	@Override
@@ -504,7 +539,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		try {
 			_imgClient.cancelGoal();
 		} catch (RosException e) {
-			logger.warning("Unable to cancel imaging.");
+			logger.warning("Unable to cancel imaging: " + e);
 		}
 	}
 
@@ -513,7 +548,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		try {
 			_navClient.cancelGoal();
 		} catch (RosException e) {
-			logger.warning("Unable to cancel navigation.");
+			logger.warning("Unable to cancel navigation: " + e);
 		}
 	}
 
