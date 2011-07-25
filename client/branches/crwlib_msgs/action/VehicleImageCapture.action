@@ -1,10 +1,11 @@
 # Goal
-uint32 frames
-uint8 interval
-uint8 width
-uint8 height
+int64 frames
+float32 interval
+int32 width
+int32 height
 ---
 # Result
+Header header
 int8 status
 ---
 # Feedback
