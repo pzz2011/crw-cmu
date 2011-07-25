@@ -6,6 +6,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.ros.RosCore;
+import org.ros.exception.RosException;
+import org.ros.exception.RosRuntimeException;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeRunner;
 
@@ -45,9 +47,23 @@ public class TestRosServer {
 		sc.nextLine();	       
 		
 		// Shut down everything
-		proxyServer.shutdown();
-		rosServer.shutdown();
-		core.shutdown();
+		try {
+			proxyServer.shutdown();
+		} catch (RosRuntimeException ex) {
+			System.err.println("Proxy server was uncleanly shutdown.");
+		}
+		
+		try {
+			rosServer.shutdown();
+		} catch (RosRuntimeException ex) {
+			System.err.println("Ros VehicleServer was uncleanly shutdown.");
+		}
+		
+		try {
+			core.shutdown();
+		} catch (RosRuntimeException ex) {
+			System.err.println("Core was uncleanly shutdown.");
+		}
 		System.exit(0);
 	}
 }
