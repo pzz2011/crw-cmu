@@ -161,7 +161,8 @@ public class RosVehicleServer {
 		});
 		
 		// Create ROS services for accessor and setter functions
-		_node.newServiceServer("set_state", "crwlib_msgs/SetState",
+		// TODO: remove leading slash once rosjava is a little more stable
+		_node.newServiceServer("/set_state", "crwlib_msgs/SetState",
 				new ServiceResponseBuilder<SetState.Request, SetState.Response>() {
 			@Override
 			public SetState.Response build(SetState.Request request) {
@@ -170,7 +171,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("get_state", "crwlib_msgs/GetState",
+		_node.newServiceServer("/get_state", "crwlib_msgs/GetState",
 				new ServiceResponseBuilder<GetState.Request, GetState.Response>() {
 			@Override
 			public GetState.Response build(GetState.Request request) {
@@ -180,7 +181,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("capture_image", "crwlib_msgs/CaptureImage",
+		_node.newServiceServer("/capture_image", "crwlib_msgs/CaptureImage",
 				new ServiceResponseBuilder<CaptureImage.Request, CaptureImage.Response>() {
 			@Override
 			public CaptureImage.Response build(CaptureImage.Request request) {
@@ -191,7 +192,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("get_camera_status", "crwlib_msgs/GetCameraStatus",
+		_node.newServiceServer("/get_camera_status", "crwlib_msgs/GetCameraStatus",
 				new ServiceResponseBuilder<GetCameraStatus.Request, GetCameraStatus.Response>() {
 			@Override
 			public GetCameraStatus.Response build(GetCameraStatus.Request request) {
@@ -201,7 +202,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("set_sensor_type", "crwlib_msgs/SetSensorType",
+		_node.newServiceServer("/set_sensor_type", "crwlib_msgs/SetSensorType",
 				new ServiceResponseBuilder<SetSensorType.Request, SetSensorType.Response>() {
 			@Override
 			public SetSensorType.Response build(SetSensorType.Request request) {
@@ -210,7 +211,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("get_sensor_type", "crwlib_msgs/GetSensorType",
+		_node.newServiceServer("/get_sensor_type", "crwlib_msgs/GetSensorType",
 				new ServiceResponseBuilder<GetSensorType.Request, GetSensorType.Response>() {
 			@Override
 			public GetSensorType.Response build(GetSensorType.Request request) {
@@ -221,7 +222,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("get_num_sensors", "crwlib_msgs/GetNumSensors",
+		_node.newServiceServer("/get_num_sensors", "crwlib_msgs/GetNumSensors",
 				new ServiceResponseBuilder<GetNumSensors.Request, GetNumSensors.Response>() {
 			@Override
 			public GetNumSensors.Response build(GetNumSensors.Request request) {
@@ -232,7 +233,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("get_velocity", "crwlib_msgs/GetVelocity",
+		_node.newServiceServer("/get_velocity", "crwlib_msgs/GetVelocity",
 				new ServiceResponseBuilder<GetVelocity.Request, GetVelocity.Response>() {
 			@Override
 			public GetVelocity.Response build(GetVelocity.Request request) {
@@ -242,7 +243,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("is_autonomous", "crwlib_msgs/IsAutonomous",
+		_node.newServiceServer("/is_autonomous", "crwlib_msgs/IsAutonomous",
 				new ServiceResponseBuilder<IsAutonomous.Request, IsAutonomous.Response>() {
 			@Override
 			public IsAutonomous.Response build(IsAutonomous.Request request) {
@@ -252,7 +253,7 @@ public class RosVehicleServer {
 			}
 		});
 	    
-		_node.newServiceServer("set_autonomous", "crwlib_msgs/SetAutonomous",
+		_node.newServiceServer("/set_autonomous", "crwlib_msgs/SetAutonomous",
 				new ServiceResponseBuilder<SetAutonomous.Request, SetAutonomous.Response>() {
 			@Override
 			public SetAutonomous.Response build(SetAutonomous.Request request) {
@@ -261,7 +262,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("get_waypoint", "crwlib_msgs/GetWaypoint",
+		_node.newServiceServer("/get_waypoint", "crwlib_msgs/GetWaypoint",
 				new ServiceResponseBuilder<GetWaypoint.Request, GetWaypoint.Response>() {
 			@Override
 			public GetWaypoint.Response build(GetWaypoint.Request request) {
@@ -271,7 +272,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("get_waypoint_status", "crwlib_msgs/GetWaypointStatus",
+		_node.newServiceServer("/get_waypoint_status", "crwlib_msgs/GetWaypointStatus",
 				new ServiceResponseBuilder<GetWaypointStatus.Request, GetWaypointStatus.Response>() {
 			@Override
 			public GetWaypointStatus.Response build(GetWaypointStatus.Request request) {
@@ -281,7 +282,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("set_pid", "crwlib_msgs/SetPid",
+		_node.newServiceServer("/set_pid", "crwlib_msgs/SetPid",
 				new ServiceResponseBuilder<SetPid.Request, SetPid.Response>() {
 			@Override
 			public SetPid.Response build(SetPid.Request request) {
@@ -290,7 +291,7 @@ public class RosVehicleServer {
 			}
 		});
 		
-		_node.newServiceServer("get_pid", "crwlib_msgs/GetPid",
+		_node.newServiceServer("/get_pid", "crwlib_msgs/GetPid",
 				new ServiceResponseBuilder<GetPid.Request, GetPid.Response>() {
 			@Override
 			public GetPid.Response build(GetPid.Request request) {
