@@ -2,7 +2,6 @@
 <project name="crwlib" default="default">
 
   <property file="ros.properties" />
-  <property name="build" location="build" />
 
   <property name="dist" location="dist" />
   <property name="build" location="build" />
@@ -28,6 +27,32 @@
       <classpath refid="classpath" />
       <src path="${src}" />
     </javac>
+  </target>
+
+  <target name="jar" depends="compile"
+        description="generate the distribution" >
+    <!-- Create the distribution directory -->
+    <mkdir dir="${dist}"/>
+
+    <!-- Put everything in ${build} into the jar file -->
+    <jar jarfile="${dist}/${ant.project.name}.jar" basedir="${build}"/>
+  </target>
+
+  <target name="fat-jar" depends="compile"
+        description="generate a standalone distribution" >
+    <!-- Create the distribution directory -->
+    <mkdir dir="${dist}"/>
+    <mkdir dir="${dist}/lib"/>
+
+    <!-- Copy all dependent jars to staging area -->
+    <copy todir="${dist}/lib" flatten="true">
+        <path refid="classpath" />
+    </copy>
+
+    <!-- Put everything in ${build} into the jar file -->
+    <jar jarfile="${dist}/${ant.project.name}_all.jar" basedir="${build}">
+        <zipgroupfileset dir="${dist}/lib" includes="*.jar"/>
+    </jar>
   </target>
 
   <target name="clean">
