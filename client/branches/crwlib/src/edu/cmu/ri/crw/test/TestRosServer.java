@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import org.ros.RosCore;
 import org.ros.exception.RosRuntimeException;
+import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeRunner;
 
@@ -38,12 +39,25 @@ public class TestRosServer {
 		// Create a ROS proxy server that accesses the same object
 		RosVehicleProxy proxyServer = new RosVehicleProxy(masterUri, "vehicle_client");
 		
+		// Wait for someone to hit Enter
+		{
+			System.out.println("Press [ENTER] to begin.");
+			Scanner sc = new Scanner(System.in);
+			sc.nextLine();
+		}
+		
 		// TODO: put some system tests in here
+		UtmPose p = new UtmPose();
+		p.pose.position.x = 100.0;
+		p.utm.isNorth = true;
+		proxyServer.setState(p);
 		
 		// Wait for someone to hit Enter
-		System.out.println("Press [ENTER] to continue.");
-		Scanner sc = new Scanner(System.in);
-		sc.nextLine();	       
+		{
+			System.out.println("Press [ENTER] to continue.");
+			Scanner sc = new Scanner(System.in);
+			sc.nextLine();
+		}
 		
 		// Shut down everything
 		try {
