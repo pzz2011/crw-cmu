@@ -23,6 +23,7 @@ import org.ros.node.DefaultNodeFactory;
 import org.ros.node.Node;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeRunner;
+import org.ros.node.topic.Publisher;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.ImagingObserver;
@@ -46,6 +47,8 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	public static final String DEFAULT_NODE_NAME = "vehicle_client";
 
 	protected Node _node;
+	protected Publisher<UtmPose> _statePublisher;
+	protected Publisher<Twist> _velocityPublisher;
 	protected RosVehicleNavigation.Client _navClient; 
 	protected RosVehicleImaging.Client _imgClient;
 
@@ -114,7 +117,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		});
 		
 		// Register subscriber for velocity
-		_node.newSubscriber("cmd_vel", "geometry_msgs/TwistWithCovarianceStamped", 
+		_node.newSubscriber("velocity", "geometry_msgs/TwistWithCovarianceStamped", 
 				new MessageListener<TwistWithCovarianceStamped>() {
 
 			@Override
@@ -122,6 +125,10 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 				sendVelocity(velocity);
 			}
 		});
+		
+		// Register publisher for one-way setters
+		_statePublisher = _node.newPublisher("cmd_state", "crwlib_msgs/UtmPose");
+		_velocityPublisher = _node.newPublisher("cmd_vel", "geometry_msgs/Twist");
 		
 		// Register services for the accessor functions
 		// TODO: fill in services here
@@ -265,14 +272,14 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 
 	@Override
 	public void setState(UtmPose state) {
-		// TODO Auto-generated method stub
-		
+		if (_statePublisher.hasSubscribers())
+			_statePublisher.publish(state);
 	}
 
 	@Override
 	public void setVelocity(Twist velocity) {
-		// TODO Auto-generated method stub
-		
+		if (_velocityPublisher.hasSubscribers())
+			_velocityPublisher.publish(velocity);
 	}
 
 	@Override

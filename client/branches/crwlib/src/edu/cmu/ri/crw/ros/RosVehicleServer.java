@@ -9,7 +9,9 @@ import org.ros.actionlib.server.SimpleActionServer;
 import org.ros.actionlib.server.SimpleActionServerCallbacks;
 import org.ros.exception.RosException;
 import org.ros.internal.time.WallclockProvider;
+import org.ros.message.MessageListener;
 import org.ros.message.crwlib_msgs.SensorData;
+import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureActionFeedback;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureActionGoal;
@@ -23,6 +25,7 @@ import org.ros.message.crwlib_msgs.VehicleNavigationActionResult;
 import org.ros.message.crwlib_msgs.VehicleNavigationFeedback;
 import org.ros.message.crwlib_msgs.VehicleNavigationGoal;
 import org.ros.message.crwlib_msgs.VehicleNavigationResult;
+import org.ros.message.geometry_msgs.Twist;
 import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CameraInfo;
 import org.ros.message.sensor_msgs.CompressedImage;
@@ -88,7 +91,7 @@ public class RosVehicleServer {
 		_server.addImageListener(new ImageHandler(imagePublisher, cameraInfoPublisher));
 		
 		// Create publisher for velocity data
-		Publisher<TwistWithCovarianceStamped> velocityPublisher = _node.newPublisher("cmd_vel", "geometry_msgs/TwistWithCovarianceStamped");
+		Publisher<TwistWithCovarianceStamped> velocityPublisher = _node.newPublisher("velocity", "geometry_msgs/TwistWithCovarianceStamped");
 		_server.addVelocityListener(new VelocityHandler(velocityPublisher));
 
 		// Query for vehicle sensors and create corresponding publishers
@@ -133,6 +136,24 @@ public class RosVehicleServer {
 			logger.severe("Unable to start navigation action client: " + ex);
 		}
 
+		// Create ROS subscriber for one-way state setter function
+		_node.newSubscriber("cmd_state", "crwlib_msgs/UtmPose", new MessageListener<UtmPose>() {
+
+			@Override
+			public void onNewMessage(UtmPose pose) {
+				_server.setState(pose);
+			}
+		});
+		
+		// Create ROS subscriber for one-way velocity setter function
+		_node.newSubscriber("cmd_vel", "geometry_msgs/Twist", new MessageListener<Twist>() {
+
+			@Override
+			public void onNewMessage(Twist velocity) {
+				_server.setVelocity(velocity);
+			}
+		});
+		
 		// Create ROS services for accessor and setter functions
 		// TODO: wait until services are implemented here
 	    
