@@ -7,7 +7,9 @@ import java.util.logging.Logger;
 
 import org.ros.actionlib.client.SimpleActionClientCallbacks;
 import org.ros.actionlib.state.SimpleClientGoalState;
+import org.ros.exception.RemoteException;
 import org.ros.exception.RosException;
+import org.ros.exception.ServiceNotFoundException;
 import org.ros.message.MessageListener;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
@@ -23,7 +25,23 @@ import org.ros.node.DefaultNodeFactory;
 import org.ros.node.Node;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeRunner;
+import org.ros.node.service.ServiceClient;
+import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Publisher;
+import org.ros.service.crwlib_msgs.CaptureImage;
+import org.ros.service.crwlib_msgs.GetCameraStatus;
+import org.ros.service.crwlib_msgs.GetNumSensors;
+import org.ros.service.crwlib_msgs.GetPid;
+import org.ros.service.crwlib_msgs.GetSensorType;
+import org.ros.service.crwlib_msgs.GetState;
+import org.ros.service.crwlib_msgs.GetVelocity;
+import org.ros.service.crwlib_msgs.GetWaypoint;
+import org.ros.service.crwlib_msgs.GetWaypointStatus;
+import org.ros.service.crwlib_msgs.IsAutonomous;
+import org.ros.service.crwlib_msgs.SetAutonomous;
+import org.ros.service.crwlib_msgs.SetPid;
+import org.ros.service.crwlib_msgs.SetSensorType;
+import org.ros.service.crwlib_msgs.SetState;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.ImagingObserver;
@@ -51,7 +69,22 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	protected Publisher<Twist> _velocityPublisher;
 	protected RosVehicleNavigation.Client _navClient; 
 	protected RosVehicleImaging.Client _imgClient;
-
+	
+	protected ServiceClient<SetState.Request, SetState.Response> _setStateClient;
+	protected ServiceClient<GetState.Request, GetState.Response> _getStateClient;
+	protected ServiceClient<CaptureImage.Request, CaptureImage.Response> _captureImageClient;
+	protected ServiceClient<GetCameraStatus.Request, GetCameraStatus.Response> _getCameraStatusClient;    
+	protected ServiceClient<SetSensorType.Request, SetSensorType.Response> _setSensorTypeClient;    
+	protected ServiceClient<GetSensorType.Request, GetSensorType.Response> _getSensorTypeClient;    
+	protected ServiceClient<GetNumSensors.Request, GetNumSensors.Response> _getNumSensorsClient;    
+	protected ServiceClient<GetVelocity.Request, GetVelocity.Response> _getVelocityClient;    
+	protected ServiceClient<IsAutonomous.Request, IsAutonomous.Response> _isAutonomousClient;    
+	protected ServiceClient<SetAutonomous.Request, SetState.Response> _setAutonomousClient;    
+	protected ServiceClient<GetWaypoint.Request, GetWaypoint.Response> _getWaypointClient; 
+	protected ServiceClient<GetWaypointStatus.Request, GetWaypointStatus.Response> _getWaypointStatusClient;    
+	protected ServiceClient<SetPid.Request, SetPid.Response> _setPidClient;    
+	protected ServiceClient<GetPid.Request, GetPid.Response> _getPidClient;  
+	
 	public RosVehicleProxy() {
 		this(NodeConfiguration.DEFAULT_MASTER_URI, DEFAULT_NODE_NAME);
 	}
@@ -130,8 +163,90 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		_statePublisher = _node.newPublisher("cmd_state", "crwlib_msgs/UtmPose");
 		_velocityPublisher = _node.newPublisher("cmd_vel", "geometry_msgs/Twist");
 		
-		// Register services for the accessor functions
-		// TODO: fill in services here
+		// Register services for two-way setters and accessor functions
+		try {
+		    _setStateClient = _node.newServiceClient("/set_state", "crwlib_msgs/SetState");    
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for SetState.");
+		}
+		
+		try { 
+			_getStateClient = _node.newServiceClient("/get_state", "crwlib_msgs/GetState");
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for GetState.");
+		}
+		
+		try {
+		    _captureImageClient = _node.newServiceClient("/capture_image", "crwlib_msgs/CaptureImage");
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for CaptureImage.");
+		}
+		
+		try {
+		    _getCameraStatusClient = _node.newServiceClient("/get_camera_status", "crwlib_msgs/GetCameraStatus");    
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for GetCameraStatus.");
+		}
+		
+		try {
+		    _setSensorTypeClient = _node.newServiceClient("/set_sensor_type", "crwlib_msgs/SetSensorType");    
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for SetSensorType.");
+		}
+		
+		try {
+			_getSensorTypeClient = _node.newServiceClient("/get_sensor_type", "crwlib_msgs/GetSensorType");    
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for GetSensorType.");
+		}
+		
+		try {
+			_getNumSensorsClient = _node.newServiceClient("/get_num_sensors", "crwlib_msgs/GetNumSensors");    
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for GetNumSensors.");
+		}
+		
+		try {
+			_getVelocityClient = _node.newServiceClient("/get_velocity", "crwlib_msgs/GetVelocity");    
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for GetVelocity.");
+		}
+		
+		try {
+			_isAutonomousClient = _node.newServiceClient("/is_autonomous", "crwlib_msgs/IsAutonomous");    
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for IsAutonomous.");
+		}
+		
+		try {
+			_setAutonomousClient = _node.newServiceClient("/set_autonomous", "crwlib_msgs/SetAutonomous");    
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for SetAutonomous.");
+		}
+	    
+		try {
+			_getWaypointClient = _node.newServiceClient("/get_waypoint", "crwlib_msgs/GetWaypoint"); 
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for GetWaypoint.");
+		}
+		
+		try {
+			_getWaypointStatusClient = _node.newServiceClient("/get_waypoint_status", "crwlib_msgs/GetWaypointStatus");    
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for GetWaypointStatus.");
+		}
+		
+		try {
+			_setPidClient = _node.newServiceClient("/set_pid", "crwlib_msgs/SetPid");    
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for SetPid.");
+		}
+	
+		try {
+			_getPidClient = _node.newServiceClient("/get_pid", "crwlib_msgs/GetPid");  
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for GetPid.");
+		}
 		
 		logger.info("Proxy initialized successfully.");
 	}
@@ -272,8 +387,30 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 
 	@Override
 	public void setState(UtmPose state) {
-		if (_statePublisher.hasSubscribers())
-			_statePublisher.publish(state);
+		SetState.Request request = new SetState.Request();
+		request.pose = state;
+		final Object lockObject = new Object();
+		
+		_setStateClient.call(request, new ServiceResponseListener<SetState.Response>() {
+	    	@Override
+	    	public void onSuccess(SetState.Response message) {
+	    		synchronized(lockObject) {
+	    			lockObject.notify();
+	    		}
+	    	}
+
+	    	@Override
+	    	public void onFailure(RemoteException e) {
+	    		logger.warning("Unable to complete setState.");
+	    		synchronized(lockObject) {
+	    			lockObject.notify();
+	    		}
+	    	}
+	    });
+		
+		synchronized(lockObject) {
+			try { lockObject.wait(); } catch (InterruptedException e1) {}
+		}
 	}
 
 	@Override
@@ -297,13 +434,19 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 
 	@Override
 	public void stopCamera() {
-		// TODO Auto-generated method stub
-		
+		try {
+			_imgClient.cancelGoal();
+		} catch (RosException e) {
+			logger.warning("Unable to cancel imaging.");
+		}
 	}
 
 	@Override
 	public void stopWaypoint() {
-		// TODO Auto-generated method stub
-		
+		try {
+			_navClient.cancelGoal();
+		} catch (RosException e) {
+			logger.warning("Unable to cancel navigation.");
+		}
 	}
 }
