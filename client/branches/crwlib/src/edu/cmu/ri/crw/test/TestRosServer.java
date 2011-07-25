@@ -6,7 +6,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.ros.RosCore;
-import org.ros.exception.RosException;
 import org.ros.exception.RosRuntimeException;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeRunner;
