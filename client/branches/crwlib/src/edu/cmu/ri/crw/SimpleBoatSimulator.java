@@ -195,8 +195,9 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 			@Override
 			public void run() {
 				int iFrame = 0;
+				long int_ms = (long)(interval * 1000.0);
 
-				while (_isCapturing && (iFrame < numFrames)) {
+				while (_isCapturing && (numFrames <= 0 || iFrame < numFrames)) {
 
 					// Every so often, send out a random picture
 					sendImage(captureImage(width, height));
@@ -208,7 +209,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 					// Wait for a while
 					try {
-						Thread.sleep((long) (interval * 1000.0));
+						Thread.sleep(int_ms);
 					} catch (InterruptedException ex) {
 						obs.imagingUpdate(CameraState.CANCELLED);
 						_isCapturing = false;
