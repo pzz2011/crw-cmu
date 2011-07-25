@@ -1,15 +1,13 @@
 package edu.cmu.ri.crw.ros;
 
+import java.net.InetAddress;
 import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.logging.Logger;
 
-import org.ros.NodeConfiguration;
-import org.ros.NodeRunner;
 import org.ros.actionlib.client.SimpleActionClientCallbacks;
 import org.ros.actionlib.state.SimpleClientGoalState;
 import org.ros.exception.RosException;
-import org.ros.internal.node.address.InetAddressFactory;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureFeedback;
@@ -19,6 +17,11 @@ import org.ros.message.crwlib_msgs.VehicleNavigationResult;
 import org.ros.message.geometry_msgs.Twist;
 import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CompressedImage;
+import org.ros.namespace.NameResolver;
+import org.ros.node.DefaultNodeFactory;
+import org.ros.node.Node;
+import org.ros.node.NodeConfiguration;
+import org.ros.node.NodeRunner;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.ImagingObserver;
@@ -36,143 +39,96 @@ import edu.cmu.ri.crw.WaypointObserver;
  */
 public class RosVehicleProxy extends AbstractVehicleServer {
 
-	public static final Logger logger = Logger.getLogger(RosVehicleProxy.class
-			.getName());
+	public static final Logger logger = 
+		Logger.getLogger(RosVehicleProxy.class.getName());
 
-	public static final String DEFAULT_MASTER_URI = "http://localhost:11311";
-	public static final String DEFAULT_NODE_NAME = "vehicle";
+	public static final String DEFAULT_NODE_NAME = "vehicle_client";
 
-	protected String _masterURI;
-	protected String _nodeName;
+	protected Node _node;
+	protected RosVehicleNavigation.Client _navClient; 
+	protected RosVehicleImaging.Client _imgClient;
 
 	public RosVehicleProxy() {
-		this(DEFAULT_MASTER_URI, DEFAULT_NODE_NAME);
+		this(NodeConfiguration.DEFAULT_MASTER_URI, DEFAULT_NODE_NAME);
 	}
 
 	public RosVehicleProxy(String nodeName) {
-		this(DEFAULT_MASTER_URI, nodeName);
+		this(NodeConfiguration.DEFAULT_MASTER_URI, nodeName);
 	}
 
-	public RosVehicleProxy(String masterURI, String nodeName) {
-
-		_masterURI = masterURI;
-		_nodeName = nodeName;
-
-		// Create a node configuration and start a node runner
-		// (To avoid the node referring to localhost, we use createNonLoopback)
-		NodeRunner runner = NodeRunner.createDefault();
-		NodeConfiguration configuration = NodeConfiguration.createDefault();
-		String host = InetAddressFactory.createNonLoopback().getHostAddress();
-		configuration.setHost(host);
-
+	public RosVehicleProxy(URI masterUri, String nodeName) {
+		
+		// Create a node configuration and start a node
+		NodeConfiguration config = createNodeConfiguration(nodeName, masterUri);
+	    _node = new DefaultNodeFactory().newNode(nodeName, config);		
+		
+	    // Start up action clients to run navigation and imaging
+	    NodeRunner runner = NodeRunner.newDefault();
+	    
+	    
+	    // Create an action server for vehicle navigation
+		NodeConfiguration navConfig = createNodeConfiguration(nodeName, masterUri);
+		NameResolver navResolver = NameResolver.create("/nav");
+		navConfig.setParentResolver(navResolver);
+		
 		try {
-			configuration.setMasterUri(new URI(_masterURI));
-		} catch (URISyntaxException ex) {
-			logger.severe("Couldn't find master URI: " + _masterURI);
-		}
-
-		try {
-			RosVehicleNavigation.Client navClient = new RosVehicleNavigation.Spec()
-					.buildSimpleActionClient(_nodeName);
-			runner.run(navClient, configuration);
+			_navClient = new RosVehicleNavigation.Spec()
+					.buildSimpleActionClient(nodeName + "/nav");
+			runner.run(_navClient, navConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
 		}
 
+		// Create an action server for image capturing
+		NodeConfiguration imgConfig = createNodeConfiguration(nodeName, masterUri);
+		NameResolver imgResolver = NameResolver.create("/img");
+		imgConfig.setParentResolver(imgResolver);
+		
 		try {
-			RosVehicleImaging.Client imageCaptureClient = new RosVehicleImaging.Spec()
-					.buildSimpleActionClient(_nodeName);
-			runner.run(imageCaptureClient, configuration);
+			_imgClient = new RosVehicleImaging.Spec()
+					.buildSimpleActionClient(nodeName + "/img");
+			runner.run(_imgClient, imgConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start image action client: " + ex);
 		}
 
+		// Register services for the accessor functions
+		// TODO: fill in services here
+		
+		// Register subscribers for pose, imaging, and velocity
+		// TODO: fill in subscribers here
+		
 		logger.info("Proxy initialized successfully.");
 	}
-
-	@Override
-	public CompressedImage captureImage(int width, int height) {
-		// TODO Auto-generated method stub
-		return null;
+	
+	/**
+	 * Helper function that creates a public ROS node configuration if a 
+	 * non-loopback hostname is available, and a private node configuration
+	 * if the hostname cannot be resolved.
+	 * 
+	 * @param nodeName a ROS node name
+	 * @param masterUri the desired ROS master URI 
+	 * @return a ROS node configuration that is public when possible
+	 */
+	protected static NodeConfiguration createNodeConfiguration(String nodeName, URI masterUri) {
+		NodeConfiguration config = null;
+		try {
+			String host = InetAddress.getLocalHost().getCanonicalHostName();
+			config = NodeConfiguration.newPublic(host, masterUri);
+		} catch (UnknownHostException ex) {
+			logger.warning("Failed to get public hostname, using private hostname.");
+			config = NodeConfiguration.newPrivate(masterUri);
+		}
+		return config;
 	}
-
-	@Override
-	public double[] getPID(int axis) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public SensorType getSensorType(int channel) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public UtmPoseWithCovarianceStamped getState() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public UtmPose getWaypoint() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public WaypointState getWaypointStatus() {
-		// TODO Auto-generated method stub
-		return WaypointState.DONE;
-	}
-
-	@Override
-	public void setPID(int axis, double[] gains) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void setSensorType(int channel, SensorType type) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void setState(UtmPose p) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void startCamera(long numFrames, double interval, int width,
-			int height, ImagingObserver obs) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void startWaypoint(UtmPose waypoint, WaypointObserver obs) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void stopCamera() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void stopWaypoint() {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public int getNumSensors() {
-		// TODO Auto-generated method stub
-		return 0;
+	
+	/**
+	 * Terminates the ROS processes wrapping a VehicleServer.
+	 */
+	public void shutdown() {
+		_node.shutdown();
+		_navClient.shutdown();
+		_imgClient.shutdown();
 	}
 
 	SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult> navigationHandler = new SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult>() {
@@ -214,9 +170,75 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	};
 
 	@Override
+	public CompressedImage captureImage(int width, int height) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CameraState getCameraStatus() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public int getNumSensors() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public SensorType getSensorType(int channel) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public UtmPoseWithCovarianceStamped getState() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
 	public TwistWithCovarianceStamped getVelocity() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public UtmPose getWaypoint() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public WaypointState getWaypointStatus() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean isAutonomous() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public void setAutonomous(boolean auto) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setSensorType(int channel, SensorType type) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setState(UtmPose state) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	@Override
@@ -226,8 +248,27 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public CameraState getCameraStatus() {
+	public void startCamera(long numFrames, double interval, int width,
+			int height, ImagingObserver obs) {
 		// TODO Auto-generated method stub
-		return null;
+		
+	}
+
+	@Override
+	public void startWaypoint(UtmPose waypoint, WaypointObserver obs) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void stopCamera() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void stopWaypoint() {
+		// TODO Auto-generated method stub
+		
 	}
 }

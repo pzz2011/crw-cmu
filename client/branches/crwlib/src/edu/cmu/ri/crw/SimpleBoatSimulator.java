@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-import org.omg.CORBA._PolicyStub;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.Pose;
@@ -34,12 +33,41 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 	public final SensorType[] _sensorTypes = new SensorType[3];
 	public UtmPose _state = new UtmPose();
+	public Twist _velocity = new Twist();
 	public UtmPose _waypoint = null;
 
 	private volatile boolean _isCapturing = false;
 	private volatile boolean _isNavigating = false;
-
+	private volatile boolean _isAutonomous = true;
+	
 	public SimpleBoatSimulator() {
+		final double dt = UPDATE_INTERVAL_MS / 1000.0;
+		
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				
+				while(true) {
+					try { Thread.sleep(UPDATE_INTERVAL_MS); } catch (InterruptedException e) {}
+
+					// Send out pose updates 
+					UtmPoseWithCovarianceStamped state = new UtmPoseWithCovarianceStamped();
+					state.pose.pose.pose = _state.pose.clone();
+					sendState(state);
+					
+					// Send out velocity updates
+					TwistWithCovarianceStamped velocity = new TwistWithCovarianceStamped();
+					velocity.twist.twist = _velocity.clone();
+					sendVelocity(velocity);
+					
+					// Move in an arc with given velocity over time interval 
+					_state.pose.position.x += _velocity.linear.x * Math.cos(QuaternionUtils.toYaw(_state.pose.orientation)) * dt;
+					_state.pose.position.y += _velocity.linear.x * Math.sin(QuaternionUtils.toYaw(_state.pose.orientation)) * dt;
+					_state.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, _velocity.angular.z * dt);
+				}
+			}
+		}).start();
 	}
 
 	@Override
@@ -80,18 +108,26 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	public void startWaypoint(final UtmPose waypoint, final WaypointObserver obs) {
 		_isNavigating = true;
 		_waypoint = waypoint;
-		final int interval = 100;
-		final double dt = interval / 1000.0;
+
 		Thread t = new Thread(new Runnable() {
-			
-			
 
 			@Override
 			public void run() {
 				while (_isNavigating) {
 
-					Twist twist = new Twist();
-
+					// Pause for a while
+					try {
+						Thread.sleep(UPDATE_INTERVAL_MS);
+						obs.waypointUpdate(SimpleBoatSimulator.this);
+						// System.out.println("P: "+_state.pose.position.x+", "+_state.pose.position.y+", Q:"+_state.pose.orientation.w+", "+_state.pose.orientation.x+", "+_state.pose.orientation.y+", "+_state.pose.orientation.z+" V = "+twist.linear.x+" A = "+angle+" D = "+distance);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					
+					// If we are not set in autonomous mode, don't try to drive!
+					if (_isAutonomous)
+						continue;
+					
 					// Get the position of the vehicle and the waypoint
 					UtmPoseWithCovarianceStamped state = getState();
 					Pose pose = state.pose.pose.pose;
@@ -117,44 +153,29 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					if (Math.abs(angle) > 1.0) {
 
 						// If we are facing away, turn around first
-						twist.linear.x = 0.5;
-						twist.angular.z = Math.max(Math.min(angle / 1.0, 1.0),
+						_velocity.linear.x = 0.5;
+						_velocity.angular.z = Math.max(Math.min(angle / 1.0, 1.0),
 								-1.0);
 					} else if (distance >= 3.0) {
 
 						// If we are far away, drive forward and turn
-						twist.linear.x = Math.min(distance / 10.0, 1.0);
-						twist.angular.z = Math.max(Math.min(angle / 10.0, 1.0),
+						_velocity.linear.x = Math.min(distance / 10.0, 1.0);
+						_velocity.angular.z = Math.max(Math.min(angle / 10.0, 1.0),
 								-1.0);
-					} else if (distance < 3.0) {
+					} else  /*(distance < 3.0)*/ {
+						_velocity.linear.x = 0.0;
+						_velocity.angular.z = 0.0;
+						
 						obs.waypointUpdate(SimpleBoatSimulator.this);
 						_isNavigating = false;
 					}
-					// Move it forward with this velocity for interval time
-					_state.pose.position.x += twist.linear.x * Math.cos(angle)
-							* dt;
-					_state.pose.position.y += twist.linear.x * Math.sin(angle)
-							* dt;
-					_state.pose.orientation = QuaternionUtils.fromEulerAngles(
-							0, 0, twist.angular.z * interval);
-
-					try {
-						Thread.sleep(interval);
-						obs.waypointUpdate(SimpleBoatSimulator.this);
-						// System.out.println("P: "+_state.pose.position.x+", "+_state.pose.position.y+", Q:"+_state.pose.orientation.w+", "+_state.pose.orientation.x+", "+_state.pose.orientation.y+", "+_state.pose.orientation.z+" V = "+twist.linear.x+" A = "+angle+" D = "+distance);
-					} catch (InterruptedException e) {
-
-						e.printStackTrace();
-					}
 				}
-
-				_isNavigating = false;
-				
 			}
 		});
 		t.start();
-		do{}while(t.isAlive());
-
+		
+		// This code makes the startWaypoint call blocking 
+		try { t.join(); } catch (InterruptedException ex) { }
 	}
 
 	@Override
@@ -206,7 +227,6 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	public WaypointState getWaypointStatus() {
-		// if (distToGoal(state, waypoint) > 0.5) {
 		if (this._isNavigating)
 			return WaypointState.GOING;
 		else
@@ -236,28 +256,29 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 	@Override
 	public void setVelocity(Twist velocity) {
-		// TODO: do something useful here
-
+		_velocity = velocity.clone();
 	}
 
 	@Override
 	public TwistWithCovarianceStamped getVelocity() {
-		return new TwistWithCovarianceStamped();
+		TwistWithCovarianceStamped velMsg = new TwistWithCovarianceStamped();
+		velMsg.twist.twist = _velocity.clone();
+		return velMsg;
 	}
 
 	@Override
 	public CameraState getCameraStatus() {
-		if (this._isCapturing)
+		if (this._isCapturing) {
 			return CameraState.CAPTURING;
-		else
+		} else {
 			return CameraState.OFF;
+		}
 	}
 
 	/**
 	 * Takes an angle and shifts it to be in the range -Pi to Pi.
 	 * 
-	 * @param angle
-	 *            an angle in radians
+	 * @param angle an angle in radians
 	 * @return the same angle as given, normalized to the range -Pi to Pi.
 	 */
 	public static double normalizeAngle(double angle) {
@@ -266,5 +287,16 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		while (angle < -Math.PI)
 			angle += 2 * Math.PI;
 		return angle;
+	}
+
+	@Override
+	public boolean isAutonomous() {
+		return _isAutonomous;
+	}
+
+	@Override
+	public void setAutonomous(boolean auto) {
+		_isAutonomous = auto;
+		_velocity = new Twist(); // Reset velocity when changing modes
 	}
 }

@@ -34,6 +34,9 @@ public interface VehicleServer {
 	public void setVelocity(Twist velocity);
 	public TwistWithCovarianceStamped getVelocity();
 	
+	public boolean isAutonomous();
+	public void setAutonomous(boolean auto);
+	
 	public void startWaypoint(UtmPose waypoint, WaypointObserver obs);
 	public void stopWaypoint();
 	public UtmPose getWaypoint();
