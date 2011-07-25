@@ -38,7 +38,7 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
     
     private volatile boolean _isCapturing = false;
 	private volatile boolean _isNavigating = false;
-    
+	
     public VbsBoatSimulator(String vbsServerName, double[] position) {
 
         // Spawn the new vehicle
@@ -256,5 +256,15 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 			return CameraState.CAPTURING;
 		else
 			return CameraState.OFF;
+	}
+
+	@Override
+	public boolean isAutonomous() {
+		return true;
+	}
+
+	@Override
+	public void setAutonomous(boolean auto) {
+		// This implementation does not support non-autonomy!
 	}
 }
