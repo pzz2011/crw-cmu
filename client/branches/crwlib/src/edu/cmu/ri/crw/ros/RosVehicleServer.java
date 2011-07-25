@@ -78,6 +78,10 @@ public class RosVehicleServer {
 	public static final String DEFAULT_NODE_NAME = "vehicle";
 
 	protected VehicleServer _server;
+	protected VehicleStateListener _stateListener;
+	protected VehicleImageListener _imageListener;
+	protected VehicleVelocityListener _velocityListener;
+	protected VehicleSensorListener _sensorListeners[]; 
 
 	protected Node _node;
 	protected RosVehicleNavigation.Server _navServer;
@@ -98,25 +102,30 @@ public class RosVehicleServer {
 
 		// Create publisher for state data
 	    Publisher<UtmPoseWithCovarianceStamped> statePublisher = _node.newPublisher("state", "crwlib_msgs/UtmPoseWithCovarianceStamped");
-		_server.addStateListener(new StateHandler(statePublisher));
+	    _stateListener = new StateHandler(statePublisher);
+		_server.addStateListener(_stateListener);
 
 		// Create publisher for image data and camera info
 		Publisher<CompressedImage> imagePublisher = _node.newPublisher("image/compressed", "sensor_msgs/CompressedImage");
 		Publisher<CameraInfo> cameraInfoPublisher = _node.newPublisher("camera_info", "sensor_msgs/CameraInfo");
-		_server.addImageListener(new ImageHandler(imagePublisher, cameraInfoPublisher));
+		_imageListener = new ImageHandler(imagePublisher, cameraInfoPublisher);
+		_server.addImageListener(_imageListener);
 		
 		// Create publisher for velocity data
 		Publisher<TwistWithCovarianceStamped> velocityPublisher = _node.newPublisher("velocity", "geometry_msgs/TwistWithCovarianceStamped");
-		_server.addVelocityListener(new VelocityHandler(velocityPublisher));
+		_velocityListener = new VelocityHandler(velocityPublisher);
+		_server.addVelocityListener(_velocityListener);
 
 		// Query for vehicle sensors and create corresponding publishers
 		int nSensors = server.getNumSensors();
+		_sensorListeners = new VehicleSensorListener[nSensors];
+		
 		for (int iSensor = 0; iSensor < nSensors && iSensor < nSensors; ++iSensor) {
 			Publisher<SensorData> sensorPublisher = _node.newPublisher(
 					RosVehicleConfig.SENSOR_TOPIC_PREFIX + iSensor,
 					"crwlib_msgs/SensorData");
-			_server.addSensorListener(iSensor, new SensorHandler(
-					(Publisher<SensorData>) sensorPublisher));
+			_sensorListeners[iSensor] = new SensorHandler((Publisher<SensorData>) sensorPublisher);
+			_server.addSensorListener(iSensor, _sensorListeners[iSensor]);
 		}
 
 	    // Create a runner to start actionlib services
@@ -331,10 +340,18 @@ public class RosVehicleServer {
 	 * Terminates the ROS processes wrapping a VehicleServer.
 	 */
 	public void shutdown() {
-		_node.shutdown();
+		
+		// Remove sensor handlers from wrapped vehicle server
+		_server.removeStateListener(_stateListener);
+		_server.removeImageListener(_imageListener);
+		_server.removeVelocityListener(_velocityListener);
+		for (int iSensor = 0; iSensor < _sensorListeners.length; ++iSensor)
+			_server.removeSensorListener(iSensor, _sensorListeners[iSensor]);
+		
+		// Shutdown ROS objects
 		_navServer.shutdown();
 		_imgServer.shutdown();
-		// TODO: remove publisher handlers as well
+		_node.shutdown();
 	}
 
 	/**
