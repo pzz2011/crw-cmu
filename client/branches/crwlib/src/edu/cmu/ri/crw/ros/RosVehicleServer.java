@@ -8,10 +8,10 @@ import java.util.logging.Logger;
 import org.ros.actionlib.server.SimpleActionServer;
 import org.ros.actionlib.server.SimpleActionServerCallbacks;
 import org.ros.exception.RosException;
+import org.ros.internal.node.service.ServiceResponseBuilder;
 import org.ros.internal.time.WallclockProvider;
 import org.ros.message.MessageListener;
 import org.ros.message.crwlib_msgs.SensorData;
-import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureActionFeedback;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureActionGoal;
@@ -35,6 +35,20 @@ import org.ros.node.Node;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeRunner;
 import org.ros.node.topic.Publisher;
+import org.ros.service.crwlib_msgs.CaptureImage;
+import org.ros.service.crwlib_msgs.GetCameraStatus;
+import org.ros.service.crwlib_msgs.GetNumSensors;
+import org.ros.service.crwlib_msgs.GetPid;
+import org.ros.service.crwlib_msgs.GetSensorType;
+import org.ros.service.crwlib_msgs.GetState;
+import org.ros.service.crwlib_msgs.GetVelocity;
+import org.ros.service.crwlib_msgs.GetWaypoint;
+import org.ros.service.crwlib_msgs.GetWaypointStatus;
+import org.ros.service.crwlib_msgs.IsAutonomous;
+import org.ros.service.crwlib_msgs.SetAutonomous;
+import org.ros.service.crwlib_msgs.SetPid;
+import org.ros.service.crwlib_msgs.SetSensorType;
+import org.ros.service.crwlib_msgs.SetState;
 
 import edu.cmu.ri.crw.ImagingObserver;
 import edu.cmu.ri.crw.VehicleImageListener;
@@ -44,6 +58,7 @@ import edu.cmu.ri.crw.VehicleStateListener;
 import edu.cmu.ri.crw.VehicleVelocityListener;
 import edu.cmu.ri.crw.WaypointObserver;
 import edu.cmu.ri.crw.VehicleServer.CameraState;
+import edu.cmu.ri.crw.VehicleServer.SensorType;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 
 /**
@@ -136,15 +151,6 @@ public class RosVehicleServer {
 			logger.severe("Unable to start navigation action client: " + ex);
 		}
 
-		// Create ROS subscriber for one-way state setter function
-		_node.newSubscriber("cmd_state", "crwlib_msgs/UtmPose", new MessageListener<UtmPose>() {
-
-			@Override
-			public void onNewMessage(UtmPose pose) {
-				_server.setState(pose);
-			}
-		});
-		
 		// Create ROS subscriber for one-way velocity setter function
 		_node.newSubscriber("cmd_vel", "geometry_msgs/Twist", new MessageListener<Twist>() {
 
@@ -155,8 +161,145 @@ public class RosVehicleServer {
 		});
 		
 		// Create ROS services for accessor and setter functions
-		// TODO: wait until services are implemented here
+		_node.newServiceServer("set_state", "crwlib_msgs/SetState",
+				new ServiceResponseBuilder<SetState.Request, SetState.Response>() {
+			@Override
+			public SetState.Response build(SetState.Request request) {
+				_server.setState(request.pose);
+				return new SetState.Response();
+			}
+		});
+		
+		_node.newServiceServer("get_state", "crwlib_msgs/GetState",
+				new ServiceResponseBuilder<GetState.Request, GetState.Response>() {
+			@Override
+			public GetState.Response build(GetState.Request request) {
+				GetState.Response response = new GetState.Response();
+				response.pose = _server.getState();
+				return response;
+			}
+		});
+		
+		_node.newServiceServer("capture_image", "crwlib_msgs/CaptureImage",
+				new ServiceResponseBuilder<CaptureImage.Request, CaptureImage.Response>() {
+			@Override
+			public CaptureImage.Response build(CaptureImage.Request request) {
+				CaptureImage.Response response = new CaptureImage.Response();
+				_server.captureImage(request.width, request.height);
+				// TODO: put the capture image result in the service response
+				return response;
+			}
+		});
+		
+		_node.newServiceServer("get_camera_status", "crwlib_msgs/GetCameraStatus",
+				new ServiceResponseBuilder<GetCameraStatus.Request, GetCameraStatus.Response>() {
+			@Override
+			public GetCameraStatus.Response build(GetCameraStatus.Request request) {
+				GetCameraStatus.Response response = new GetCameraStatus.Response();
+				response.status = (byte)_server.getCameraStatus().ordinal();
+				return response;
+			}
+		});
+		
+		_node.newServiceServer("set_sensor_type", "crwlib_msgs/SetSensorType",
+				new ServiceResponseBuilder<SetSensorType.Request, SetSensorType.Response>() {
+			@Override
+			public SetSensorType.Response build(SetSensorType.Request request) {
+				_server.setSensorType(request.channel, SensorType.values()[request.type]);
+				return new SetSensorType.Response();
+			}
+		});
+		
+		_node.newServiceServer("get_sensor_type", "crwlib_msgs/GetSensorType",
+				new ServiceResponseBuilder<GetSensorType.Request, GetSensorType.Response>() {
+			@Override
+			public GetSensorType.Response build(GetSensorType.Request request) {
+				GetSensorType.Response response = new GetSensorType.Response();
+				response.type = (byte)_server.getSensorType(request.channel).ordinal();
+				// TODO: it might make sense to also return the channel
+				return response;
+			}
+		});
+		
+		_node.newServiceServer("get_num_sensors", "crwlib_msgs/GetNumSensors",
+				new ServiceResponseBuilder<GetNumSensors.Request, GetNumSensors.Response>() {
+			@Override
+			public GetNumSensors.Response build(GetNumSensors.Request request) {
+				GetNumSensors.Response response = new GetNumSensors.Response();
+				response.numSensors = (byte)_server.getNumSensors();
+				// TODO: this could probably be an int
+				return response;
+			}
+		});
+		
+		_node.newServiceServer("get_velocity", "crwlib_msgs/GetVelocity",
+				new ServiceResponseBuilder<GetVelocity.Request, GetVelocity.Response>() {
+			@Override
+			public GetVelocity.Response build(GetVelocity.Request request) {
+				GetVelocity.Response response = new GetVelocity.Response();
+				response.velocity = _server.getVelocity();
+				return response;
+			}
+		});
+		
+		_node.newServiceServer("is_autonomous", "crwlib_msgs/IsAutonomous",
+				new ServiceResponseBuilder<IsAutonomous.Request, IsAutonomous.Response>() {
+			@Override
+			public IsAutonomous.Response build(IsAutonomous.Request request) {
+				IsAutonomous.Response response = new IsAutonomous.Response();
+				response.isAutonomous = _server.isAutonomous();
+				return response;
+			}
+		});
 	    
+		_node.newServiceServer("set_autonomous", "crwlib_msgs/SetAutonomous",
+				new ServiceResponseBuilder<SetAutonomous.Request, SetAutonomous.Response>() {
+			@Override
+			public SetAutonomous.Response build(SetAutonomous.Request request) {
+				_server.setAutonomous(request.isAutonomous);
+				return new SetAutonomous.Response();
+			}
+		});
+		
+		_node.newServiceServer("get_waypoint", "crwlib_msgs/GetWaypoint",
+				new ServiceResponseBuilder<GetWaypoint.Request, GetWaypoint.Response>() {
+			@Override
+			public GetWaypoint.Response build(GetWaypoint.Request request) {
+				GetWaypoint.Response response = new GetWaypoint.Response();
+				response.waypoint = _server.getWaypoint();
+				return response;
+			}
+		});
+		
+		_node.newServiceServer("get_waypoint_status", "crwlib_msgs/GetWaypointStatus",
+				new ServiceResponseBuilder<GetWaypointStatus.Request, GetWaypointStatus.Response>() {
+			@Override
+			public GetWaypointStatus.Response build(GetWaypointStatus.Request request) {
+				GetWaypointStatus.Response response = new GetWaypointStatus.Response();
+				response.status = (byte)_server.getWaypointStatus().ordinal();
+				return response;
+			}
+		});
+		
+		_node.newServiceServer("set_pid", "crwlib_msgs/SetPid",
+				new ServiceResponseBuilder<SetPid.Request, SetPid.Response>() {
+			@Override
+			public SetPid.Response build(SetPid.Request request) {
+				_server.setPID(request.axis, request.gains);
+				return new SetPid.Response();
+			}
+		});
+		
+		_node.newServiceServer("get_pid", "crwlib_msgs/GetPid",
+				new ServiceResponseBuilder<GetPid.Request, GetPid.Response>() {
+			@Override
+			public GetPid.Response build(GetPid.Request request) {
+				GetPid.Response response = new GetPid.Response();
+				response.gains = _server.getPID(request.axis);
+				return response;
+			}
+		});
+		
 	    // TODO: we should probably use awaitPublisher here
 
 		logger.info("Server initialized successfully.");
