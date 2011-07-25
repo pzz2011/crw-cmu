@@ -276,9 +276,9 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	 * Terminates the ROS processes wrapping a VehicleServer.
 	 */
 	public void shutdown() {
-		_node.shutdown();
 		_navClient.shutdown();
 		_imgClient.shutdown();
+		_node.shutdown();
 	}
 
 	SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult> navigationHandler = new SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult>() {
