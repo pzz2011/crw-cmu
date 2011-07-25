@@ -4,27 +4,9 @@
 	<classpathentry kind="src" path="gen"/>
 	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="src" path="/crwlib"/>
 	<classpathentry kind="lib" path="libs/AmarinoLibrary.jar"/>
-	<classpathentry kind="lib" path="libs/dom.jar"/>
-	<classpathentry kind="lib" path="libs/javabeans-rf.jar"/>
 	<classpathentry kind="lib" path="libs/jscience-4.3.jar"/>
 	<classpathentry kind="lib" path="libs/microlog4android-1.0.0.jar"/>
-	<classpathentry kind="lib" path="libs/nanoxml-2.2.3.jar"/>
-	<classpathentry kind="lib" path="libs/rox-log4j.jar"/>
-	<classpathentry kind="lib" path="libs/rox-rf.jar"/>
-	<classpathentry kind="lib" path="libs/sax2.jar"/>
-        <classpathentry kind="lib" path="libs/rosjava.jar"/>
-        <classpathentry kind="lib" path="libs/rosjava-bootstrap.jar"/>
-	<classpathentry kind="lib" path="../../.ros/rosjava/lib/test_ros.jar"/>
-        <classpathentry kind="lib" path="../../.ros/rosjava/lib/roscpp.jar"/>
-        <classpathentry kind="lib" path="../../.ros/rosjava/lib/topic_tools.jar"/>
-        <classpathentry kind="lib" path="../../.ros/rosjava/lib/std_msgs.jar"/>
-        <classpathentry kind="lib" path="../../.ros/rosjava/lib/rosgraph_msgs.jar"/>
-        <classpathentry kind="lib" path="../../.ros/rosjava/lib/geometry_msgs.jar"/>
-        <classpathentry kind="lib" path="../../.ros/rosjava/lib/sensor_msgs.jar"/>
-        <classpathentry kind="lib" path="../../.ros/rosjava/lib/crwlib_msgs.jar"/>
-        <classpathentry kind="lib" path="../../.ros/rosjava/lib/actionlib_msgs.jar"/>
-        <classpathentry kind="lib" path="../../.ros/rosjava/lib/actionlib.jar"/>
+	<classpathentry kind="lib" path="libs/crwlib_all.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

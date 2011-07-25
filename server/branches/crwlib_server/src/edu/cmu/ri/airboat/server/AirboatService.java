@@ -2,6 +2,7 @@ package edu.cmu.ri.airboat.server;
 
 
 import java.io.IOException;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -327,9 +328,9 @@ public class AirboatService extends Service {
 		
 		// Create a RosVehicleServer to expose the data object
 		try {
-			_rosServer = new RosVehicleServer(_rosMasterUri, _rosNodeName, _airboatImpl);
+			_rosServer = new RosVehicleServer(new URI(_rosMasterUri), _rosNodeName, _airboatImpl);
 		} catch (Exception e) {
-			Log.e(TAG, "RosVehicleServer failed", e);
+			Log.e(TAG, "RosVehicleServer failed to launch", e);
 		}
 		
 		// Start a regular update function
