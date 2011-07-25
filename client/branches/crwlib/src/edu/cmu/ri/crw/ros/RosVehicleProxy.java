@@ -79,7 +79,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	protected ServiceClient<GetNumSensors.Request, GetNumSensors.Response> _getNumSensorsClient;    
 	protected ServiceClient<GetVelocity.Request, GetVelocity.Response> _getVelocityClient;    
 	protected ServiceClient<IsAutonomous.Request, IsAutonomous.Response> _isAutonomousClient;    
-	protected ServiceClient<SetAutonomous.Request, SetState.Response> _setAutonomousClient;    
+	protected ServiceClient<SetAutonomous.Request, SetAutonomous.Response> _setAutonomousClient;    
 	protected ServiceClient<GetWaypoint.Request, GetWaypoint.Response> _getWaypointClient; 
 	protected ServiceClient<GetWaypointStatus.Request, GetWaypointStatus.Response> _getWaypointStatusClient;    
 	protected ServiceClient<SetPid.Request, SetPid.Response> _setPidClient;    
@@ -272,6 +272,39 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		return config;
 	}
 	
+	protected class BlockingListener<MessageType> implements ServiceResponseListener<MessageType> {
+		private final Object _lock = new Object();
+		private MessageType _result;
+
+		@Override
+    	public void onSuccess(MessageType message) {
+			_result = message;
+			synchronized(_lock) {
+				_lock.notifyAll();
+    		}
+    	}
+
+    	@Override
+    	public void onFailure(RemoteException e) {
+    		logger.warning("Failed to complete service call.");
+    		_result = null;
+    		synchronized(_lock) {
+    			_lock.notifyAll();
+    		}
+    	}
+    	
+    	public MessageType waitForCompletion() {
+    		synchronized(_lock) {
+    			try {
+    				_lock.wait();
+    				return _result;
+    			} catch (InterruptedException e) {
+    				return null;
+    			}
+    		}
+    	}
+	}
+	
 	/**
 	 * Terminates the ROS processes wrapping a VehicleServer.
 	 */
@@ -321,96 +354,130 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 
 	@Override
 	public CompressedImage captureImage(int width, int height) {
-		// TODO Auto-generated method stub
-		return null;
+		CaptureImage.Request request = new CaptureImage.Request();
+		request.width = width;
+		request.height = height;
+		
+		BlockingListener<CaptureImage.Response> listener = new BlockingListener<CaptureImage.Response>();
+		_captureImageClient.call(request, listener);
+		CaptureImage.Response response = listener.waitForCompletion();
+		
+		// TODO: return actual taken image
+		return (response != null) ? new CompressedImage() : null;
 	}
 
 	@Override
 	public CameraState getCameraStatus() {
-		// TODO Auto-generated method stub
-		return null;
+		BlockingListener<GetCameraStatus.Response> listener = new BlockingListener<GetCameraStatus.Response>();
+		_getCameraStatusClient.call(new GetCameraStatus.Request(), listener);
+		GetCameraStatus.Response response = listener.waitForCompletion();
+		return (response != null) ? CameraState.values()[response.status] : CameraState.UNKNOWN;
 	}
 
 	@Override
 	public int getNumSensors() {
-		// TODO Auto-generated method stub
-		return 0;
+		BlockingListener<GetNumSensors.Response> listener = new BlockingListener<GetNumSensors.Response>();
+		_getNumSensorsClient.call(new GetNumSensors.Request(), listener);
+		GetNumSensors.Response response = listener.waitForCompletion();
+		return (response != null) ? response.numSensors : -1;
 	}
 
 	@Override
+	public double[] getPID(int axis) {
+		BlockingListener<GetPid.Response> listener = new BlockingListener<GetPid.Response>();
+		_getPidClient.call(new GetPid.Request(), listener);
+		GetPid.Response response = listener.waitForCompletion();
+		return (response != null) ? response.gains : new double[0];
+	}
+	
+	@Override
 	public SensorType getSensorType(int channel) {
-		// TODO Auto-generated method stub
-		return null;
+		BlockingListener<GetSensorType.Response> listener = new BlockingListener<GetSensorType.Response>();
+		_getSensorTypeClient.call(new GetSensorType.Request(), listener);
+		GetSensorType.Response response = listener.waitForCompletion();
+		return (response != null) ? SensorType.values()[response.type] : SensorType.UNKNOWN;
 	}
 
 	@Override
 	public UtmPoseWithCovarianceStamped getState() {
-		// TODO Auto-generated method stub
-		return null;
+		BlockingListener<GetState.Response> listener = new BlockingListener<GetState.Response>();
+		_getStateClient.call(new GetState.Request(), listener);
+		GetState.Response response = listener.waitForCompletion();
+		return (response != null) ? response.pose : null;	
 	}
 
 	@Override
 	public TwistWithCovarianceStamped getVelocity() {
-		// TODO Auto-generated method stub
-		return null;
+		BlockingListener<GetVelocity.Response> listener = new BlockingListener<GetVelocity.Response>();
+		_getVelocityClient.call(new GetVelocity.Request(), listener);
+		GetVelocity.Response response = listener.waitForCompletion();
+		return (response != null) ? response.velocity : null;
 	}
 
 	@Override
 	public UtmPose getWaypoint() {
-		// TODO Auto-generated method stub
-		return null;
+		BlockingListener<GetWaypoint.Response> listener = new BlockingListener<GetWaypoint.Response>();
+		_getWaypointClient.call(new GetWaypoint.Request(), listener);
+		GetWaypoint.Response response = listener.waitForCompletion();
+		return (response != null) ? response.waypoint : null;
 	}
 
 	@Override
 	public WaypointState getWaypointStatus() {
-		// TODO Auto-generated method stub
-		return null;
+		BlockingListener<GetWaypointStatus.Response> listener = new BlockingListener<GetWaypointStatus.Response>();
+		_getWaypointStatusClient.call(new GetWaypointStatus.Request(), listener);
+		GetWaypointStatus.Response response = listener.waitForCompletion();
+		return (response != null) ? WaypointState.values()[response.status] : WaypointState.UNKNOWN;	
 	}
 
 	@Override
 	public boolean isAutonomous() {
-		// TODO Auto-generated method stub
-		return false;
+		BlockingListener<IsAutonomous.Response> listener = new BlockingListener<IsAutonomous.Response>();
+		_isAutonomousClient.call(new IsAutonomous.Request(), listener);
+		IsAutonomous.Response response = listener.waitForCompletion();
+		return (response != null) ? response.isAutonomous : false;
 	}
 
 	@Override
 	public void setAutonomous(boolean auto) {
-		// TODO Auto-generated method stub
+		SetAutonomous.Request request = new SetAutonomous.Request();
+		request.isAutonomous = auto;
 		
+		BlockingListener<SetAutonomous.Response> listener = new BlockingListener<SetAutonomous.Response>();
+		_setAutonomousClient.call(request, listener);
+		listener.waitForCompletion();
 	}
 
 	@Override
-	public void setSensorType(int channel, SensorType type) {
-		// TODO Auto-generated method stub
+	public void setPID(int axis, double[] gains) {
+		SetPid.Request request = new SetPid.Request();
+		request.axis = (byte)axis;
+		request.gains = gains;
 		
+		BlockingListener<SetPid.Response> listener = new BlockingListener<SetPid.Response>();
+		_setPidClient.call(request, listener);
+		listener.waitForCompletion();
+	}
+	
+	@Override
+	public void setSensorType(int channel, SensorType type) {
+		SetSensorType.Request request = new SetSensorType.Request();
+		request.channel = (byte)channel;
+		request.type = (byte)type.ordinal();
+		
+		BlockingListener<SetSensorType.Response> listener = new BlockingListener<SetSensorType.Response>();
+		_setSensorTypeClient.call(request, listener);
+		listener.waitForCompletion();
 	}
 
 	@Override
 	public void setState(UtmPose state) {
 		SetState.Request request = new SetState.Request();
 		request.pose = state;
-		final Object lockObject = new Object();
 		
-		_setStateClient.call(request, new ServiceResponseListener<SetState.Response>() {
-	    	@Override
-	    	public void onSuccess(SetState.Response message) {
-	    		synchronized(lockObject) {
-	    			lockObject.notify();
-	    		}
-	    	}
-
-	    	@Override
-	    	public void onFailure(RemoteException e) {
-	    		logger.warning("Unable to complete setState.");
-	    		synchronized(lockObject) {
-	    			lockObject.notify();
-	    		}
-	    	}
-	    });
-		
-		synchronized(lockObject) {
-			try { lockObject.wait(); } catch (InterruptedException e1) {}
-		}
+		BlockingListener<SetState.Response> listener = new BlockingListener<SetState.Response>();
+		_setStateClient.call(request, listener);
+		listener.waitForCompletion();
 	}
 
 	@Override
@@ -449,4 +516,5 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 			logger.warning("Unable to cancel navigation.");
 		}
 	}
+
 }
