@@ -62,9 +62,10 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					sendVelocity(velocity);
 					
 					// Move in an arc with given velocity over time interval
-					_state.pose.position.x += _velocity.linear.x * Math.cos(QuaternionUtils.toYaw(_state.pose.orientation)) * dt;
-					_state.pose.position.y += _velocity.linear.x * Math.sin(QuaternionUtils.toYaw(_state.pose.orientation)) * dt;
-					_state.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, _velocity.angular.z * dt);
+					double yaw = QuaternionUtils.toYaw(_state.pose.orientation);
+					_state.pose.position.x += _velocity.linear.x * Math.cos(yaw) * dt;
+					_state.pose.position.y += _velocity.linear.x * Math.sin(yaw) * dt;
+					_state.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, yaw + _velocity.angular.z * dt);
 				}
 			}
 		}).start();
