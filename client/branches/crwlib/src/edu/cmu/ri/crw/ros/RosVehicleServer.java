@@ -61,13 +61,9 @@ public class RosVehicleServer {
 
 	protected VehicleServer _server;
 
+	protected Node _node;
 	protected RosVehicleNavigation.Server _navServer;
 	protected RosVehicleImaging.Server _imgServer;
-
-	protected Node _node;
-	protected Publisher<UtmPoseWithCovarianceStamped> _statePublisher;
-	protected Publisher<CompressedImage> _imagePublisher;
-	protected Publisher<CameraInfo> _cameraInfoPublisher;
 	
 	public RosVehicleServer(VehicleServer server) {
 		this(NodeConfiguration.DEFAULT_MASTER_URI, DEFAULT_NODE_NAME, server);
@@ -83,8 +79,8 @@ public class RosVehicleServer {
 	    _node = new DefaultNodeFactory().newNode(nodeName, config);
 
 		// Create publisher for state data
-		_statePublisher = _node.newPublisher("state", "crwlib_msgs/UtmPoseWithCovarianceStamped");
-		_server.addStateListener(new StateHandler(_statePublisher));
+	    Publisher<UtmPoseWithCovarianceStamped> statePublisher = _node.newPublisher("state", "crwlib_msgs/UtmPoseWithCovarianceStamped");
+		_server.addStateListener(new StateHandler(statePublisher));
 
 		// Create publisher for image data and camera info
 		Publisher<CompressedImage> imagePublisher = _node.newPublisher("image_raw/compressed", "sensor_msgs/CompressedImage");

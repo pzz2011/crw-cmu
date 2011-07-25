@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import org.ros.actionlib.client.SimpleActionClientCallbacks;
 import org.ros.actionlib.state.SimpleClientGoalState;
 import org.ros.exception.RosException;
+import org.ros.message.MessageListener;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureFeedback;
@@ -92,11 +93,38 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 			logger.severe("Unable to start image action client: " + ex);
 		}
 
+		// Register subscriber for state
+		_node.newSubscriber("state", "crwlib_msgs/UtmPoseWithCovarianceStamped", 
+				new MessageListener<UtmPoseWithCovarianceStamped>() {
+
+			@Override
+			public void onNewMessage(UtmPoseWithCovarianceStamped pose) {
+				sendState(pose);
+			}
+		});
+		
+		// Register subscriber for imaging
+		_node.newSubscriber("image_raw/compressed", "sensor_msgs/CompressedImage", 
+				new MessageListener<CompressedImage>() {
+
+			@Override
+			public void onNewMessage(CompressedImage image) {
+				sendImage(image);
+			}
+		});
+		
+		// Register subscriber for velocity
+		_node.newSubscriber("cmd_vel", "geometry_msgs/TwistWithCovarianceStamped", 
+				new MessageListener<TwistWithCovarianceStamped>() {
+
+			@Override
+			public void onNewMessage(TwistWithCovarianceStamped velocity) {
+				sendVelocity(velocity);
+			}
+		});
+		
 		// Register services for the accessor functions
 		// TODO: fill in services here
-		
-		// Register subscribers for pose, imaging, and velocity
-		// TODO: fill in subscribers here
 		
 		logger.info("Proxy initialized successfully.");
 	}
