@@ -161,10 +161,11 @@ public class PidPanel extends AbstractAirboatPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void setButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_setButtonActionPerformed
-        _control.setVelocityGain(_axis,
-                (Double)pSpinner.getValue(),
-                (Double)iSpinner.getValue(),
-                (Double)dSpinner.getValue());
+        _vehicle.setPID(_axis, new double[]{
+            (Double)pSpinner.getValue(),
+            (Double)iSpinner.getValue(),
+            (Double)dSpinner.getValue()
+        });
     }//GEN-LAST:event_setButtonActionPerformed
 
     private void resetButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetButtonActionPerformed
@@ -194,22 +195,16 @@ public class PidPanel extends AbstractAirboatPanel {
      * Performs periodic updates of the GUI elements
      */
     public void update() {
-        if (_control != null) {
-            try {
-                double[] pids = _control.getVelocityGain(_axis);
-                if (pids.length < 3) {
-                    return;
-                }
+        if (_vehicle != null) {
 
-                pLabel.setText(PID_FORMAT.format(pids[0]));
-                iLabel.setText(PID_FORMAT.format(pids[1]));
-                dLabel.setText(PID_FORMAT.format(pids[2]));
-
-            } catch (java.lang.reflect.UndeclaredThrowableException ex) {
-                pLabel.setText(PID_FORMAT.format(Double.NaN));
-                iLabel.setText(PID_FORMAT.format(Double.NaN));
-                dLabel.setText(PID_FORMAT.format(Double.NaN));
+            double[] pids = _vehicle.getPID(_axis);
+            if (pids.length < 3) {
+                return;
             }
+
+            pLabel.setText(PID_FORMAT.format(pids[0]));
+            iLabel.setText(PID_FORMAT.format(pids[1]));
+            dLabel.setText(PID_FORMAT.format(pids[2]));
 
             PidPanel.this.repaint();
         }

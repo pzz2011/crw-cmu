@@ -7,14 +7,13 @@ package edu.cmu.ri.airboat.client;
 
 import edu.cmu.ri.airboat.client.gui.PidPanel;
 import edu.cmu.ri.airboat.client.gui.DrivePanel;
-import com.flat502.rox.client.XmlRpcClient;
-import edu.cmu.ri.airboat.interfaces.AirboatControl;
-import edu.cmu.ri.airboat.server.AirboatDummy;
-import edu.cmu.ri.airboat.server.AirboatSecurityManager;
+import edu.cmu.ri.crw.CrwSecurityManager;
+import edu.cmu.ri.crw.SimpleBoatSimulator;
+import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.ros.RosVehicleProxy;
+import edu.cmu.ri.crw.ros.RosVehicleServer;
 import java.awt.BorderLayout;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,6 +21,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import org.ros.RosCore;
+import org.ros.node.NodeConfiguration;
+import org.ros.node.NodeRunner;
 
 /**
  *
@@ -35,12 +37,21 @@ public class BoatConfig {
     public static void main(String[] args) {
 
         // Disable DNS lookups
-        AirboatSecurityManager.loadIfDNSIsSlow();
+        CrwSecurityManager.loadIfDNSIsSlow();
 
         // Start a local loopback server 
         // (useful for testing, no big deal if this server fails to start)
-        AirboatDummy.defaultRpcInstance();
-        System.out.println("Local dummy server started");
+        // Create a local loopback server for testing
+        // (Not a big deal if this fails)
+        // Start a local ros core
+        RosCore core = RosCore.newPublic(11411);
+        NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
+        core.awaitStart();
+
+        // Create a simulated boat and run a ROS server around it
+        VehicleServer server = new SimpleBoatSimulator();
+        RosVehicleServer testServer = new RosVehicleServer(core.getUri(), "testVehicle", server);
+        System.out.println("Local dummy server started: " + testServer);
         
         // Create components for controlling the boat
         final DrivePanel drivePanel = new DrivePanel();
@@ -59,22 +70,22 @@ public class BoatConfig {
 
         // Make XML-RPC connection to boat
         Timer timer = new Timer();
-        String ipAddrStr = "http://localhost:5000";
+        String ipAddrStr = "http://localhost:11411";
         while (true) {
             
             // Query user for URL of boat, exit if cancel is pressed
             ipAddrStr = (String)JOptionPane.showInputDialog(null, "Enter URL of Server", "Connect to Airboat", JOptionPane.QUESTION_MESSAGE, null, null, ipAddrStr);
             if (ipAddrStr == null) System.exit(0);
 
-            // Try to open this URL as XML-RPC server
+            // Create a ROS proxy server that accesses the same object
             try {
-                final XmlRpcClient client = new XmlRpcClient(new URL(ipAddrStr));
-                final AirboatControl controller = (AirboatControl)client.proxyObject("control.", AirboatControl.class);
+                URI masterUri = new URI(ipAddrStr);
+                final VehicleServer vehicle = new RosVehicleProxy(masterUri, "vehicle_client");
 
                 // Connect the new controller to the GUI panels
-                thrustPanel.setControl(controller);
-                rudderPanel.setControl(controller);
-                drivePanel.setControl(controller);
+                thrustPanel.setVehicle(vehicle);
+                rudderPanel.setVehicle(vehicle);
+                drivePanel.setVehicle(vehicle);
 
                 // Create a task to test connectivity to boat
                 isConnected.set(true);
@@ -82,7 +93,7 @@ public class BoatConfig {
                     @Override
                     public void run() {
                         try {
-                            controller.isConnected();
+                            vehicle.isAutonomous();
                         } catch (Exception ex) {
                             Logger.getLogger(BoatConfig.class.getName()).log(Level.SEVERE, null, ex);
                             this.cancel();
@@ -104,10 +115,6 @@ public class BoatConfig {
                         isConnected.wait();
                     }
                 }
-            } catch (MalformedURLException ex) {
-                Logger.getLogger(BoatConfig.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (IOException ex) {
-                Logger.getLogger(BoatConfig.class.getName()).log(Level.SEVERE, null, ex);
             } catch (Exception ex) {
                 Logger.getLogger(BoatConfig.class.getName()).log(Level.SEVERE, null, ex);
             } finally {

@@ -8,26 +8,28 @@ package edu.cmu.ri.airboat.client;
 import edu.cmu.ri.airboat.client.gui.AirboatComponent;
 import edu.cmu.ri.airboat.client.gui.CameraPanel;
 import edu.cmu.ri.airboat.client.gui.ConnectionPanel;
-import edu.cmu.ri.airboat.client.gui.ControllerPanel;
 import edu.cmu.ri.airboat.client.gui.PidPanel;
 import edu.cmu.ri.airboat.client.gui.DrivePanel;
 import edu.cmu.ri.airboat.client.gui.PosePanel;
 import edu.cmu.ri.airboat.client.gui.SimpleWorldPanel;
 import edu.cmu.ri.airboat.client.gui.WaypointPanel;
-import edu.cmu.ri.airboat.interfaces.AirboatCommand;
-import edu.cmu.ri.airboat.interfaces.AirboatControl;
-import edu.cmu.ri.airboat.interfaces.AirboatSensor;
-import edu.cmu.ri.airboat.server.AirboatDummy;
-import edu.cmu.ri.airboat.server.AirboatSecurityManager;
+import edu.cmu.ri.crw.CrwSecurityManager;
+import edu.cmu.ri.crw.SimpleBoatSimulator;
+import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.ros.RosVehicleServer;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.net.URI;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import org.ros.RosCore;
+import org.ros.node.NodeConfiguration;
+import org.ros.node.NodeRunner;
 
 /**
  * Provides a comprehensive interface for directly connecting to and interacting
@@ -91,7 +93,6 @@ public class BoatDebugger extends javax.swing.JFrame {
 
         private PosePanel posePanel;
         private WaypointPanel waypointPanel;
-        private ControllerPanel controllerPanel;
         private CameraPanel cameraPanel;
 
         public CommandPanel() {
@@ -101,7 +102,6 @@ public class BoatDebugger extends javax.swing.JFrame {
         private void initComponents() {
             posePanel = new PosePanel();
             waypointPanel = new WaypointPanel();
-            controllerPanel = new ControllerPanel();
             cameraPanel = new CameraPanel();
 
             //Put everything together, using a vertical BoxLayout
@@ -119,40 +119,19 @@ public class BoatDebugger extends javax.swing.JFrame {
             
             add(Box.createRigidArea(new Dimension(0,5)));
 
-            controllerPanel.setBorder(BorderFactory.createTitledBorder("Controller"));
-            add(controllerPanel);
-
-            add(Box.createRigidArea(new Dimension(0,5)));
-
             cameraPanel.setBorder(BorderFactory.createTitledBorder("Camera"));
             add(cameraPanel);
         }
 
-        public void setControl(AirboatControl control) {
-            posePanel.setControl(control);
-            waypointPanel.setControl(control);
-            controllerPanel.setControl(control);
-            cameraPanel.setControl(control);
-        }
-
-        public void setCommand(AirboatCommand command) {
-            posePanel.setCommand(command);
-            waypointPanel.setCommand(command);
-            controllerPanel.setCommand(command);
-            cameraPanel.setCommand(command);
-        }
-
-        public void setSensor(AirboatSensor sensor) {
-            posePanel.setSensor(sensor);
-            waypointPanel.setSensor(sensor);
-            controllerPanel.setSensor(sensor);
-            cameraPanel.setSensor(sensor);
+        public void setVehicle(VehicleServer vehicle) {
+            posePanel.setVehicle(vehicle);
+            waypointPanel.setVehicle(vehicle);
+            cameraPanel.setVehicle(vehicle);
         }
 
         public void setUpdateRate(long period_ms) {
             posePanel.setUpdateRate(period_ms);
             waypointPanel.setUpdateRate(period_ms);
-            controllerPanel.setUpdateRate(period_ms);
             cameraPanel.setUpdateRate(period_ms);
         }
     }
@@ -189,22 +168,10 @@ public class BoatDebugger extends javax.swing.JFrame {
             add(pidRudderPanel);
         }
 
-        public void setControl(AirboatControl control) {
-            pidThrustPanel.setControl(control);
-            pidRudderPanel.setControl(control);
-            drivePanel.setControl(control);
-        }
-
-        public void setCommand(AirboatCommand command) {
-            pidThrustPanel.setCommand(command);
-            pidRudderPanel.setCommand(command);
-            drivePanel.setCommand(command);
-        }
-
-        public void setSensor(AirboatSensor sensor) {
-            pidThrustPanel.setSensor(sensor);
-            pidRudderPanel.setSensor(sensor);
-            drivePanel.setSensor(sensor);
+        public void setVehicle(VehicleServer vehicle) {
+            pidThrustPanel.setVehicle(vehicle);
+            pidRudderPanel.setVehicle(vehicle);
+            drivePanel.setVehicle(vehicle);
         }
 
         public void setUpdateRate(long period_ms) {
@@ -217,27 +184,30 @@ public class BoatDebugger extends javax.swing.JFrame {
     private ConnectionPanel.ConnectionListener _connectionListener =
             new ConnectionPanel.ConnectionListener() {
 
-        public void connectionChanged(AirboatCommand cmd, AirboatControl ctrl, AirboatSensor sensor) {
+        public void connectionChanged(VehicleServer vehicle) {
 
             // When the connection is changed, update all subcomponents
-            _cmdPanel.setCommand(cmd);
-            _cmdPanel.setControl(ctrl);
-            _cmdPanel.setSensor(sensor);
-
-            _ctrlPanel.setCommand(cmd);
-            _ctrlPanel.setControl(ctrl);
-            _ctrlPanel.setSensor(sensor);
+            _cmdPanel.setVehicle(vehicle);
+            _ctrlPanel.setVehicle(vehicle);
         }
     };
 
     public static void main(String args[]) {
 
         // Disable DNS lookups
-        AirboatSecurityManager.loadIfDNSIsSlow();
+        CrwSecurityManager.loadIfDNSIsSlow();
 
         // Create a local loopback server for testing
         // (Not a big deal if this fails)
-        AirboatDummy.defaultRpcInstance();
+        // Start a local ros core
+        RosCore core = RosCore.newPublic(11411);
+        NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
+        core.awaitStart();
+
+        // Create a simulated boat and run a ROS server around it
+        VehicleServer server = new SimpleBoatSimulator();
+        RosVehicleServer testServer = new RosVehicleServer(core.getUri(), "testVehicle", server);
+        System.out.println("Local dummy server started: " + testServer);
 
         // Start up the debugger GUI
         java.awt.EventQueue.invokeLater(new Runnable() {
