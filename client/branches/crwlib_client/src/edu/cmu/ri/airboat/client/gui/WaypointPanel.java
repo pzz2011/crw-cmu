@@ -12,9 +12,13 @@
 package edu.cmu.ri.airboat.client.gui;
 
 import edu.cmu.ri.airboat.client.UtmUtils;
+import edu.cmu.ri.crw.QuaternionUtils;
+import edu.cmu.ri.crw.VehicleServer.WaypointState;
+import edu.cmu.ri.crw.WaypointObserver;
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.event.MouseAdapter;
+import org.ros.message.crwlib_msgs.UtmPose;
 
 /**
  *
@@ -22,12 +26,9 @@ import java.awt.event.MouseAdapter;
  */
 public class WaypointPanel extends AbstractAirboatPanel {
 
-    public static final int DEFAULT_UPDATE_MS = 1500;
+    public static final int DEFAULT_UPDATE_MS = 1000;
     private SimpleWorldPanel _worldPanel = null;
-    
-    private double[] waypoint = new double[6];
-    private int waypointZone;
-    private boolean waypointHemisphereNorth;
+    private UtmPose waypoint = new UtmPose();
 
     /** Creates new form WaypointPanel */
     public WaypointPanel() {
@@ -109,8 +110,16 @@ public class WaypointPanel extends AbstractAirboatPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void sendButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendButtonActionPerformed
-        _command.setWaypoint(waypoint);
-        // TODO: send UTM zone info as well
+        completedBox.setSelected(false);
+        _vehicle.startWaypoint(waypoint, new WaypointObserver() {
+
+            public void waypointUpdate(WaypointState ws) {
+                if (ws == WaypointState.DONE) {
+                    completedBox.setSelected(true);
+                }
+            }
+        });
+
     }//GEN-LAST:event_sendButtonActionPerformed
 
 
@@ -145,51 +154,38 @@ public class WaypointPanel extends AbstractAirboatPanel {
             // Convert out of zone for boat-local coordinates
             // TODO: figure out how to fix this!
             UtmUtils.UTM fakeUtm = UtmUtils.convertZone(boatUtm, wpUtm);
-            waypoint[0] = fakeUtm.northing;
-            waypoint[1] = fakeUtm.easting;
-            waypointZone = fakeUtm.zone;
-            waypointHemisphereNorth = fakeUtm.isNorth;
+            waypoint.pose.position.x = fakeUtm.easting;
+            waypoint.pose.position.y = fakeUtm.northing;
 
-            waypoint[2] = wpPos.getAltitude();
-            waypoint[5] = (_worldPanel.waypoint.getHeading() != null) ? _worldPanel.waypoint.getHeading().getRadians() : 0.0;
+            waypoint.utm.zone = (byte)fakeUtm.zone;
+            waypoint.utm.isNorth = fakeUtm.isNorth;
 
-            selectedWaypointText.setText("[" + waypoint[0] + ", " + waypoint[1] + ", " + waypoint[2] + "] " + waypointZone + " " + (waypointHemisphereNorth ? "North" : "South"));
+            waypoint.pose.position.z = wpPos.getAltitude();
+            waypoint.pose.orientation = QuaternionUtils.fromEulerAngles(0.0, 0.0,
+                    (_worldPanel.waypoint.getHeading() != null) ? _worldPanel.waypoint.getHeading().getRadians() : 0.0);
+
+            selectedWaypointText.setText("[" + waypoint.pose.position.x + ", " + waypoint.pose.position.y + ", " + waypoint.pose.position.z + "] " + waypoint.utm.zone + " " + (waypoint.utm.isNorth ? "North" : "South"));
         }
     };
 
     @Override
     protected void update() {
-        if (_command != null) {
-            try {
-                completedBox.setSelected(_command.isWaypointComplete());
+        if (_vehicle != null) {
+            UtmPose currWp = _vehicle.getWaypoint();
+            if (currWp == null)
+                return;
 
-                double[] pose = _command.getWaypoint();
-                if (pose.length < 3) {
-                    return;
-                }
+            currWaypointText.setText("[" + currWp.pose.position.x + ", " + currWp.pose.position.y + ", " + currWp.pose.position.z + "] " + currWp.utm.zone + " " + (currWp.utm.isNorth ? "North" : "South"));
 
-                int zone = _command.getUTMZone();
-                boolean hemisphereNorth = _command.isUTMHemisphereNorth();
-
-                currWaypointText.setText("[" + pose[0] + ", " + pose[1] + ", " + pose[2] + "] " + zone + " " + (hemisphereNorth ? "North" : "South"));
-
-                // Set marker position on globe map
-                if (_worldPanel != null) {
-                    String wwHemi = (hemisphereNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
-                    try {
-                        UTMCoord boatPos = UTMCoord.fromUTM(zone, wwHemi, pose[1], pose[0]);
-                        _worldPanel.waypoint.getAttributes().setOpacity(1.0);
-                        _worldPanel.waypoint.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), 0.0));
-                    } catch (IllegalArgumentException ex) {
-                        _worldPanel.waypoint.getAttributes().setOpacity(0.5);
-                    }
-                }
-
-            } catch (java.lang.reflect.UndeclaredThrowableException ex) {
-                currWaypointText.setText("");
-                
-                if (_worldPanel != null) {
-                    _worldPanel.waypoint.getAttributes().setOpacity(0.0);
+            // Set marker position on globe map
+            if (_worldPanel != null) {
+                String wwHemi = (currWp.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
+                try {
+                    UTMCoord boatPos = UTMCoord.fromUTM(currWp.utm.zone, wwHemi, currWp.pose.position.x, currWp.pose.position.y);
+                    _worldPanel.waypoint.getAttributes().setOpacity(1.0);
+                    _worldPanel.waypoint.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), 0.0));
+                } catch (IllegalArgumentException ex) {
+                    _worldPanel.waypoint.getAttributes().setOpacity(0.5);
                 }
             }
 

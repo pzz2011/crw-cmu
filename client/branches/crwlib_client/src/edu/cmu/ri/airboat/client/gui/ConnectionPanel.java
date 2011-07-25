@@ -11,12 +11,10 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
-import com.flat502.rox.client.XmlRpcClient;
-import edu.cmu.ri.airboat.interfaces.AirboatCommand;
-import edu.cmu.ri.airboat.interfaces.AirboatControl;
-import edu.cmu.ri.airboat.interfaces.AirboatSensor;
+import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.ros.RosVehicleProxy;
 import java.awt.Color;
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -31,10 +29,8 @@ public class ConnectionPanel extends javax.swing.JPanel {
     public static int UPDATE_PERIOD_MS = 1000;
 
     private Timer _timer = new Timer();
-    private AirboatControl _control = null;
-    private AirboatCommand _command = null;
-    private AirboatSensor _sensor = null;
-
+    private VehicleServer _vehicle = null;
+    
     /** Creates new form ConnectionPanel */
     public ConnectionPanel() {
         initComponents();
@@ -51,17 +47,15 @@ public class ConnectionPanel extends javax.swing.JPanel {
         _timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                if (_command != null) {
-                    try {
-                        connectedBox.setSelected(_command.isConnected());
-                        autonomousBox.setSelected(_command.isAutonomous());
-                        connectButton.setBackground(Color.GREEN);
-                    } catch(java.lang.reflect.UndeclaredThrowableException ex) {
-                        // TODO: make nicer colors
-                        connectedBox.setSelected(false);
-                        autonomousBox.setSelected(false);
-                        connectButton.setBackground(Color.PINK);
-                    }
+                if (_vehicle != null) {
+                    autonomousBox.setSelected(_vehicle.isAutonomous());
+                    connectedBox.setSelected(true);
+                    connectButton.setBackground(Color.GREEN);
+                } else {
+                    // TODO: make nicer colors
+                    connectedBox.setSelected(false);
+                    autonomousBox.setSelected(false);
+                    connectButton.setBackground(Color.PINK);
                 }
             }
         }, 0, UPDATE_PERIOD_MS);
@@ -82,7 +76,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
         autonomousBox = new ReadOnlyCheckBox();
 
         connectCombo.setEditable(true);
-        connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "http://localhost:5000" }));
+        connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "http://localhost:11311" }));
 
         connectButton.setText("Connect");
         connectButton.setOpaque(true);
@@ -123,15 +117,13 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
     private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
         
-        // Open an RPC connection, if successful, send proxy objects to listeners
+        // Create a proxy server that accesses the vehicle
         try {
-            XmlRpcClient client = new XmlRpcClient(new URL((String)connectCombo.getSelectedItem()));
-            _control = (AirboatControl)client.proxyObject("control.", AirboatControl.class);
-            _command = (AirboatCommand)client.proxyObject("command.", AirboatCommand.class);
-            _sensor = (AirboatSensor)client.proxyObject("sensor.", AirboatSensor.class);
-            fireConnectionListener(_command, _control, _sensor);
+            URI masterUri = new URI((String)connectCombo.getSelectedItem());
+            _vehicle = new RosVehicleProxy(masterUri, "vehicle_client");
+            fireConnectionListener(_vehicle);
         } catch (Exception ex) {
-            System.err.println("Failed to open XML-RPC proxies: " + ex);
+            System.err.println("Failed to open vehicle proxy: " + ex);
         }
     }//GEN-LAST:event_connectButtonActionPerformed
 
@@ -144,7 +136,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
     // End of variables declaration//GEN-END:variables
 
     public static interface ConnectionListener {
-        public void connectionChanged(AirboatCommand cmd, AirboatControl ctrl, AirboatSensor sensor);
+        public void connectionChanged(VehicleServer vehicle);
     }
 
     private List<ConnectionListener> listeners = new ArrayList<ConnectionListener>();
@@ -157,9 +149,9 @@ public class ConnectionPanel extends javax.swing.JPanel {
         listeners.remove(l);
     }
 
-    protected void fireConnectionListener(AirboatCommand cmd, AirboatControl ctrl, AirboatSensor snsr){
+    protected void fireConnectionListener(VehicleServer vehicle){
         for(int i = 0; i < listeners.size(); i++)
-            (listeners.get(i)).connectionChanged(cmd, ctrl, snsr);
+            (listeners.get(i)).connectionChanged(vehicle);
     }
 }
 

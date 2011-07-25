@@ -43,7 +43,7 @@
         <Property name="editable" type="boolean" value="true"/>
         <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
           <StringArray count="1">
-            <StringItem index="0" value="http://localhost:5000"/>
+            <StringItem index="0" value="http://localhost:11311"/>
           </StringArray>
         </Property>
       </Properties>

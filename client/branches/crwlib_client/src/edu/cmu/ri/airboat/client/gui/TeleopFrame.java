@@ -4,9 +4,7 @@
  */
 package edu.cmu.ri.airboat.client.gui;
 
-import edu.cmu.ri.airboat.client.gui.PidPanel;
-import edu.cmu.ri.airboat.client.gui.DrivePanel;
-import edu.cmu.ri.airboat.interfaces.AirboatControl;
+import edu.cmu.ri.crw.VehicleServer;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import javax.swing.JFrame;
@@ -17,7 +15,7 @@ import javax.swing.JFrame;
  */
 public class TeleopFrame extends JFrame {
 
-    public TeleopFrame(final AirboatControl controller) {
+    public TeleopFrame(final VehicleServer vehicle) {
 
         // Set up basic frame properties
         super("Airboat Teleop Frame");
@@ -36,8 +34,8 @@ public class TeleopFrame extends JFrame {
         pack();
         
         // Connect the panels to the controller object
-        drivePanel.setControl(controller);
-        thrustPanel.setControl(controller);
-        rudderPanel.setControl(controller);
+        drivePanel.setVehicle(vehicle);
+        thrustPanel.setVehicle(vehicle);
+        rudderPanel.setVehicle(vehicle);
     }
 }

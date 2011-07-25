@@ -11,10 +11,16 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
+import edu.cmu.ri.crw.QuaternionUtils;
+import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.VehicleStateListener;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.text.DecimalFormat;
+import org.ros.message.crwlib_msgs.UtmPose;
+import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
+import org.ros.message.geometry_msgs.Pose;
 
 /**
  *
@@ -22,14 +28,12 @@ import java.text.DecimalFormat;
  */
 public class PosePanel extends AbstractAirboatPanel {
 
-    public static final int DEFAULT_UPDATE_MS = 500;
     private static final DecimalFormat ANGLE_FORMAT = new DecimalFormat("0.000");
     private SimpleWorldPanel _worldPanel = null;
 
     /** Creates new form PosePanel */
     public PosePanel() {
         initComponents();
-        setUpdateRate(DEFAULT_UPDATE_MS);
     }
 
     /** This method is called from within the constructor to
@@ -146,9 +150,14 @@ public class PosePanel extends AbstractAirboatPanel {
             Position wpPos = _worldPanel.click.getPosition();
             UTMCoord wpUtm = UTMCoord.fromLatLon(wpPos.getLatitude(), wpPos.getLongitude());
 
-            // TODO: handle setting heading manually
-            _command.setUTMZone(wpUtm.getZone(), wpUtm.getHemisphere().contains("North"));
-            _command.setPose(new double[] {wpUtm.getNorthing(), wpUtm.getEasting(), wpPos.getAltitude(), 0.0, 0.0, 0.0});
+            UtmPose pose = new UtmPose();
+            pose.utm.isNorth = wpUtm.getHemisphere().contains("North");
+            pose.utm.zone = (byte)wpUtm.getZone();
+            pose.pose.position.x = wpUtm.getEasting();
+            pose.pose.position.y = wpUtm.getNorthing();
+            pose.pose.position.z = wpPos.getAltitude();
+            
+            _vehicle.setState(pose);
         }
     }//GEN-LAST:event_setPoseButtonActionPerformed
 
@@ -188,64 +197,46 @@ public class PosePanel extends AbstractAirboatPanel {
         _worldPanel = worldPanel;
     }
 
+    @Override
+    public void setVehicle(VehicleServer vehicle) {
+        super.setVehicle(vehicle);
+        vehicle.addStateListener(new VehicleStateListener() {
+
+            public void receivedState(UtmPoseWithCovarianceStamped upwcs) {
+                int longZone = upwcs.utm.zone;
+                String latZone = (upwcs.utm.isNorth ? "North" : "South");
+
+                Pose pose = upwcs.pose.pose.pose;
+                positionText.setText("[" + pose.position.x + ", " + pose.position.y + ", " + pose.position.z + "] " + longZone + " " + latZone);
+
+                double[] rpy = QuaternionUtils.toEulerAngles(pose.orientation);
+                
+                rollBar.setValue(fromRangeToProgress(rpy[0], -Math.PI, Math.PI));
+                pitchBar.setValue(fromRangeToProgress(rpy[1], -Math.PI, Math.PI));
+                yawBar.setValue(fromRangeToProgress(rpy[2], -Math.PI, Math.PI));
+
+                rollLabel.setText(ANGLE_FORMAT.format(rpy[0]) + " rads");
+                pitchLabel.setText(ANGLE_FORMAT.format(rpy[1]) + " rads");
+                yawLabel.setText(ANGLE_FORMAT.format(rpy[2]) + " rads");
+
+                // Set marker position on globe map
+                if (_worldPanel != null) {
+                    String wwHemi = (upwcs.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
+                    UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, pose.position.x, pose.position.y);
+                    _worldPanel.boat.getAttributes().setOpacity(1.0);
+                    _worldPanel.boat.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), rpy[2]));
+                    _worldPanel.boat.setHeading(Angle.fromRadians(rpy[2]));
+                }
+
+                PosePanel.this.repaint();
+            }
+        });
+    }
+
     /**
      * Performs periodic updates of the GUI elements
      */
     public void update() {
-        if (_command != null) {
-            try {
-                double[] pose = _command.getPose();
-                if (pose.length < 6) {
-                    return;
-                }
-
-                int longZone = _command.getUTMZone();
-                String latZone = (_command.isUTMHemisphereNorth() ? "North" : "South");
-
-                positionText.setText("[" + pose[0] + ", " + pose[1] + ", " + pose[2] + "] " + longZone + " " + latZone);
-                
-                double roll = normalizeAngle(pose[3]);
-                double pitch = normalizeAngle(pose[4]);
-                double yaw = normalizeAngle(pose[5]);
-
-                rollBar.setValue(fromRangeToProgress(roll, -Math.PI, Math.PI));
-                pitchBar.setValue(fromRangeToProgress(pitch, -Math.PI, Math.PI));
-                yawBar.setValue(fromRangeToProgress(yaw, -Math.PI, Math.PI));
-
-                rollLabel.setText(ANGLE_FORMAT.format(roll) + " rads");
-                pitchLabel.setText(ANGLE_FORMAT.format(pitch) + " rads");
-                yawLabel.setText(ANGLE_FORMAT.format(yaw) + " rads");
-
-                // Set marker position on globe map
-                if (_worldPanel != null) {
-                    String wwHemi = (latZone.contains("T") || latZone.contains("North")) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
-                    try {
-                        UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, pose[1], pose[0]);
-                        _worldPanel.boat.getAttributes().setOpacity(1.0);
-                        _worldPanel.boat.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), pose[5]));
-                        _worldPanel.boat.setHeading(Angle.fromRadians(pose[5]));
-                    } catch (IllegalArgumentException ex) {
-                        _worldPanel.boat.getAttributes().setOpacity(0.5);
-                    }
-                }
-
-            } catch (java.lang.reflect.UndeclaredThrowableException ex) {
-                positionText.setText("");
-
-                rollBar.setValue(0);
-                pitchBar.setValue(0);
-                yawBar.setValue(0);
-
-                rollLabel.setText("0.000 rads");
-                pitchLabel.setText("0.000 rads");
-                yawLabel.setText("0.000 rads");
-
-                if (_worldPanel != null) {
-                    _worldPanel.boat.getAttributes().setOpacity(0.0);
-                }
-            }
-
-            PosePanel.this.repaint();
-        }
+       // Nothing to do here
     }
 }

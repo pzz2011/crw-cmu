@@ -11,8 +11,12 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
+import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.VehicleVelocityListener;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.ros.message.geometry_msgs.Twist;
+import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 
 /**
  *
@@ -21,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class DrivePanel extends AbstractAirboatPanel {
 
     public static final int DEFAULT_UPDATE_MS = 750;
-    public static final int DEFAULT_COMMAND_MS = 500;
+    public static final int DEFAULT_COMMAND_MS = 200;
 
     // Ranges for thrust and rudder signals
     public static final double THRUST_MIN = 0.0;
@@ -130,7 +134,7 @@ public class DrivePanel extends AbstractAirboatPanel {
     }//GEN-LAST:event_jRudderStateChanged
 
     private void jAutonomyBoxMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jAutonomyBoxMouseClicked
-        _control.setAutonomous(jAutonomyBox.isSelected());
+        _vehicle.setAutonomous(jAutonomyBox.isSelected());
     }//GEN-LAST:event_jAutonomyBoxMouseClicked
 
 
@@ -173,10 +177,10 @@ public class DrivePanel extends AbstractAirboatPanel {
 
     // Sets velocities from sliders to control proxy
     protected void sendVelocity() {
-        double[] vels = new double[6];
-        vels[0] = fromProgressToRange(jThrust.getValue(), THRUST_MIN, THRUST_MAX);
-        vels[5] = fromProgressToRange(jRudder.getValue(), RUDDER_MIN, RUDDER_MAX);
-        _control.setVelocity(vels);
+        Twist twist = new Twist();
+        twist.linear.x = fromProgressToRange(jThrust.getValue(), THRUST_MIN, THRUST_MAX);
+        twist.angular.z = fromProgressToRange(jRudder.getValue(), RUDDER_MIN, RUDDER_MAX);
+        _vehicle.setVelocity(twist);
     }
 
     // Converts from progress bar value to linear scaling between min and max
@@ -189,29 +193,27 @@ public class DrivePanel extends AbstractAirboatPanel {
             return (int)(100.0 * (value - min)/(max - min));
     }
 
+    @Override
+    public void setVehicle(VehicleServer vehicle) {
+        super.setVehicle(vehicle);
+        vehicle.addVelocityListener(new VehicleVelocityListener() {
+
+            public void receivedVelocity(TwistWithCovarianceStamped twcs) {
+                jThrustBar.setValue(fromRangeToProgress(twcs.twist.twist.linear.x, THRUST_MIN, THRUST_MAX));
+                jRudderBar.setValue(fromRangeToProgress(twcs.twist.twist.angular.z, RUDDER_MIN, RUDDER_MAX));
+                DrivePanel.this.repaint();
+            }
+        });
+    }
+
     /**
      * Performs periodic update of GUI elements
      */
     public void update() {
-        if (_control != null) {
-            try {
-                jAutonomyBox.setSelected(_control.isAutonomous());
-                jAutonomyBox.setEnabled(true);
-                jConnectedBox.setSelected(_control.isConnected());
-                jAutonomyBox.setEnabled(true);
-
-                double[] vels = _control.getVelocity();
-                jThrustBar.setValue(fromRangeToProgress(vels[0], THRUST_MIN, THRUST_MAX));
-                jRudderBar.setValue(fromRangeToProgress(vels[5], RUDDER_MIN, RUDDER_MAX));
-
-            } catch (java.lang.reflect.UndeclaredThrowableException ex) {
-                jAutonomyBox.setEnabled(false);
-                jConnectedBox.setEnabled(false);
-
-                jThrustBar.setValue(0);
-                jRudderBar.setValue(0);
-            }
-
+        if (_vehicle != null) {
+            jAutonomyBox.setSelected(_vehicle.isAutonomous());
+            jAutonomyBox.setEnabled(true);
+            jConnectedBox.setSelected(true);
             DrivePanel.this.repaint();
         }
     }

@@ -11,11 +11,14 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
+import edu.cmu.ri.crw.VehicleImageListener;
+import edu.cmu.ri.crw.VehicleServer;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
+import org.ros.message.sensor_msgs.CompressedImage;
 
 /**
  *
@@ -26,6 +29,30 @@ public class CameraPanel extends AbstractAirboatPanel {
     /** Creates new form CameraPanel */
     public CameraPanel() {
         initComponents();
+    }
+
+    @Override
+    public void setVehicle(VehicleServer vehicle) {
+        super.setVehicle(vehicle);
+        vehicle.addImageListener(new VehicleImageListener() {
+
+            public void receivedImage(CompressedImage ci) {
+                // Take a picture, and put the resulting image into the panel
+                try {
+                    BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(ci.data));
+                    if (image != null) {
+                        Image scaledImage = image.getScaledInstance(pictureLabel.getWidth(), pictureLabel.getHeight(), Image.SCALE_DEFAULT);
+                        pictureLabel.setIcon(new ImageIcon(scaledImage));
+                        CameraPanel.this.repaint();
+                    } else {
+                        System.err.println("Failed to decode image.");
+                    }
+                } catch (IOException ex) {
+                    System.err.println("Failed to decode image: " + ex);
+                }
+
+            }
+        });
     }
 
     /** This method is called from within the constructor to
@@ -88,28 +115,12 @@ public class CameraPanel extends AbstractAirboatPanel {
         takePictureButton.setEnabled(false);
         takePictureButton.setSelected(true);
 
-        new Thread(new Runnable() {
+        // TODO: rename this button
+        _vehicle.startCamera(1, 0, 640, 480, null);
 
-            public void run() {
-                // Take a picture, and put the resulting image into the panel
-                byte[] jpegData = _sensor.getImage();
-                try {
-                    BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(jpegData));
-                    if (image != null) {
-                        Image scaledImage = image.getScaledInstance(pictureLabel.getWidth(), pictureLabel.getHeight(), Image.SCALE_DEFAULT);
-                        pictureLabel.setIcon(new ImageIcon(scaledImage));
-                    } else {
-                        System.err.println("Failed to decode image.");
-                    }
-                } catch (IOException ex) {
-                    System.err.println("Failed to decode image: " + ex);
-                }
-                
-                takePictureButton.setEnabled(true);
-                takePictureButton.setSelected(false);
-            }
-        }).start();
-
+        takePictureButton.setEnabled(true);
+        takePictureButton.setSelected(false);
+        
     }//GEN-LAST:event_takePictureButtonActionPerformed
 
     private void savePictureButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_savePictureButtonActionPerformed
@@ -117,15 +128,11 @@ public class CameraPanel extends AbstractAirboatPanel {
         savePictureButton.setEnabled(false);
         savePictureButton.setSelected(true);
 
-        new Thread(new Runnable() {
+        // TODO: rename this button
+        _vehicle.startCamera(1, 0, 1024, 768, null);
 
-            public void run() {
-                // Take a picture, and re-enable the button
-                _sensor.saveImage();
-                savePictureButton.setEnabled(true);
-                savePictureButton.setSelected(false);
-            }
-        }).start();
+        savePictureButton.setEnabled(true);
+        savePictureButton.setSelected(false);
     }//GEN-LAST:event_savePictureButtonActionPerformed
 
 
