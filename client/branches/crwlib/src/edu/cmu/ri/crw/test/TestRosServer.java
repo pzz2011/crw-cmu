@@ -52,8 +52,8 @@ public class TestRosServer {
 		proxyServer.setAutonomous(true);
 		
 		UtmPose p = new UtmPose();
-		p.pose.position.x = 20.0;
-		p.pose.position.y = -6.0;
+		p.pose.position.x = 10.0;
+		p.pose.position.y = 60.0;
 		proxyServer.startWaypoint(p, new WaypointObserver() {
 			@Override
 			public void waypointUpdate(WaypointState status) {
