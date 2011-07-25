@@ -83,7 +83,7 @@ public class RosVehicleServer {
 		_server.addStateListener(new StateHandler(statePublisher));
 
 		// Create publisher for image data and camera info
-		Publisher<CompressedImage> imagePublisher = _node.newPublisher("image_raw/compressed", "sensor_msgs/CompressedImage");
+		Publisher<CompressedImage> imagePublisher = _node.newPublisher("image/compressed", "sensor_msgs/CompressedImage");
 		Publisher<CameraInfo> cameraInfoPublisher = _node.newPublisher("camera_info", "sensor_msgs/CameraInfo");
 		_server.addImageListener(new ImageHandler(imagePublisher, cameraInfoPublisher));
 		

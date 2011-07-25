@@ -104,7 +104,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		});
 		
 		// Register subscriber for imaging
-		_node.newSubscriber("image_raw/compressed", "sensor_msgs/CompressedImage", 
+		_node.newSubscriber("image/compressed", "sensor_msgs/CompressedImage", 
 				new MessageListener<CompressedImage>() {
 
 			@Override
