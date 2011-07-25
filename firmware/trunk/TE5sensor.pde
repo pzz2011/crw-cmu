@@ -26,6 +26,26 @@ void initTE()  {
   PT_INIT(&teReadPt);
 }
 
+// Converts from raw 5TE sensor value to a floating point Celsius temperature.
+float toTemp(const int &rawTemp) {
+  return (float)(rawTemp - 400)/10.0;
+}
+
+// Converts from raw 5TE sensor value to a floating point mS/cm (dS/m) conductivity.
+float toConductivity(const int &rawCond) {
+  return ((float)rawCond) / 100.0;
+}
+
+// Converts from raw 5TE sensor value to dielectric, as specified in datasheet.
+float toDielectric(const int &rawDielectric) {
+   return ((float) rawDielectric) / 50.0;
+}
+
+// Wrapper function that will call the pseudothreaded code
+void updateTE() {
+  //teUpdateThread(&teUpdatePt);
+}
+
 // Reads a single ASCII plaintext integer from the serial stream.
 // (Note: also reads the first terminating character after integer)
 static int readInt(struct pt *pt) {
@@ -47,26 +67,6 @@ static int readInt(struct pt *pt) {
   }
   
   PT_END(pt);
-}
-
-// Converts from raw 5TE sensor value to a floating point Celsius temperature.
-float toTemp(const int &rawTemp) {
-  return (float)(rawTemp - 400)/10.0;
-}
-
-// Converts from raw 5TE sensor value to a floating point mS/cm (dS/m) conductivity.
-float toConductivity(const int &rawCond) {
-  return ((float)rawCond) / 100.0;
-}
-
-// Converts from raw 5TE sensor value to dielectric, as specified in datasheet.
-float toDielectric(const int &rawDielectric) {
-   return ((float) rawDielectric) / 50.0;
-}
-
-// Wrapper function that will call the pseudothreaded code
-void updateTE() {
-  //teUpdateThread(&teUpdatePt);
 }
 
 // Powers up and reads the sensor values from a 5TE environmental sensor, 
