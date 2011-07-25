@@ -61,7 +61,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					velocity.twist.twist = _velocity.clone();
 					sendVelocity(velocity);
 					
-					// Move in an arc with given velocity over time interval 
+					// Move in an arc with given velocity over time interval
 					_state.pose.position.x += _velocity.linear.x * Math.cos(QuaternionUtils.toYaw(_state.pose.orientation)) * dt;
 					_state.pose.position.y += _velocity.linear.x * Math.sin(QuaternionUtils.toYaw(_state.pose.orientation)) * dt;
 					_state.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, _velocity.angular.z * dt);
@@ -109,7 +109,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		_isNavigating = true;
 		_waypoint = waypoint;
 
-		Thread t = new Thread(new Runnable() {
+		new Thread(new Runnable() {
 
 			@Override
 			public void run() {
@@ -118,14 +118,13 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					// Pause for a while
 					try {
 						Thread.sleep(UPDATE_INTERVAL_MS);
-						obs.waypointUpdate(SimpleBoatSimulator.this);
-						// System.out.println("P: "+_state.pose.position.x+", "+_state.pose.position.y+", Q:"+_state.pose.orientation.w+", "+_state.pose.orientation.x+", "+_state.pose.orientation.y+", "+_state.pose.orientation.z+" V = "+twist.linear.x+" A = "+angle+" D = "+distance);
+						obs.waypointUpdate(WaypointState.GOING);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
 					
 					// If we are not set in autonomous mode, don't try to drive!
-					if (_isAutonomous)
+					if (!_isAutonomous)
 						continue;
 					
 					// Get the position of the vehicle and the waypoint
@@ -145,7 +144,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					double angle = Math.atan2(
 							(waypoint.position.y - pose.position.y),
 							(waypoint.position.x - pose.position.x))
-							- pose.orientation.y;
+							- QuaternionUtils.toYaw(pose.orientation);
 					angle = normalizeAngle(angle);
 
 					// Choose driving behavior depending on direction and
@@ -166,16 +165,16 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 						_velocity.linear.x = 0.0;
 						_velocity.angular.z = 0.0;
 						
-						obs.waypointUpdate(SimpleBoatSimulator.this);
+						obs.waypointUpdate(WaypointState.DONE);
 						_isNavigating = false;
+						return;
 					}
 				}
+				
+				// If we broke out of the loop, it means someone cancelled us
+				obs.waypointUpdate(WaypointState.CANCELLED);
 			}
-		});
-		t.start();
-		
-		// This code makes the startWaypoint call blocking 
-		try { t.join(); } catch (InterruptedException ex) { }
+		}).start();
 	}
 
 	@Override
@@ -203,18 +202,20 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					iFrame++;
 
 					if (obs != null) {
-						obs.imagingUpdate(SimpleBoatSimulator.this);
+						obs.imagingUpdate(CameraState.CAPTURING);
 					}
 
 					// Wait for a while
 					try {
 						Thread.sleep((long) (interval * 1000.0));
 					} catch (InterruptedException ex) {
+						obs.imagingUpdate(CameraState.CANCELLED);
 						_isCapturing = false;
 						return;
 					}
 				}
 
+				obs.imagingUpdate(CameraState.DONE);
 				_isCapturing = false;
 			}
 		}).start();

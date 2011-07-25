@@ -12,7 +12,6 @@ import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.ImagingObserver;
 import edu.cmu.ri.crw.QuaternionUtils;
 import edu.cmu.ri.crw.WaypointObserver;
-import edu.cmu.ri.crw.VehicleServer.CameraState;
 import edu.cmu.ri.crw.vbs.ImageServerLink.ImageEvent;
 import edu.cmu.ri.crw.vbs.ImageServerLink.ImageEventListener;
 
@@ -139,18 +138,24 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 					
 					// Alert observer that status might have changed
 					if (obs != null)
-						obs.imagingUpdate(VbsBoatSimulator.this);
+						obs.imagingUpdate(CameraState.CAPTURING);
 					
 					// Wait for a while
 					try { 
 						Thread.sleep(captureInterval); 
 					} catch (InterruptedException ex) {
+						obs.imagingUpdate(CameraState.CANCELLED);
 						_isCapturing = false;
 						return;
 					}
 				}
 				
-				_isCapturing = false;
+				if (_isCapturing) {
+					_isCapturing = false;
+					obs.imagingUpdate(CameraState.DONE);
+				} else {
+					obs.imagingUpdate(CameraState.CANCELLED);
+				}
 			}
 		}).start();
 		
@@ -185,18 +190,25 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 					
 					// Alert that there might be a status change
 					if (obs != null)
-						obs.waypointUpdate(VbsBoatSimulator.this);
+						obs.waypointUpdate(WaypointState.GOING);
 					
 					// Wait for a while
 					try { 
 						Thread.sleep(500); 
 					} catch (InterruptedException ex) {
+						obs.waypointUpdate(WaypointState.CANCELLED);
 						_isNavigating = false;
 						return;
 					}
 				}
 				
-				_isNavigating = false;
+				if (_isNavigating) {
+					obs.waypointUpdate(WaypointState.DONE);
+					_isNavigating = false;
+				} else {
+					obs.waypointUpdate(WaypointState.CANCELLED);
+				}
+				
 			}
 		}).start();		
 	}

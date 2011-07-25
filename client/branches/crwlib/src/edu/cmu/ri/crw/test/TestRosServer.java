@@ -13,6 +13,8 @@ import org.ros.node.NodeRunner;
 
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.WaypointObserver;
+import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.ros.RosVehicleProxy;
 import edu.cmu.ri.crw.ros.RosVehicleServer;
 
@@ -47,10 +49,17 @@ public class TestRosServer {
 		}
 		
 		// TODO: put some system tests in here
+		proxyServer.setAutonomous(true);
+		
 		UtmPose p = new UtmPose();
-		p.pose.position.x = 100.0;
-		p.utm.isNorth = true;
-		proxyServer.setState(p);
+		p.pose.position.x = 20.0;
+		p.pose.position.y = -6.0;
+		proxyServer.startWaypoint(p, new WaypointObserver() {
+			@Override
+			public void waypointUpdate(WaypointState status) {
+				System.out.println("STATUS: " + status);
+			}
+		});
 		
 		// Wait for someone to hit Enter
 		{
@@ -69,6 +78,7 @@ public class TestRosServer {
 		try {
 			rosServer.shutdown();
 		} catch (RosRuntimeException ex) {
+			ex.printStackTrace();
 			System.err.println("Ros VehicleServer was uncleanly shutdown.");
 		}
 		

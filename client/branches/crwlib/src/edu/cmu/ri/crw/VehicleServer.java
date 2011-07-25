@@ -9,8 +9,8 @@ import org.ros.message.sensor_msgs.CompressedImage;
 public interface VehicleServer {
 	
 	public enum SensorType { ANALOG, DIGITAL, TE, UNKNOWN };
-	public enum WaypointState { GOING, DONE, UNKNOWN };
-	public enum CameraState { CAPTURING, OFF, UNKNOWN };
+	public enum WaypointState { GOING, DONE, CANCELLED, OFF, UNKNOWN };
+	public enum CameraState { CAPTURING, DONE, CANCELLED, OFF, UNKNOWN };
 
 	public void addStateListener(VehicleStateListener l);
 	public void removeStateListener(VehicleStateListener l);
