@@ -11,9 +11,11 @@ import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeRunner;
 
+import edu.cmu.ri.crw.ImagingObserver;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.WaypointObserver;
+import edu.cmu.ri.crw.VehicleServer.CameraState;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.ros.RosVehicleProxy;
 import edu.cmu.ri.crw.ros.RosVehicleServer;
@@ -58,6 +60,13 @@ public class TestRosServer {
 			@Override
 			public void waypointUpdate(WaypointState status) {
 				System.out.println("STATUS: " + status);
+			}
+		});
+		
+		proxyServer.startCamera(10, 1.0, 640, 480, new ImagingObserver() {
+			@Override
+			public void imagingUpdate(CameraState status) {
+				System.err.println("IMAGES: " + status);
 			}
 		});
 		
