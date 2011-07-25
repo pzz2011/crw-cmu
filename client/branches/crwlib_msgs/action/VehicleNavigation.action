@@ -2,6 +2,7 @@
 crwlib_msgs/UtmPose targetPose
 ---
 # Result
+Header header
 crwlib_msgs/UtmPoseStamped finalPose
 int8 status
 ---
