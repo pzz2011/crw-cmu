@@ -26,7 +26,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 		
 		// Make a copy of the current state (for immutability) and return it
 		double[] gains = new double[_gains[axis].length];
-		System.arraycopy(_gains, 0, gains[axis], 0, _gains[axis].length);
+		System.arraycopy(_gains[axis], 0, gains, 0, _gains[axis].length);
 		return gains;
 	}
 	
