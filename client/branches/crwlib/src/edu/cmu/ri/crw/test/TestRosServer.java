@@ -63,7 +63,7 @@ public class TestRosServer {
 			}
 		});
 		
-		proxyServer.startCamera(10, 1.0, 640, 480, new ImagingObserver() {
+		proxyServer.startCamera(0, 1.0, 640, 480, new ImagingObserver() {
 			@Override
 			public void imagingUpdate(CameraState status) {
 				System.err.println("IMAGES: " + status);
