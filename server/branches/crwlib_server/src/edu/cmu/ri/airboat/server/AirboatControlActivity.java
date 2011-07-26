@@ -58,7 +58,7 @@ public class AirboatControlActivity extends Activity {
 	private boolean _isBound = false;
 	
 	// Stores current velocity values
-	private double[] _velocities = new double[6];
+	private Twist _velocities = new Twist();
 	
 	// Timing functions to regularly update GUI
 	private Handler _velHandler = null;
@@ -223,12 +223,12 @@ public class AirboatControlActivity extends Activity {
 				autonomousBox.setChecked(_airboatService.getServer().getWaypointStatus() == WaypointState.GOING);
 				
 				// Update the velocities
-				System.arraycopy(_airboatService.getServer().getVelocity(), 0, _velocities, 0, _velocities.length);
+				_velocities = _airboatService.getServer().getVelocity().twist.twist;
 
-				thrustValue.setText(velFormatter.format(_velocities[0]) + " m/s");
+				thrustValue.setText(velFormatter.format(_velocities.linear.x) + " m/s");
 				thrustValue.invalidate();
 	
-				rudderValue.setText(velFormatter.format(_velocities[5]) + " rad/s");
+				rudderValue.setText(velFormatter.format(_velocities.angular.z) + " rad/s");
 				rudderValue.invalidate();
 	
 				// Reschedule the next iteration of this update
