@@ -1,4 +1,3 @@
-
 Welcome to the WIki. FInd details of the boats below.
 
 How the boats work:
@@ -21,4 +20,4 @@ Developing for the boats:
 
 
 
-[http://code.google.com/p/crw-cmu/w/list?can=2&q= View all pages]
+[http://code.google.com/p/crw-cmu/w/list?can=2&q= View all Wiki pages]
