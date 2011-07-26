@@ -1,6 +1,6 @@
 #summary Navigation sidebar.
 
-[CRWWiki Home]
+[CRWWIki Home]
 
 How the boats work:
 
