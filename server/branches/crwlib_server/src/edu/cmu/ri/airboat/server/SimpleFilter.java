@@ -25,7 +25,7 @@ public class SimpleFilter implements VehicleFilter {
 	
 	// Tuning factors for compass and GPS
 	// 0.0 means no confidence, 1.0 means perfect accuracy.  Nominal is ~0.1.
-	public static final double ALPHA_COMPASS = 0.0;
+	public static final double ALPHA_COMPASS = 0.1;
 	public static final double ALPHA_GPS = 0.9;
 	
 	// Indicator variables used to mark whether absolute heading and position were measured
@@ -111,7 +111,6 @@ public class SimpleFilter implements VehicleFilter {
 	@Override
 	public synchronized void reset(UtmPose pose, long time) {
 		_time = time;
-		
 		_pose = pose.clone();
 		
 		_isInitializedGps = true;

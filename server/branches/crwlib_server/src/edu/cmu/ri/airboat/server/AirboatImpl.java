@@ -1,8 +1,10 @@
 package edu.cmu.ri.airboat.server;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
+import org.ros.internal.time.WallclockProvider;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.Pose;
@@ -21,7 +23,9 @@ import com.google.code.microlog4android.LoggerFactory;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.ImagingObserver;
+import edu.cmu.ri.crw.QuaternionUtils;
 import edu.cmu.ri.crw.VehicleFilter;
+import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.WaypointObserver;
 
 /**
@@ -40,9 +44,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public static final int UPDATE_INTERVAL_MS = 100;
 
 	public final SensorType[] _sensorTypes = new SensorType[3];
-	public final double[] _state = new double[7];
 	public UtmPose _waypoint = null;
-	//public UtmPoseWithCovarianceStamped _pose = new UtmPoseWithCovarianceStamped();
 
 	private volatile boolean _isCapturing = false;
 	private volatile boolean _isNavigating = false;
@@ -84,10 +86,15 @@ public class AirboatImpl extends AbstractVehicleServer {
 	double _velocityGainAxis = -1;
 
 	/**
+	 * Keeps track of time
+	 */
+	WallclockProvider _wallclock = new WallclockProvider();
+	
+	/**
 	 * Inertial state vector, currently containing a 6D pose estimate:
 	 * [x,y,z,roll,pitch,yaw]
 	 */
-	// double[] _pose = new double[6];
+	public UtmPoseWithCovarianceStamped _pose = new UtmPoseWithCovarianceStamped();
 
 	/**
 	 * Filter used internally to update the current pose estimate
@@ -106,6 +113,11 @@ public class AirboatImpl extends AbstractVehicleServer {
 	double[] _gyroReadings = new double[3];
 
 	/**
+	 * Current navigation controller
+	 */
+	AirboatControllerLibrary _controller = AirboatControllerLibrary.POINT_AND_SHOOT;
+
+	/**
 	 * Creates a new instance of the vehicle implementation. This function
 	 * should only be used internally when the corresponding vehicle service is
 	 * started and stopped.
@@ -117,7 +129,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 	protected AirboatImpl(Context context, String addr) {
 		_context = context;
 		_arduinoAddr = addr;
-
 	}
 
 	/**
@@ -129,18 +140,14 @@ public class AirboatImpl extends AbstractVehicleServer {
 	protected void update(double dt) {
 
 		// Do an intelligent state prediction update here
-
-		// TODO Talk to the filter here
-		// _pose = filter.pose(System.currentTimeMillis());
-		// logger.info("POSE: " + Arrays.toString(_pose));
-
-		// If the vehicle is currently autonomous and has a valid navigation
-		// controller, update the controller to get new commanded velocities
-		/*
-		 * if (_isAutonomous) { if (_controller != null) {
-		 * _controller.controller.update(this, this, dt); } else { Log.w(logTag,
-		 * "No controller update."); } }
-		 */
+		_pose = filter.pose(System.currentTimeMillis());
+		logger.info("POSE: " + "[" +
+				_pose.pose.pose.pose.position.x + "," +
+				_pose.pose.pose.pose.position.y + "," +
+				_pose.pose.pose.pose.position.z + "] " +
+				Arrays.toString(QuaternionUtils.toEulerAngles(_pose.pose.pose.pose.orientation)));
+		sendState(_pose.clone());
+		
 		// Call Amarino with new velocities here
 		Amarino.sendDataToArduino(_context, _arduinoAddr, SET_VELOCITY_FN,
 				new float[] { 
@@ -153,8 +160,20 @@ public class AirboatImpl extends AbstractVehicleServer {
 				});
 		// Yes, I know this looks silly, but Amarino doesn't handle doubles
 		
-		if(_isNavigating)
-			AirboatControllerLibrary.POINT_AND_SHOOT.controller.update(this, dt);
+		// Log velocities
+		logger.info("VEL: " + "[" +
+				_velocities.linear.x + "," +
+				_velocities.linear.y + "," +
+				_velocities.linear.z + "," +
+				_velocities.angular.x + "," +
+				_velocities.angular.y + "," +
+				_velocities.angular.z + "]");
+		
+		// Send velocities 
+		TwistWithCovarianceStamped vel = new TwistWithCovarianceStamped();
+		vel.header.stamp = _wallclock.getCurrentTime();
+		vel.twist.twist = _velocities;
+		sendVelocity(vel);		
 	}
 
 	public double[] getPID(int axis) {
@@ -195,17 +214,17 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	/**
-	 * @see AirboatControl#setVelocityGain(double, double, double, double)
+	 * @see VehicleServer#setPID(int, double[])
 	 */
-	public boolean setVelocityGain(double axis, double kp, double ki, double kd) {
+	public void setPID(double axis, double[] k) {
+		
 		// Call Amarino here
 		Amarino.sendDataToArduino(
 				_context,
 				_arduinoAddr,
 				SET_GAINS_FN,
-				new float[] { (float) axis, (float) kp, (float) ki, (float) kd });
-		logger.info("SETGAINS: " + axis + " " + kp + ", " + ki + ", " + kd);
-		return true;
+				new float[] { (float) axis, (float) k[0], (float) k[1], (float) k[2] });
+		logger.info("SETGAINS: " + axis + " " + Arrays.toString(k));
 	}
 
 	/**
@@ -399,20 +418,15 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void setPID(int axis, double[] gains) {
-		System.arraycopy(gains, 0, _gains[axis], 0, _gains[axis].length);
-	}
-
-	@Override
 	public void setSensorType(int channel, SensorType type) {
 		_sensorTypes[channel] = type;
 	}
 
-
-
 	@Override
 	public void startCamera(final long numFrames, final double interval,
-			final int width, final int height, ImagingObserver obs) {
+			final int width, final int height, final ImagingObserver obs) {
+		
+		final long int_ms = (long)(interval * 1000.0);
 		_isCapturing = true;
 
 		new Thread(new Runnable() {
@@ -426,13 +440,28 @@ public class AirboatImpl extends AbstractVehicleServer {
 					// Every so often, send out a random picture
 					sendImage(captureImage(width, height));
 					iFrame++;
+					
+					// Report status
+					if (obs != null) {
+						obs.imagingUpdate(CameraState.CAPTURING);
+					}
 
 					// Wait for a while
 					try {
-						Thread.sleep(UPDATE_INTERVAL_MS);
+						Thread.sleep(int_ms);
 					} catch (InterruptedException ex) {
 						return;
 					}
+				}
+				
+				// TODO: fix threading issue (fast stop/start)
+				if (_isCapturing == true) {
+					_isCapturing = false;
+					if (obs != null)
+						obs.imagingUpdate(CameraState.DONE);
+				} else {
+					if (obs != null)
+						obs.imagingUpdate(CameraState.CANCELLED);
 				}
 			}
 		}).start();
@@ -444,13 +473,12 @@ public class AirboatImpl extends AbstractVehicleServer {
 		_isCapturing = false;
 	}
 
-	
 	double distToGoal(Pose x, Pose y) {
-		double x1 = x.position.x, x2 = x.position.y, x3 = x.position.z;
-		double y1 = y.position.x, y2 = y.position.y, y3 = y.position.z;
-
-		return Math.sqrt(Math.pow(x1 - y1, 2) + Math.pow(x2 - y2, 2)
-				+ Math.pow(x3 - y3, 2));
+		double dx = x.position.x - y.position.x;
+		double dy = x.position.y - y.position.y;
+		double dz = x.position.z - y.position.z;
+		
+		return Math.sqrt(dx*dx + dy*dy + dz*dz);
 	}
 
 	@Override
@@ -461,9 +489,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	@Override
 	public UtmPoseWithCovarianceStamped getState() {
-		// TODO Auto-generated method stub
-		return filter.pose(System.currentTimeMillis());
-
+		return _pose;
 	}
 
 	/**
@@ -473,32 +499,79 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * 
 	 * @param pose the corrected 6D pose of the vehicle: [x,y,z,roll,pitch,yaw]
 	 */
-
 	public void setState(UtmPose pose) {
 		
 		// Change the offset of this vehicle by modifying filter
 		filter.reset(pose, System.currentTimeMillis());
-		logger.info("POSE: " + pose);
+		logger.info("POSE: " + "[" +
+				_pose.pose.pose.pose.position.x + "," +
+				_pose.pose.pose.pose.position.y + "," +
+				_pose.pose.pose.pose.position.z + "] " +
+				Arrays.toString(QuaternionUtils.toEulerAngles(_pose.pose.pose.pose.orientation)));
 	}
 
 	public WaypointState getWaypointStatus() {
-		// if (distToGoal(state, waypoint) > 0.5) {
-		//TODO Write code for this
-		return WaypointState.GOING;
+		return (_isNavigating ? WaypointState.GOING : WaypointState.OFF); 
 	}
 	
 	@Override
-	public void startWaypoint(UtmPose waypoint, WaypointObserver obs ) {
+	public void startWaypoint(UtmPose waypoint, final WaypointObserver obs ) {
 		
+		final double dt = (double)UPDATE_INTERVAL_MS / 1000.0;
 		_waypoint = waypoint.clone();
 		_isNavigating = true;
+		
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				while (_isNavigating) {
+
+					// Pause for a while
+					try {
+						Thread.sleep(UPDATE_INTERVAL_MS);
+						obs.waypointUpdate(WaypointState.GOING);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					
+					// If we are not set in autonomous mode, don't try to drive!
+					if (!_isAutonomous)
+						continue;
+					
+					// Get the position of the vehicle and the waypoint
+					// TODO: fix threading issue (fast stop/start)
+					Pose pose = _pose.pose.pose.pose;
+					Pose waypoint = (_waypoint == null) ? pose : _waypoint.pose;
+
+					// TODO: handle different UTM zones!
+
+					// Figure out how to drive to waypoint
+					_controller.controller.update(AirboatImpl.this, dt);
+					
+					// TODO: measure dt directly instead of approximating
+
+					// Check for termination condition
+					double dist = distToGoal(pose, waypoint);
+					if (dist < 1.0) {
+						obs.waypointUpdate(WaypointState.DONE);
+						_isNavigating = false;
+						return;
+					} 
+				}
+				
+				// If we broke out of the loop, it means someone cancelled us
+				obs.waypointUpdate(WaypointState.CANCELLED);
+			}
+		}).start();
 	}
 	
 	@Override
 	public void stopWaypoint() {
 
 		_isNavigating = false;
-		_waypoint = null;
+		_waypoint.pose = _pose.pose.pose.pose;
+		_waypoint.utm = _pose.utm;
 	}
 
 	/**
@@ -506,6 +579,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 */
 	public TwistWithCovarianceStamped getVelocity() {
 		TwistWithCovarianceStamped twistMsg = new TwistWithCovarianceStamped();
+		twistMsg.header.stamp = _wallclock.getCurrentTime();
 		twistMsg.twist.twist = _velocities.clone();
 		return twistMsg;
 	}
@@ -519,8 +593,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	@Override
 	public CameraState getCameraStatus() {
-		// TODO: fill this in with something reasonable
-		return CameraState.UNKNOWN;
+		return (_isCapturing ? CameraState.CAPTURING : CameraState.OFF);
 	}
 
 	@Override
