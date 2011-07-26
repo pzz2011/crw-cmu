@@ -17,7 +17,7 @@ import org.ros.message.sensor_msgs.CompressedImage;
 
 public abstract class AbstractVehicleServer implements VehicleServer {
 
-	protected double[][] _gains = new double[6][6];
+	protected double[][] _gains = new double[6][3];
 	protected EventListenerList listenerList = new EventListenerList();
 
 	public double[] getPID(int axis) {
@@ -35,7 +35,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 			return;
 		
 		// Make a copy of the provided state (for immutability)
-		System.arraycopy(gains, 0, _gains[axis], 0, _gains[axis].length);
+		System.arraycopy(gains, 0, _gains[axis], 0, Math.min(gains.length, _gains[axis].length));
 	}
 	
 	public void addStateListener(VehicleStateListener l) {
