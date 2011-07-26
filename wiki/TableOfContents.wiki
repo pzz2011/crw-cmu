@@ -1,5 +1,7 @@
 #summary Navigation sidebar.
 
+[CRWWiki Home]
+
 How the boats work:
 
   * [SystemArchitecture System Architecture]
