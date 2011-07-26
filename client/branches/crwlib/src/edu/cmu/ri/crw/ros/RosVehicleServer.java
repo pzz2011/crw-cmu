@@ -276,7 +276,9 @@ public class RosVehicleServer {
 			@Override
 			public GetWaypoint.Response build(GetWaypoint.Request request) {
 				GetWaypoint.Response response = new GetWaypoint.Response();
-				response.waypoint = _server.getWaypoint();
+				UtmPose waypoint = _server.getWaypoint();
+				if (waypoint != null) 
+					response.waypoint = waypoint; 
 				return response;
 			}
 		});
