@@ -1,7 +1,5 @@
 package edu.cmu.ri.airboat.interfaces;
 
-import edu.cmu.ri.crw.VehicleServer;
-
 /**
  * Defines an interface for a control object that has access to the low-level
  * control and sensor interfaces to the boat.  This object will be called
@@ -20,5 +18,5 @@ public interface AirboatController {
 	 * @param sensor low-level vehicle sensor interface
 	 * @param dt elapsed time since last controller call (in seconds)
 	 */
-	public void update(VehicleServer server);
+	public void update(AirboatControl control, AirboatSensor sensor, double dt);
 }
