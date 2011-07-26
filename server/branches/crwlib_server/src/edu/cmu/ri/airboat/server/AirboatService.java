@@ -3,6 +3,7 @@ package edu.cmu.ri.airboat.server;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -15,7 +16,10 @@ import javax.measure.unit.SI;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+import org.ros.RosCore;
 import org.ros.message.crwlib_msgs.Utm;
+import org.ros.node.NodeConfiguration;
+import org.ros.node.NodeRunner;
 
 import android.app.Service;
 import android.content.Context;
@@ -59,7 +63,6 @@ public class AirboatService extends Service {
 	// Default values for parameters
 	private static final String DEFAULT_LOG_PREFIX = "airboat_";
 	private static final int DEFAULT_UPDATE_RATE = 200;
-	private static final String DEFAULT_ROS_MASTER_URI = "http://localhost:11311"; 
 	private static final String DEFAULT_ROS_NODE_NAME = "vehicle";
 	final int GPS_UPDATE_RATE = 200; //in milliseconds
 	
@@ -78,7 +81,7 @@ public class AirboatService extends Service {
 	// Member parameters 
 	private int _updateRate;
 	private String _arduinoAddr;
-	private String _rosMasterUri;
+	private URI _rosMasterUri;
 	private String _rosNodeName;
 	
 	// Objects implementing actual functionality
@@ -305,12 +308,20 @@ public class AirboatService extends Service {
         // Get necessary connection parameters
 		_arduinoAddr = intent.getStringExtra(BD_ADDR);
 		_updateRate = intent.getIntExtra(UPDATE_RATE, DEFAULT_UPDATE_RATE);
-		_rosMasterUri = intent.getStringExtra(ROS_MASTER_URI);
 		_rosNodeName = intent.getStringExtra(ROS_NODE_NAME);
 		
+		// Check if the provided ROS master URI parameter can be parsed
+		_rosMasterUri = null;
+		String rosMasterStr = intent.getStringExtra(ROS_MASTER_URI);
+		try {
+			if (rosMasterStr != null) {
+				_rosMasterUri = new URI(rosMasterStr);
+			}
+		} catch (URISyntaxException e) {
+			logger.warn("Unable to parse " + rosMasterStr + " into URI");
+		}
+		
 		// Set default values if necessary
-		if (_rosMasterUri == null)
-			_rosMasterUri = DEFAULT_ROS_MASTER_URI;
 		if (_rosNodeName == null) 
 			_rosNodeName = DEFAULT_ROS_NODE_NAME;
 		
@@ -326,9 +337,17 @@ public class AirboatService extends Service {
 		registerReceiver(_airboatImpl.dataCallback, new IntentFilter(AmarinoIntent.ACTION_RECEIVED));
 		registerReceiver(_airboatImpl.connectionCallback, amarinoFilter);
 		
+        // Start a local ROS core if no ROS master URI was provided
+		if (_rosMasterUri == null) {
+	        RosCore core = RosCore.newPublic(11411);
+	        NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
+	        core.awaitStart();
+	        _rosMasterUri = core.getUri();
+		}
+		
 		// Create a RosVehicleServer to expose the data object
 		try {
-			_rosServer = new RosVehicleServer(new URI(_rosMasterUri), _rosNodeName, _airboatImpl);
+			_rosServer = new RosVehicleServer(_rosMasterUri, _rosNodeName, _airboatImpl);
 		} catch (Exception e) {
 			Log.e(TAG, "RosVehicleServer failed to launch", e);
 		}
