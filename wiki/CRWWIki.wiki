@@ -1,4 +1,5 @@
 #summary Wiki landing page.
+#sidebar none
 
 Welcome to the WIki. FInd details of the boats below.
 
