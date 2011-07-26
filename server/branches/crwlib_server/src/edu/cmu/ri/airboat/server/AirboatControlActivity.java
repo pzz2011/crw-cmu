@@ -105,7 +105,7 @@ public class AirboatControlActivity extends Activity {
 				double kp = Double.parseDouble(_pText.getText().toString());
 				double ki = Double.parseDouble(_iText.getText().toString());
 				double kd = Double.parseDouble(_dText.getText().toString());
-				_airboatService.getServer().setVelocityGain(_axis, kp, ki, kd);
+				_airboatService.getServer().setPID(_axis, new double[] {kp, ki, kd});
 			} catch (NumberFormatException ex) {
 				Log.w(logTag, "Failed to parse gain.", ex);
 			}
