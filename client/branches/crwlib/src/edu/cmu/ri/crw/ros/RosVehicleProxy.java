@@ -68,7 +68,6 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	public static final String DEFAULT_NODE_NAME = "vehicle_client";
 
 	protected Node _node;
-	protected Publisher<UtmPose> _statePublisher;
 	protected Publisher<Twist> _velocityPublisher;
 	protected RosVehicleNavigation.Client _navClient; 
 	protected RosVehicleImaging.Client _imgClient;
@@ -163,7 +162,6 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		});
 		
 		// Register publisher for one-way setters
-		_statePublisher = _node.newPublisher("cmd_state", "crwlib_msgs/UtmPose");
 		_velocityPublisher = _node.newPublisher("cmd_vel", "geometry_msgs/Twist");
 		
 		// Register services for two-way setters and accessor functions
@@ -399,16 +397,22 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 
 	@Override
 	public double[] getPID(int axis) {
+		GetPid.Request request = new GetPid.Request();
+		request.axis = (byte)axis;
+		
 		BlockingListener<GetPid.Response> listener = new BlockingListener<GetPid.Response>();
-		_getPidClient.call(new GetPid.Request(), listener);
+		_getPidClient.call(request, listener);
 		GetPid.Response response = listener.waitForCompletion();
 		return (response != null) ? response.gains : new double[0];
 	}
 	
 	@Override
 	public SensorType getSensorType(int channel) {
+		GetSensorType.Request request = new GetSensorType.Request();
+		request.channel = (byte)channel;
+		
 		BlockingListener<GetSensorType.Response> listener = new BlockingListener<GetSensorType.Response>();
-		_getSensorTypeClient.call(new GetSensorType.Request(), listener);
+		_getSensorTypeClient.call(request, listener);
 		GetSensorType.Response response = listener.waitForCompletion();
 		return (response != null) ? SensorType.values()[response.type] : SensorType.UNKNOWN;
 	}
