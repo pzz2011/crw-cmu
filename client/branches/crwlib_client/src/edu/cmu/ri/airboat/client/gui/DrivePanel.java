@@ -177,10 +177,12 @@ public class DrivePanel extends AbstractAirboatPanel {
 
     // Sets velocities from sliders to control proxy
     protected void sendVelocity() {
-        Twist twist = new Twist();
-        twist.linear.x = fromProgressToRange(jThrust.getValue(), THRUST_MIN, THRUST_MAX);
-        twist.angular.z = fromProgressToRange(jRudder.getValue(), RUDDER_MIN, RUDDER_MAX);
-        _vehicle.setVelocity(twist);
+        if (_vehicle != null) {
+            Twist twist = new Twist();
+            twist.linear.x = fromProgressToRange(jThrust.getValue(), THRUST_MIN, THRUST_MAX);
+            twist.angular.z = fromProgressToRange(jRudder.getValue(), RUDDER_MIN, RUDDER_MAX);
+            _vehicle.setVelocity(twist);
+        }
     }
 
     // Converts from progress bar value to linear scaling between min and max
