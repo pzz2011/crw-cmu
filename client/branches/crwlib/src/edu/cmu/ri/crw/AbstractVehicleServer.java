@@ -3,9 +3,10 @@ package edu.cmu.ri.crw;
 import java.awt.image.RenderedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.imageio.ImageIO;
-import javax.swing.event.EventListenerList;
 
 import org.ros.message.Time;
 import org.ros.message.crwlib_msgs.SensorData;
@@ -18,8 +19,12 @@ import org.ros.message.sensor_msgs.CompressedImage;
 public abstract class AbstractVehicleServer implements VehicleServer {
 
 	protected double[][] _gains = new double[6][3];
-	protected EventListenerList listenerList = new EventListenerList();
 
+	protected List<VehicleSensorListener> _sensorListeners = new ArrayList<VehicleSensorListener>();
+	protected List<VehicleImageListener> _imageListeners = new ArrayList<VehicleImageListener>();
+	protected List<VehicleVelocityListener> _velocityListeners = new ArrayList<VehicleVelocityListener>();
+	protected List<VehicleStateListener> _stateListeners = new ArrayList<VehicleStateListener>();
+	
 	public double[] getPID(int axis) {
 		if (axis < 0 || axis >= _gains.length) 
 			return new double[0];
@@ -39,31 +44,27 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 	}
 	
 	public void addStateListener(VehicleStateListener l) {
-		listenerList.add(VehicleStateListener.class, l);
+		_stateListeners.add(l);
 	}
 
 	public void removeStateListener(VehicleStateListener l) {
-		listenerList.remove(VehicleStateListener.class, l);
+		_stateListeners.remove(l);
 	}
 
 	protected void sendState(UtmPoseWithCovarianceStamped pose) {
-		// Guaranteed to return a non-null array
-		Object[] listeners = listenerList.getListenerList();
 		// Process the listeners last to first, notifying
 		// those that are interested in this event
-		for (int i = listeners.length - 2; i >= 0; i -= 2) {
-			if (listeners[i] == VehicleStateListener.class) {
-				((VehicleStateListener) listeners[i + 1]).receivedState(pose);
-			}
+		for (VehicleStateListener l : _stateListeners) {
+			l.receivedState(pose);
 		}
 	}
 
 	public void addImageListener(VehicleImageListener l) {
-		listenerList.add(VehicleImageListener.class, l);
+		_imageListeners.add(l);
 	}
 
 	public void removeImageListener(VehicleImageListener l) {
-		listenerList.remove(VehicleImageListener.class, l);
+		_imageListeners.remove(l);
 	}
 
 	protected static CompressedImage toCompressedImage(RenderedImage image) {
@@ -100,59 +101,38 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 	}
 	
 	protected void sendImage(CompressedImage image) {
-		// Guaranteed to return a non-null array
-		Object[] listeners = listenerList.getListenerList();
-		// Process the listeners last to first, notifying
-		// those that are interested in this event
-		for (int i = listeners.length - 2; i >= 0; i -= 2) {
-			if (listeners[i] == VehicleImageListener.class) {
-				((VehicleImageListener) listeners[i + 1]).receivedImage(image);
-			}
+		for (VehicleImageListener l : _imageListeners) {
+			l.receivedImage(image);
 		}
 	}
 
 	public void addSensorListener(int channel, VehicleSensorListener l) {
 		// TODO: add support for separate channels
-		listenerList.add(VehicleSensorListener.class, l);
+		_sensorListeners.add(l);
 	}
 
 	public void removeSensorListener(int channel, VehicleSensorListener l) {
 		// TODO: add support for separate channels
-		listenerList.remove(VehicleSensorListener.class, l);
+		_sensorListeners.remove(l);
 	}
 
 	protected void sendSensor(int channel, SensorData reading) {
-		// TODO: add support for separate channels
-		// Guaranteed to return a non-null array
-		Object[] listeners = listenerList.getListenerList();
-		// Process the listeners last to first, notifying
-		// those that are interested in this event
-		for (int i = listeners.length - 2; i >= 0; i -= 2) {
-			if (listeners[i] == VehicleSensorListener.class) {
-				((VehicleSensorListener) listeners[i + 1])
-						.receivedSensor(reading);
-			}
+		for (VehicleSensorListener l : _sensorListeners) {
+			l.receivedSensor(reading);
 		}
 	}
 
 	public void addVelocityListener(VehicleVelocityListener l) {
-		listenerList.add(VehicleVelocityListener.class, l);
+		_velocityListeners.add(l);
 	}
 
 	public void removeVelocityListener(VehicleVelocityListener l) {
-		listenerList.remove(VehicleVelocityListener.class, l);
+		_velocityListeners.remove(l);
 	}
 
 	protected void sendVelocity(TwistWithCovarianceStamped velocity) {
-		// Guaranteed to return a non-null array
-		Object[] listeners = listenerList.getListenerList();
-		// Process the listeners last to first, notifying
-		// those that are interested in this event
-		for (int i = listeners.length - 2; i >= 0; i -= 2) {
-			if (listeners[i] == VehicleVelocityListener.class) {
-				((VehicleVelocityListener) listeners[i + 1])
-						.receivedVelocity(velocity);
-			}
+		for (VehicleVelocityListener l : _velocityListeners) {
+			l.receivedVelocity(velocity);
 		}
 	}
 }
