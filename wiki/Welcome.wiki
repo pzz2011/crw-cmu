@@ -1,5 +1,3 @@
-=Welcome=
-
 Current pages:
 
   * [SystemArchitecture System Architecture]
