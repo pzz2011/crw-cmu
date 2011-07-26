@@ -9,8 +9,7 @@ How the boats work:
 
 Using the boats:
 
-  * [VehicleSetup Vehicle Setup/Teardown]
-
+  * [VehicleSetup Vehicle Setup / Teardown]
 
 Developing for the boats:
 
