@@ -1,4 +1,3 @@
-#summary Default landing page for "Wiki" tab.
 
 How the boats work:
 
