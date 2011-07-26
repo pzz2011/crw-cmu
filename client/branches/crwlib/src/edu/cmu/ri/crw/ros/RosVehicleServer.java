@@ -1,12 +1,11 @@
 package edu.cmu.ri.crw.ros;
 
-import java.net.InetAddress;
 import java.net.URI;
-import java.net.UnknownHostException;
 import java.util.logging.Logger;
 
 import org.ros.actionlib.server.SimpleActionServer;
 import org.ros.actionlib.server.SimpleActionServerCallbacks;
+import org.ros.address.InetAddressFactory;
 import org.ros.exception.RosException;
 import org.ros.internal.node.service.ServiceResponseBuilder;
 import org.ros.internal.time.WallclockProvider;
@@ -94,11 +93,14 @@ public class RosVehicleServer {
 
 	public RosVehicleServer(URI masterUri, String nodeName, VehicleServer server) {
 
+		// Get a legitimate hostname
+		String host = InetAddressFactory.newNonLoopback().getHostAddress();
+		
 		// Store the reference to VehicleServer implementation
 		_server = server;
 		
 		// Create a node configuration and start the main node
-		NodeConfiguration config = createNodeConfiguration(nodeName, masterUri);
+		NodeConfiguration config = NodeConfiguration.newPublic(host, masterUri);
 	    _node = new DefaultNodeFactory().newNode(nodeName, config);
 
 		// Create publisher for state data
@@ -133,7 +135,7 @@ public class RosVehicleServer {
 		NodeRunner runner = NodeRunner.newDefault();
 		
 		// Create an action server for vehicle navigation
-		NodeConfiguration navConfig = createNodeConfiguration(nodeName, masterUri);
+		NodeConfiguration navConfig = NodeConfiguration.newPublic(host, masterUri);
 		NameResolver navResolver = NameResolver.create("/nav");
 		navConfig.setParentResolver(navResolver);
 		
@@ -147,7 +149,7 @@ public class RosVehicleServer {
 		}
 
 		// Create an action server for image capturing
-		NodeConfiguration imgConfig = createNodeConfiguration(nodeName, masterUri);
+		NodeConfiguration imgConfig = NodeConfiguration.newPublic(host, masterUri);
 		NameResolver imgResolver = NameResolver.create("/img");
 		imgConfig.setParentResolver(imgResolver);
 		
@@ -315,27 +317,6 @@ public class RosVehicleServer {
 	    // TODO: we should probably use awaitPublisher here
 
 		logger.info("Server initialized successfully.");
-	}
-
-	/**
-	 * Helper function that creates a public ROS node configuration if a 
-	 * non-loopback hostname is available, and a private node configuration
-	 * if the hostname cannot be resolved.
-	 * 
-	 * @param nodeName a ROS node name
-	 * @param masterUri the desired ROS master URI 
-	 * @return a ROS node configuration that is public when possible
-	 */
-	protected static NodeConfiguration createNodeConfiguration(String nodeName, URI masterUri) {
-		NodeConfiguration config = null;
-		try {
-			String host = InetAddress.getLocalHost().getCanonicalHostName();
-			config = NodeConfiguration.newPublic(host, masterUri);
-		} catch (UnknownHostException ex) {
-			logger.warning("Failed to get public hostname, using private hostname.");
-			config = NodeConfiguration.newPrivate(masterUri);
-		}
-		return config;
 	}
 	
 	/**

@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 
 import org.ros.actionlib.client.SimpleActionClientCallbacks;
 import org.ros.actionlib.state.SimpleClientGoalState;
+import org.ros.address.InetAddressFactory;
 import org.ros.exception.RemoteException;
 import org.ros.exception.RosException;
 import org.ros.exception.ServiceNotFoundException;
@@ -97,16 +98,18 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 
 	public RosVehicleProxy(URI masterUri, String nodeName) {
 		
+		// Get a legitimate hostname
+		String host = InetAddressFactory.newNonLoopback().getHostAddress();
+		
 		// Create a node configuration and start a node
-		NodeConfiguration config = createNodeConfiguration(nodeName, masterUri);
+		NodeConfiguration config = NodeConfiguration.newPublic(host, masterUri);
 	    _node = new DefaultNodeFactory().newNode(nodeName, config);		
 		
 	    // Start up action clients to run navigation and imaging
 	    NodeRunner runner = NodeRunner.newDefault();
 	    
-	    
 	    // Create an action server for vehicle navigation
-		NodeConfiguration navConfig = createNodeConfiguration(nodeName, masterUri);
+	    NodeConfiguration navConfig = NodeConfiguration.newPublic(host, masterUri);
 		NameResolver navResolver = NameResolver.create("/nav");
 		navConfig.setParentResolver(navResolver);
 		
@@ -119,7 +122,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		}
 
 		// Create an action server for image capturing
-		NodeConfiguration imgConfig = createNodeConfiguration(nodeName, masterUri);
+		NodeConfiguration imgConfig = NodeConfiguration.newPublic(host, masterUri);
 		NameResolver imgResolver = NameResolver.create("/img");
 		imgConfig.setParentResolver(imgResolver);
 		
