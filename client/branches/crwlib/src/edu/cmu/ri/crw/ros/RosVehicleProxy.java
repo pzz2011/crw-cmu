@@ -3,6 +3,7 @@ package edu.cmu.ri.crw.ros;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Logger;
 
 import org.ros.actionlib.client.SimpleActionClientCallbacks;
@@ -275,35 +276,29 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 	
 	protected class BlockingListener<MessageType> implements ServiceResponseListener<MessageType> {
-		private final Object _lock = new Object();
-		private MessageType _result;
+		private final CountDownLatch _complete = new CountDownLatch(1);
+		private MessageType _result = null;
 
 		@Override
     	public void onSuccess(MessageType message) {
 			_result = message;
-			synchronized(_lock) {
-				_lock.notifyAll();
-    		}
+			_complete.countDown();
     	}
 
     	@Override
     	public void onFailure(RemoteException e) {
-    		logger.warning("Failed to complete service call.");
+    		logger.warning("Failed to complete service call: " + e);
     		_result = null;
-    		synchronized(_lock) {
-    			_lock.notifyAll();
-    		}
+    		_complete.countDown();
     	}
     	
     	public MessageType waitForCompletion() {
-    		synchronized(_lock) {
-    			try {
-    				_lock.wait();
-    				return _result;
-    			} catch (InterruptedException e) {
-    				return null;
-    			}
-    		}
+			try {
+				_complete.await();
+				return _result;
+			} catch (InterruptedException e) {
+				return null;
+			}
     	}
 	}
 	
