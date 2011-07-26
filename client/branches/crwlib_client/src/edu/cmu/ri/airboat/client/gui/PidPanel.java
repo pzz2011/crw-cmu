@@ -19,7 +19,7 @@ import java.text.DecimalFormat;
  */
 public class PidPanel extends AbstractAirboatPanel {
 
-    public static final int DEFAULT_UPDATE_MS = 1500;
+    public static final int DEFAULT_UPDATE_MS = 2000;
     private static final DecimalFormat PID_FORMAT = new DecimalFormat("######0.00###");
 
     private final int _axis;
@@ -161,11 +161,14 @@ public class PidPanel extends AbstractAirboatPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void setButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_setButtonActionPerformed
-        _vehicle.setPID(_axis, new double[]{
-            (Double)pSpinner.getValue(),
-            (Double)iSpinner.getValue(),
-            (Double)dSpinner.getValue()
-        });
+        if (_vehicle != null) {
+            _vehicle.setPID(_axis, new double[]{
+                (Double)pSpinner.getValue(),
+                (Double)iSpinner.getValue(),
+                (Double)dSpinner.getValue()
+            });
+            update();
+        }
     }//GEN-LAST:event_setButtonActionPerformed
 
     private void resetButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetButtonActionPerformed
