@@ -76,7 +76,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
         autonomousBox = new ReadOnlyCheckBox();
 
         connectCombo.setEditable(true);
-        connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "http://localhost:11311" }));
+        connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "http://localhost:11411" }));
 
         connectButton.setText("Connect");
         connectButton.setOpaque(true);
