@@ -351,7 +351,7 @@ public class AirboatService extends Service {
 		} catch (Exception e) {
 			Log.e(TAG, "RosVehicleServer failed to launch", e);
 		}
-		
+
 		// Start a regular update function
 		_timer.scheduleAtFixedRate(_updateTask, 0, _updateRate);
 		Log.i(TAG,"AirboatService started.");
