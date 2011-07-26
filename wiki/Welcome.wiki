@@ -1,3 +1,5 @@
+#summary Default landing page for "Wiki" tab.
+
 Current pages:
 
   * [SystemArchitecture System Architecture]
