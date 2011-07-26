@@ -5,6 +5,7 @@ How the boats work:
   * [SystemArchitecture System Architecture]
   * [HardwareInterface Hardware Interfaces]
   * [CoordinateFrames Coordinate Frames] 
+  * [MaterialsOverview Materials Overview]
 
 Using the boats:
 
