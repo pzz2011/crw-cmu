@@ -20,7 +20,6 @@ import edu.cmu.ri.crw.ros.RosVehicleServer;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.net.URI;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
