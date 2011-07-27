@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.concurrent.CountDownLatch;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.ros.actionlib.client.SimpleActionClientCallbacks;
@@ -97,6 +98,9 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	public RosVehicleProxy(URI masterUri, String nodeName) {
+		
+		// TODO: Remove this logging setting -- it is a stopgap for a rosjava bug
+		Logger.getLogger("org.ros.internal.node.client").setLevel(Level.SEVERE);
 		
 		// Get a legitimate hostname
 		String host = InetAddressFactory.newNonLoopback().getHostAddress();

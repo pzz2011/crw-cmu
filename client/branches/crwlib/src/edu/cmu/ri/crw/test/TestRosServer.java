@@ -2,8 +2,6 @@ package edu.cmu.ri.crw.test;
 
 import java.net.URI;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.ros.RosCore;
 import org.ros.exception.RosRuntimeException;
@@ -22,9 +20,6 @@ import edu.cmu.ri.crw.ros.RosVehicleServer;
 
 public class TestRosServer {
 	public static void main(String args[]) throws Exception {
-		
-		// TODO: Remove this logging setting -- it is a stopgap for a rosjava bug
-		Logger.getLogger("org.ros.internal.node.client").setLevel(Level.SEVERE);
 		
 		// Start a local ros core
 		RosCore core = RosCore.newPublic();

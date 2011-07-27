@@ -70,7 +70,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 			}
 		}).start();
 	}
-
+	
 	@Override
 	public CompressedImage captureImage(int width, int height) {
 
