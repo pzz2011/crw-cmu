@@ -1,8 +1,6 @@
 package edu.cmu.ri.crw.ros;
 
-import java.net.InetAddress;
 import java.net.URI;
-import java.net.UnknownHostException;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -257,27 +255,6 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		}
 		
 		logger.info("Proxy initialized successfully.");
-	}
-	
-	/**
-	 * Helper function that creates a public ROS node configuration if a 
-	 * non-loopback hostname is available, and a private node configuration
-	 * if the hostname cannot be resolved.
-	 * 
-	 * @param nodeName a ROS node name
-	 * @param masterUri the desired ROS master URI 
-	 * @return a ROS node configuration that is public when possible
-	 */
-	protected static NodeConfiguration createNodeConfiguration(String nodeName, URI masterUri) {
-		NodeConfiguration config = null;
-		try {
-			String host = InetAddress.getLocalHost().getCanonicalHostName();
-			config = NodeConfiguration.newPublic(host, masterUri);
-		} catch (UnknownHostException ex) {
-			logger.warning("Failed to get public hostname, using private hostname.");
-			config = NodeConfiguration.newPrivate(masterUri);
-		}
-		return config;
 	}
 	
 	protected class BlockingListener<MessageType> implements ServiceResponseListener<MessageType> {
