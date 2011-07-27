@@ -28,6 +28,7 @@ import org.ros.message.geometry_msgs.Pose;
  */
 public class PosePanel extends AbstractAirboatPanel {
 
+    private static final DecimalFormat UTM_FORMAT = new DecimalFormat("0.00");
     private static final DecimalFormat ANGLE_FORMAT = new DecimalFormat("0.000");
     private SimpleWorldPanel _worldPanel = null;
 
@@ -156,7 +157,7 @@ public class PosePanel extends AbstractAirboatPanel {
             pose.pose.position.x = wpUtm.getEasting();
             pose.pose.position.y = wpUtm.getNorthing();
             pose.pose.position.z = wpPos.getAltitude();
-            
+
             _vehicle.setState(pose);
         }
     }//GEN-LAST:event_setPoseButtonActionPerformed
@@ -205,9 +206,12 @@ public class PosePanel extends AbstractAirboatPanel {
             public void receivedState(UtmPoseWithCovarianceStamped upwcs) {
                 int longZone = upwcs.utm.zone;
                 String latZone = (upwcs.utm.isNorth ? "North" : "South");
-
                 Pose pose = upwcs.pose.pose.pose;
-                positionText.setText("[" + pose.position.x + ", " + pose.position.y + ", " + pose.position.z + "] " + longZone + " " + latZone);
+                positionText.setText("[" + 
+                        UTM_FORMAT.format(pose.position.x) + ", " +
+                        UTM_FORMAT.format(pose.position.y) + ", " +
+                        UTM_FORMAT.format(pose.position.z) + "] " +
+                        longZone + " " + latZone);
 
                 double[] rpy = QuaternionUtils.toEulerAngles(pose.orientation);
                 
@@ -221,11 +225,16 @@ public class PosePanel extends AbstractAirboatPanel {
 
                 // Set marker position on globe map
                 if (_worldPanel != null) {
-                    String wwHemi = (upwcs.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
-                    UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, pose.position.x, pose.position.y);
-                    _worldPanel.boat.getAttributes().setOpacity(1.0);
-                    _worldPanel.boat.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), rpy[2]));
-                    _worldPanel.boat.setHeading(Angle.fromRadians(rpy[2]));
+                    try {
+                        String wwHemi = (upwcs.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
+                        UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, pose.position.x, pose.position.y);
+                        _worldPanel.boat.getAttributes().setOpacity(1.0);
+                        _worldPanel.boat.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), rpy[2]));
+                        _worldPanel.boat.setHeading(Angle.fromRadians(rpy[2]));
+                    } catch (Exception e) {
+                        _worldPanel.boat.getAttributes().setOpacity(0.0);
+                    }
+                    _worldPanel.repaint();
                 }
 
                 PosePanel.this.repaint();
