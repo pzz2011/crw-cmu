@@ -14,6 +14,7 @@ import edu.cmu.ri.crw.ros.RosVehicleProxy;
 import edu.cmu.ri.crw.ros.RosVehicleServer;
 import java.awt.BorderLayout;
 import java.net.URI;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,7 +81,7 @@ public class BoatConfig {
             // Create a ROS proxy server that accesses the same object
             try {
                 URI masterUri = new URI(ipAddrStr);
-                final VehicleServer vehicle = new RosVehicleProxy(masterUri, "vehicle_client");
+                final VehicleServer vehicle = new RosVehicleProxy(masterUri, "vehicle_client" + new Random().nextInt(1000000));
 
                 // Connect the new controller to the GUI panels
                 thrustPanel.setVehicle(vehicle);

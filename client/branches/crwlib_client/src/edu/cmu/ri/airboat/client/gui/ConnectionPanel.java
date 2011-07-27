@@ -17,6 +17,7 @@ import java.awt.Color;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -120,7 +121,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
         // Create a proxy server that accesses the vehicle
         try {
             URI masterUri = new URI((String)connectCombo.getSelectedItem());
-            _vehicle = new RosVehicleProxy(masterUri, "vehicle_client");
+            _vehicle = new RosVehicleProxy(masterUri, "vehicle_client" + new Random().nextInt(1000000));
             fireConnectionListener(_vehicle);
         } catch (Exception ex) {
             System.err.println("Failed to open vehicle proxy: " + ex);
