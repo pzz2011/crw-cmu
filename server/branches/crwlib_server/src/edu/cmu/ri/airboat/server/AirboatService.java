@@ -87,6 +87,7 @@ public class AirboatService extends Service {
 	// Objects implementing actual functionality
 	private AirboatImpl _airboatImpl;
 	private RosVehicleServer _rosServer;
+	private RosCore _rosCore;
 	
 	// Timers for update function
 	private Timer _timer;
@@ -313,8 +314,14 @@ public class AirboatService extends Service {
 		// Check if the provided ROS master URI parameter can be parsed
 		_rosMasterUri = null;
 		String rosMasterStr = intent.getStringExtra(ROS_MASTER_URI);
+		String defaultRosMasterStr = getString(R.string.master_default_addr);
 		try {
-			if (rosMasterStr != null) {
+			// Only try to resolve the URI for and external ROS master 
+			// (not null, not empty, and not equal to the default value).
+			// Otherwise, we will be starting a local ROS core
+			if (rosMasterStr != null 
+					&& rosMasterStr.length() > 0
+					&& !rosMasterStr.equalsIgnoreCase(defaultRosMasterStr)) {
 				_rosMasterUri = new URI(rosMasterStr);
 			}
 		} catch (URISyntaxException e) {
@@ -339,10 +346,11 @@ public class AirboatService extends Service {
 		
         // Start a local ROS core if no ROS master URI was provided
 		if (_rosMasterUri == null) {
-	        RosCore core = RosCore.newPublic(11411);
-	        NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
-	        core.awaitStart();
-	        _rosMasterUri = core.getUri();
+	        _rosCore = RosCore.newPublic(11411);
+	        NodeRunner.newDefault().run(_rosCore, NodeConfiguration.newPrivate());
+	        _rosCore.awaitStart();
+	        _rosMasterUri = _rosCore.getUri();
+	        Log.i(TAG, "Local ROS core started");
 		}
 		
 		// Create a RosVehicleServer to expose the data object
@@ -393,7 +401,7 @@ public class AirboatService extends Service {
 		// Shutdown the regular update function
 		_timer.cancel();
 		
-		// Shutdown the XML-RPC services
+		// Shutdown the ROS services
 		if (_rosServer != null) {
 			try {
 				_rosServer.shutdown();
@@ -401,6 +409,15 @@ public class AirboatService extends Service {
 				Log.e(TAG, "RosVehicleServer shutdown error", e);
 			}
 			_rosServer = null;
+		}
+		
+		if (_rosCore != null) {
+			try {
+				_rosCore.shutdown();
+			} catch (Exception e) {
+				Log.e(TAG, "RosCore shutdown error", e);
+			}
+			_rosCore = null;
 		}
 		
 		// Disconnect from the Android sensors

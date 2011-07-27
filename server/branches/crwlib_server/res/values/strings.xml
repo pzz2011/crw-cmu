@@ -24,4 +24,6 @@
 <string name="thrust_gain_title">Thrust PID Gains:</string>
 <string name="rudder_title">Rudder:</string>
 <string name="rudder_gain_title">Rudder PID Gains:</string>
+<string name="master_title">ROS Master URI</string>
+<string name="master_default_addr">http://localhost:11411</string>
 </resources>

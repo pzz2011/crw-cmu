@@ -121,12 +121,14 @@ public class AirboatActivity extends Activity {
         
         // Register handler for toggle button
         final ToggleButton connectToggle = (ToggleButton)findViewById(R.id.ConnectToggle);
+        final AutoCompleteTextView masterAddress = (AutoCompleteTextView)findViewById(R.id.MasterAddress);
         connectToggle.setChecked(AirboatService.isRunning); // Hack to determine initial service state
         connectToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
         	
     		public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
     			Intent intent = new Intent(AirboatActivity.this, AirboatService.class);
     			intent.putExtra(AirboatService.BD_ADDR, connectAddress.getText().toString());
+    			intent.putExtra(AirboatService.ROS_MASTER_URI, masterAddress.getText().toString());
     			
     			if (isChecked) {
     				Log.i(logTag, "Starting background service.");

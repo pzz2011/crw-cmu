@@ -38,8 +38,8 @@ import edu.cmu.ri.crw.WaypointObserver;
  */
 public class AirboatImpl extends AbstractVehicleServer {
 
-	private static final com.google.code.microlog4android.Logger logger = LoggerFactory
-			.getLogger();
+	private static final com.google.code.microlog4android.Logger logger = 
+		LoggerFactory.getLogger();
 
 	public static final int UPDATE_INTERVAL_MS = 100;
 
@@ -54,8 +54,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 	/**
 	 * Defines the PID gains that will be returned if there is an error.
 	 */
-	public static final double[] NAN_GAINS = new double[] { Double.NaN,
-			Double.NaN, Double.NaN };
+	public static final double[] NAN_GAINS = 
+		new double[] { Double.NaN, Double.NaN, Double.NaN };
 
 	// Define Amarino function control codes
 	public static final char GET_GYRO_FN = 'g';
@@ -216,7 +216,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	/**
 	 * @see VehicleServer#setPID(int, double[])
 	 */
-	public void setPID(double axis, double[] k) {
+	public void setPID(int axis, double[] k) {
 		
 		// Call Amarino here
 		Amarino.sendDataToArduino(
@@ -503,6 +503,12 @@ public class AirboatImpl extends AbstractVehicleServer {
 		
 		// Change the offset of this vehicle by modifying filter
 		filter.reset(pose, System.currentTimeMillis());
+		
+		// Copy this pose over the existing value
+		_pose.pose.pose.pose = pose.pose.clone();
+		_pose.utm = pose.utm.clone();
+		
+		// Report the new pose in the log file
 		logger.info("POSE: " + "[" +
 				_pose.pose.pose.pose.position.x + "," +
 				_pose.pose.pose.pose.position.y + "," +
@@ -526,38 +532,40 @@ public class AirboatImpl extends AbstractVehicleServer {
 			@Override
 			public void run() {
 				while (_isNavigating) {
-
-					// Pause for a while
-					try {
-						Thread.sleep(UPDATE_INTERVAL_MS);
-						obs.waypointUpdate(WaypointState.GOING);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
 					
 					// If we are not set in autonomous mode, don't try to drive!
-					if (!_isAutonomous)
-						continue;
+					if (!_isAutonomous) {
+						// TODO: probably should add a "paused" state
+						obs.waypointUpdate(WaypointState.OFF);
+					} else {
+						// Report our status as moving toward target
+						obs.waypointUpdate(WaypointState.GOING);
+						
+						// Get the position of the vehicle and the waypoint
+						// TODO: fix threading issue (fast stop/start)
+						Pose pose = _pose.pose.pose.pose;
+						Pose waypoint = _waypoint.pose;
+	
+						// TODO: handle different UTM zones!
+	
+						// Figure out how to drive to waypoint
+						_controller.controller.update(AirboatImpl.this, dt);
+						
+						// TODO: measure dt directly instead of approximating
+	
+						// Check for termination condition
+						double dist = distToGoal(pose, waypoint);
+						if (dist < 1.0) {
+							obs.waypointUpdate(WaypointState.DONE);
+							_isNavigating = false;
+							return;
+						}
+					}
 					
-					// Get the position of the vehicle and the waypoint
-					// TODO: fix threading issue (fast stop/start)
-					Pose pose = _pose.pose.pose.pose;
-					Pose waypoint = (_waypoint == null) ? pose : _waypoint.pose;
-
-					// TODO: handle different UTM zones!
-
-					// Figure out how to drive to waypoint
-					_controller.controller.update(AirboatImpl.this, dt);
-					
-					// TODO: measure dt directly instead of approximating
-
-					// Check for termination condition
-					double dist = distToGoal(pose, waypoint);
-					if (dist < 1.0) {
-						obs.waypointUpdate(WaypointState.DONE);
-						_isNavigating = false;
-						return;
-					} 
+					// Pause for a while
+					try { 
+						Thread.sleep(UPDATE_INTERVAL_MS); 
+					} catch (InterruptedException e) {}
 				}
 				
 				// If we broke out of the loop, it means someone cancelled us
@@ -570,8 +578,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public void stopWaypoint() {
 
 		_isNavigating = false;
-		_waypoint.pose = _pose.pose.pose.pose;
-		_waypoint.utm = _pose.utm;
+		_waypoint = null;
 	}
 
 	/**
@@ -603,7 +610,16 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	@Override
 	public void setAutonomous(boolean isAutonomous) {
+		
 		_isAutonomous = isAutonomous;
+		
+		// Set velocities to zero to allow for safer transitions
+		_velocities.linear.x = 0.0;
+		_velocities.linear.y = 0.0;
+		_velocities.linear.z = 0.0;
+		_velocities.angular.x = 0.0;
+		_velocities.angular.y = 0.0;
+		_velocities.angular.z = 0.0;
 	}
 
 }
