@@ -42,14 +42,13 @@ public class AirboatImpl extends AbstractVehicleServer {
 		LoggerFactory.getLogger();
 
 	public static final int UPDATE_INTERVAL_MS = 100;
-
+	private static final String logTag = AirboatImpl.class.getName();
+	
 	public final SensorType[] _sensorTypes = new SensorType[3];
 	public UtmPose _waypoint = null;
 
 	private volatile boolean _isCapturing = false;
-	private volatile boolean _isNavigating = false;
-
-	private static final String logTag = AirboatImpl.class.getName();
+	private volatile boolean _isNavigating = false;	
 
 	/**
 	 * Defines the PID gains that will be returned if there is an error.
@@ -72,10 +71,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 	// Status information
 	boolean _isConnected = true;
 	boolean _isAutonomous = false;
-
-	// UTM zone information
-	boolean _utmHemiNorth = true;
-	int _utmZone = 17;
 
 	// Internal data structures for Amarino callbacks
 	final Context _context;
