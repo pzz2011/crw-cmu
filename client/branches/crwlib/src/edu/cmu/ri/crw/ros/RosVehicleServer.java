@@ -1,6 +1,7 @@
 package edu.cmu.ri.crw.ros;
 
 import java.net.URI;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.ros.actionlib.server.SimpleActionServer;
@@ -92,6 +93,9 @@ public class RosVehicleServer {
 	}
 
 	public RosVehicleServer(URI masterUri, String nodeName, VehicleServer server) {
+		
+		// TODO: Remove this logging setting -- it is a stopgap for a rosjava bug
+		Logger.getLogger("org.ros.internal.node.client").setLevel(Level.SEVERE);
 
 		// Get a legitimate hostname
 		String host = InetAddressFactory.newNonLoopback().getHostAddress();
@@ -435,6 +439,8 @@ public class RosVehicleServer {
 					
 					@Override
 					public void waypointUpdate(WaypointState status) {
+						if (!_navServer.isActive()) return;
+						
 						if (status == WaypointState.DONE) {
 							VehicleNavigationResult result = new VehicleNavigationResult();
 							result.header.stamp = new WallclockProvider().getCurrentTime();
@@ -497,6 +503,8 @@ public class RosVehicleServer {
 					
 					@Override
 					public void imagingUpdate(CameraState status) {
+						if (!_navServer.isActive()) return;
+						
 						if (status == CameraState.DONE) {
 							VehicleImageCaptureResult result = new VehicleImageCaptureResult();
 							result.header.stamp = new WallclockProvider().getCurrentTime();
