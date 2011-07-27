@@ -230,7 +230,7 @@ public class PosePanel extends AbstractAirboatPanel {
                         UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, pose.position.x, pose.position.y);
                         _worldPanel.boat.getAttributes().setOpacity(1.0);
                         _worldPanel.boat.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), rpy[2]));
-                        _worldPanel.boat.setHeading(Angle.fromRadians(rpy[2]));
+                        _worldPanel.boat.setHeading(Angle.fromRadians(Math.PI/2.0-rpy[2]));
                     } catch (Exception e) {
                         _worldPanel.boat.getAttributes().setOpacity(0.0);
                     }
