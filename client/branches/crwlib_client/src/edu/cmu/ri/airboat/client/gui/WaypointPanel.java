@@ -18,6 +18,7 @@ import edu.cmu.ri.crw.WaypointObserver;
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.event.MouseAdapter;
+import java.text.DecimalFormat;
 import org.ros.message.crwlib_msgs.UtmPose;
 
 /**
@@ -26,7 +27,9 @@ import org.ros.message.crwlib_msgs.UtmPose;
  */
 public class WaypointPanel extends AbstractAirboatPanel {
 
+    private static final DecimalFormat UTM_FORMAT = new DecimalFormat("0.00");
     public static final int DEFAULT_UPDATE_MS = 1000;
+    
     private SimpleWorldPanel _worldPanel = null;
     private UtmPose waypoint = new UtmPose();
 
@@ -164,7 +167,11 @@ public class WaypointPanel extends AbstractAirboatPanel {
             waypoint.pose.orientation = QuaternionUtils.fromEulerAngles(0.0, 0.0,
                     (_worldPanel.waypoint.getHeading() != null) ? _worldPanel.waypoint.getHeading().getRadians() : 0.0);
 
-            selectedWaypointText.setText("[" + waypoint.pose.position.x + ", " + waypoint.pose.position.y + ", " + waypoint.pose.position.z + "] " + waypoint.utm.zone + " " + (waypoint.utm.isNorth ? "North" : "South"));
+            selectedWaypointText.setText("[" + 
+                    UTM_FORMAT.format(waypoint.pose.position.x) + ", " +
+                    UTM_FORMAT.format(waypoint.pose.position.y) + ", " +
+                    UTM_FORMAT.format(waypoint.pose.position.z) + "] " +
+                    waypoint.utm.zone + " " + (waypoint.utm.isNorth ? "North" : "South"));
         }
     };
 
@@ -175,18 +182,23 @@ public class WaypointPanel extends AbstractAirboatPanel {
             if (currWp == null)
                 return;
 
-            currWaypointText.setText("[" + currWp.pose.position.x + ", " + currWp.pose.position.y + ", " + currWp.pose.position.z + "] " + currWp.utm.zone + " " + (currWp.utm.isNorth ? "North" : "South"));
+            currWaypointText.setText("[" + 
+                    UTM_FORMAT.format(currWp.pose.position.x) + ", " +
+                    UTM_FORMAT.format(currWp.pose.position.y) + ", " +
+                    UTM_FORMAT.format(currWp.pose.position.z) + "] " +
+                    currWp.utm.zone + " " + (currWp.utm.isNorth ? "North" : "South"));
 
             // Set marker position on globe map
             if (_worldPanel != null) {
-                String wwHemi = (currWp.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
                 try {
+                    String wwHemi = (currWp.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
                     UTMCoord boatPos = UTMCoord.fromUTM(currWp.utm.zone, wwHemi, currWp.pose.position.x, currWp.pose.position.y);
                     _worldPanel.waypoint.getAttributes().setOpacity(1.0);
                     _worldPanel.waypoint.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), 0.0));
-                } catch (IllegalArgumentException ex) {
-                    _worldPanel.waypoint.getAttributes().setOpacity(0.5);
+                } catch (Exception e) {
+                    _worldPanel.waypoint.getAttributes().setOpacity(0.0);
                 }
+                _worldPanel.repaint();
             }
 
             WaypointPanel.this.repaint();
