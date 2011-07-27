@@ -436,6 +436,7 @@ public class AirboatService extends Service {
 			unregisterReceiver(_airboatImpl.dataCallback);
 			unregisterReceiver(_airboatImpl.connectionCallback);
 			_airboatImpl.setConnected(false);
+			_airboatImpl.shutdown();
 			_airboatImpl = null;
 		}
 
