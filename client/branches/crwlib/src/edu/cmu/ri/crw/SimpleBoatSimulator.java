@@ -54,6 +54,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					// Send out pose updates 
 					UtmPoseWithCovarianceStamped state = new UtmPoseWithCovarianceStamped();
 					state.pose.pose.pose = _state.pose.clone();
+					state.utm = _state.utm.clone();
 					sendState(state);
 					
 					// Send out velocity updates
