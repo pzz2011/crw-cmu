@@ -20,4 +20,5 @@
 ==Misc==
     * Extra tape
     * Spare battery
-    * Screw driver
+    * Screwdriver
+    * Scissors
