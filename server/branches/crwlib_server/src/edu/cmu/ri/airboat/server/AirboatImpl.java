@@ -617,4 +617,14 @@ public class AirboatImpl extends AbstractVehicleServer {
 		_velocities.angular.z = 0.0;
 	}
 
+	/**
+	 * Performs cleanup functions in preparation for stopping the server.
+	 */
+	public void shutdown() {
+		_isAutonomous = false;
+		_isConnected = false;
+		_isNavigating = false;
+		_isCapturing = false;
+	}
+
 }
