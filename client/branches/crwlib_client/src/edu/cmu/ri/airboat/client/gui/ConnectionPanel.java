@@ -20,12 +20,14 @@ import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.prefs.Preferences;
 
 /**
  *
  * @author pkv
  */
 public class ConnectionPanel extends javax.swing.JPanel {
+    public static final String LAST_URI_KEY = "edu.cmu.ri.airboat.client.gui.LastConnection";
 
     public static int UPDATE_PERIOD_MS = 1000;
 
@@ -36,6 +38,9 @@ public class ConnectionPanel extends javax.swing.JPanel {
     public ConnectionPanel() {
         initComponents();
         initUpdates();
+
+        Preferences p = Preferences.userRoot();
+        connectCombo.addItem(p.get(LAST_URI_KEY, ""));
     }
 
     /**
@@ -122,6 +127,8 @@ public class ConnectionPanel extends javax.swing.JPanel {
         try {
             URI masterUri = new URI((String)connectCombo.getSelectedItem());
             _vehicle = new RosVehicleProxy(masterUri, "vehicle_client" + new Random().nextInt(1000000));
+            Preferences p = Preferences.userRoot();
+            p.put(LAST_URI_KEY, masterUri.toString());
             fireConnectionListener(_vehicle);
         } catch (Exception ex) {
             System.err.println("Failed to open vehicle proxy: " + ex);
