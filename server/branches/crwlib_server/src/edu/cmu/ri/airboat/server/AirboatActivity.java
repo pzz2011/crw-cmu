@@ -5,13 +5,13 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
 
-import edu.cmu.ri.airboat.server.R;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -25,12 +25,15 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-
 import at.abraxas.amarino.AmarinoIntent;
 
 public class AirboatActivity extends Activity {
 	private static final String logTag = AirboatActivity.class.getName();
 	
+	public static final String PREFS_PRIVATE = "PREFS_PRIVATE";
+	public static final String KEY_MASTER_URI = "KEY_MASTER_URI";
+	public static final String KEY_BT_ADDR = "KEY_BT_ADDR";
+
 	/** Called when the activity is first created. */
     @Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -130,6 +133,13 @@ public class AirboatActivity extends Activity {
     			intent.putExtra(AirboatService.BD_ADDR, connectAddress.getText().toString());
     			intent.putExtra(AirboatService.ROS_MASTER_URI, masterAddress.getText().toString());
     			
+				// Save the current BD addr and master URI
+				SharedPreferences prefs = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
+				Editor prefsPrivateEditor = prefs.edit();
+				prefsPrivateEditor.putString(KEY_BT_ADDR, connectAddress.getText().toString());
+				prefsPrivateEditor.putString(KEY_MASTER_URI, masterAddress.getText().toString());
+				prefsPrivateEditor.commit();
+    			
     			if (isChecked) {
     				Log.i(logTag, "Starting background service.");
     				startService(intent);
@@ -202,6 +212,11 @@ public class AirboatActivity extends Activity {
         // Display current IP address
         final TextView addrText = (TextView)findViewById(R.id.IpAddressText);
         addrText.setText(getLocalIpAddress());
+        
+        // Set text boxes to previous values
+        SharedPreferences prefs = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
+        connectAddress.setText(prefs.getString(KEY_BT_ADDR, connectAddress.getText().toString()));
+        masterAddress.setText(prefs.getString(KEY_MASTER_URI, masterAddress.getText().toString()));
     }
     
     /**

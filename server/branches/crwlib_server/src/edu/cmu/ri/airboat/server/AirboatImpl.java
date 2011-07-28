@@ -151,7 +151,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 					(float) _velocities.linear.z, 
 					(float) _velocities.angular.x,
 					(float) _velocities.angular.y, 
-					(float) _velocities.angular.z 
+					-(float) _velocities.angular.z  // TODO: fix this on Arduino!
 				});
 		// Yes, I know this looks silly, but Amarino doesn't handle doubles
 		

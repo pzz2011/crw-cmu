@@ -6,6 +6,7 @@ import org.ros.message.geometry_msgs.Pose;
 import org.ros.message.geometry_msgs.Twist;
 
 
+import edu.cmu.ri.crw.QuaternionUtils;
 import edu.cmu.ri.crw.VehicleController;
 import edu.cmu.ri.crw.VehicleServer;
 
@@ -40,11 +41,12 @@ public enum AirboatControllerLibrary {
 			// TODO: handle different UTM zones!
 			
 			// Compute the distance and angle to the waypoint
+			// TODO: compute distance more efficiently
 			double distance = Math.sqrt( Math.pow((pose.position.x - pose.position.x),2)
 										+ Math.pow((waypoint.position.y - pose.position.y),2));
 			double angle = Math.atan2( (waypoint.position.y - pose.position.y),
 										(waypoint.position.x - pose.position.x) )
-							- pose.orientation.y;
+							- QuaternionUtils.toYaw(pose.orientation);
 			angle = normalizeAngle(angle);
 
 			// Choose driving behavior depending on direction and and where we are 
