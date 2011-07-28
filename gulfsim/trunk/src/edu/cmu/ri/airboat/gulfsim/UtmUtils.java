@@ -8,6 +8,7 @@ package edu.cmu.ri.airboat.gulfsim;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.LatLon;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
+import java.util.Random;
 
 /**
  * Utility functions for dealing with UTM coordinate frames.
@@ -26,19 +27,19 @@ public class UtmUtils {
     public static class UTM {
         public final double northing;
         public final double easting;
-        public final int zone;
-        public final boolean isNorth;
+        public final int longZone;
+        public final String latZone;
 
-        public UTM(int zone, boolean isNorth, double easting, double northing) {
+        public UTM(int longZone, String latZone, double easting, double northing) {
             this.northing = northing;
             this.easting = easting;
-            this.zone = zone;
-            this.isNorth = isNorth;
+            this.longZone = longZone;
+            this.latZone = latZone;
         }
 
         @Override
         public String toString() {
-            return "UTM[" + zone + ", " + (isNorth ? "North" : "South") + ", " + northing + ", " + easting + "]";
+            return "UTM[" + longZone + ", " + latZone + ", " + northing + ", " + easting + "]";
         }
     }
 
@@ -76,7 +77,7 @@ public class UtmUtils {
         double dEast = distance*Math.sin(azimuth.getRadians());
         double dNorth = distance*Math.cos(azimuth.getRadians());
         
-        return new UTM(src.getZone(), src.getHemisphere().equalsIgnoreCase("gov.nasa.worldwind.avkey.North"), src.getEasting() + dEast, src.getNorthing() + dNorth);
+        return new UTM(src.getZone(), (src.getHemisphere().equalsIgnoreCase("gov.nasa.worldwind.avkey.North") ? "North" : "South"), src.getEasting() + dEast, src.getNorthing() + dNorth);
     }
 
     /**
@@ -113,29 +114,31 @@ public class UtmUtils {
         double dEast = distance*Math.sin(azimuth.getRadians());
         double dNorth = distance*Math.cos(azimuth.getRadians());
 
-        return new UTM(src.getZone(), src.getHemisphere().equalsIgnoreCase("gov.nasa.worldwind.avkey.North"), src.getEasting() + dEast, src.getNorthing() + dNorth);
+        return new UTM(src.getZone(), (src.getHemisphere().equalsIgnoreCase("gov.nasa.worldwind.avkey.North") ? "North" : "South"), src.getEasting() + dEast, src.getNorthing() + dNorth);
     }
 
-    /**
-     * Takes in a single character UTM latitude zone and returns whether it is
-     * in the northern hemisphere or not.
-     *
-     * @param latZone a UTM latitute zone, denoted by letters C through X
-     * @return true if the zone is in the northern hemisphere.
-     */
-    public static boolean isNorth(char latZone) {
-        if (latZone >= 'C' && latZone <= 'M')
-            return false;
-        else if (latZone >= 'N' && latZone <= 'X' && latZone != 'O')
-            return true;
-        else if (latZone >= 'c' && latZone <= 'm')
-            return false;
-        else if (latZone >= 'n' && latZone <= 'x' && latZone != 'o')
-            return false;
-        else
-            throw new IllegalArgumentException("Invalid UTM latitude zone: " + latZone);
-    }
+    public static double dist(UTMCoord a, UTMCoord b) {
+        LatLon srcPoint = LatLon.fromDegrees(a.getLatitude().degrees, a.getLongitude().degrees);
+        LatLon dstPoint = LatLon.fromDegrees(b.getLatitude().degrees, b.getLongitude().degrees);
 
+        // Compute distance
+        double distance = LatLon.ellipsoidalDistance(srcPoint, dstPoint, EQUATORIAL_RADIUS_EARTH_M, POLAR_RADIUS_EARTH_M);        
+        
+        return distance;
+    }
+    
+    public static UTMCoord randLocationIn(UTMCoord ll, UTMCoord ur) {
+        Random rand = new Random();
+        
+        LatLon srcPoint = LatLon.fromDegrees(ll.getLatitude().degrees, ll.getLongitude().degrees);
+        LatLon dstPoint = LatLon.fromDegrees(ur.getLatitude().degrees, ur.getLongitude().degrees);
+
+        Angle lat = Angle.fromDegrees(srcPoint.latitude.degrees + rand.nextDouble()*(dstPoint.latitude.degrees - srcPoint.latitude.degrees));
+        Angle lon = Angle.fromDegrees(srcPoint.longitude.degrees + rand.nextDouble()*(dstPoint.longitude.degrees - srcPoint.longitude.degrees));
+        
+        return UTMCoord.fromLatLon(lat, lon);        
+    }
+    
     /**
      * Simple test script to verify that out-of-range conversion produces
      * somewhat reasonable output.
@@ -158,7 +161,7 @@ public class UtmUtils {
         System.out.println("UTM OUT:" + fakeLondonUtm);
 
         try {
-            UTMCoord out = UTMCoord.fromUTM(fakeLondonUtm.zone, (fakeLondonUtm.isNorth ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South"), fakeLondonUtm.easting, fakeLondonUtm.northing);
+            UTMCoord out = UTMCoord.fromUTM(fakeLondonUtm.longZone, fakeLondonUtm.latZone.equals("North") ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South", fakeLondonUtm.easting, fakeLondonUtm.northing);
             LatLon newLondon = LatLon.fromDegrees(out.getLatitude().degrees, out.getLongitude().degrees);
             System.out.println(destination + " -> " + newLondon);
         } catch (IllegalArgumentException e) {

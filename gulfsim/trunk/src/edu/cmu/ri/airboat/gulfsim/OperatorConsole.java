@@ -8,11 +8,15 @@ package edu.cmu.ri.airboat.gulfsim;
  *
  * @author pscerri
  */
-import edu.cmu.ri.airboat.gulfsim.tasking.TestTaskGenerator;
+import edu.cmu.ri.airboat.gulfsim.tasking.TaskMarker;
+import edu.cmu.ri.airboat.gulfsim.tasking.pollution.DataModelRenderable;
+import edu.cmu.ri.airboat.gulfsim.tasking.pollution.DataViewF;
+import edu.cmu.ri.airboat.gulfsim.tasking.pollution.LayeredPFModel;
 import edu.cmu.ri.airboat.interfaces.AirboatCommand;
 import edu.cmu.ri.airboat.interfaces.AirboatControl;
 import gov.nasa.worldwind.*;
-import gov.nasa.worldwind.awt.WorldWindowGLCanvas;
+import gov.nasa.worldwind.avlist.AVKey;
+import gov.nasa.worldwind.awt.WorldWindowGLJPanel;
 import gov.nasa.worldwind.event.SelectEvent;
 import gov.nasa.worldwind.event.SelectListener;
 import gov.nasa.worldwind.geom.Position;
@@ -20,6 +24,7 @@ import gov.nasa.worldwind.layers.Earth.USGSDigitalOrtho;
 import gov.nasa.worldwind.layers.Earth.USGSTopoHighRes;
 import gov.nasa.worldwind.layers.Earth.USGSTopographicMaps;
 import gov.nasa.worldwind.layers.MarkerLayer;
+import gov.nasa.worldwind.layers.RenderableLayer;
 import gov.nasa.worldwind.pick.PickedObject;
 import java.awt.event.MouseAdapter;
 
@@ -33,12 +38,17 @@ public class OperatorConsole {
     AppFrame frame = null;
     BoatPanel boatPanel = new BoatPanel();
     TaskPanel taskPanel = new TaskPanel();
+    DataViewF dataViewF = null;
 
     public OperatorConsole() {
 
         System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Airboat Control");
 
-        java.awt.EventQueue.invokeLater(new Runnable()   {
+        // For pollution model experiments
+        // Createed before AppFrame to avoid silly null pointer
+        // dataViewF = new DataViewF();
+
+        java.awt.EventQueue.invokeLater(new Runnable() {
 
             public void run() {
                 // Create an AppFrame and immediately make it visible. As per Swing convention, this
@@ -51,7 +61,10 @@ public class OperatorConsole {
         (new ProxyManager()).setConsole(this);
 
         // For task management testing
-        new TestTaskGenerator();
+        // new TestTaskGenerator();
+
+        // For oil rig experiments
+        // OilRigManager orm = new OilRigManager();
 
     }
 
@@ -59,7 +72,7 @@ public class OperatorConsole {
         if (frame != null && frame.wwd != null) {
             frame.wwd.redraw();
         } else {
-            System.out.println("redraw failed");
+            System.out.println("Redraw failed");
         }
     }
 
@@ -71,14 +84,21 @@ public class OperatorConsole {
         // public ArrayList<Marker> markers = new ArrayList<Marker>();
         private AirboatControl controller = null;
         private AirboatCommand commander;
-        WorldWindowGLCanvas wwd = null;
+        WorldWindowGLJPanel wwd = null;
 
         public AppFrame() {
-            wwd = new WorldWindowGLCanvas();
+
+            Configuration.setValue(AVKey.INITIAL_LATITUDE, 41.13);
+            Configuration.setValue(AVKey.INITIAL_LONGITUDE, 16.87);
+            Configuration.setValue(AVKey.INITIAL_ALTITUDE, 100000.0);
+
+            wwd = new WorldWindowGLJPanel();
             wwd.setPreferredSize(new java.awt.Dimension(1000, 800));
-            // this.getContentPane().add(taskPanel, java.awt.BorderLayout.NORTH);
+            // Commented out task panel for Bari
+            //this.getContentPane().add(taskPanel, java.awt.BorderLayout.NORTH);
             this.getContentPane().add(wwd, java.awt.BorderLayout.CENTER);
-            this.getContentPane().add(boatPanel, java.awt.BorderLayout.SOUTH);
+            // Commented out boat panel for Bari
+            //this.getContentPane().add(boatPanel, java.awt.BorderLayout.SOUTH);
             this.pack();
 
             wwd.setModel(new BasicModel());
@@ -109,10 +129,26 @@ public class OperatorConsole {
 
             wwd.getModel().getLayers().add(m2);
 
+
+            // Bari overlay
+            DataModelRenderable dmr = new DataModelRenderable(new LayeredPFModel());
+
+            RenderableLayer surfaceRenderLayer = new RenderableLayer();
+            surfaceRenderLayer.setName("Surface Images");
+            surfaceRenderLayer.setPickEnabled(false);
+
+            wwd.getModel().getLayers().add(surfaceRenderLayer);
+            dmr.setRenderableLayer(surfaceRenderLayer);
+
+            //wwd.getView().goTo(Position.fromDegrees(41.0, 17.0), 500);
+            // this.getLayerPanel().update(wwd);
+            // End Bari overlay
+
+
             wwd.redraw();
 
             // Example selection code
-            wwd.addSelectListener(new SelectListener()     {
+            wwd.addSelectListener(new SelectListener() {
 
                 public void selected(SelectEvent event) {
 
@@ -127,6 +163,9 @@ public class OperatorConsole {
                                 if (po.getObject() instanceof BoatMarker) {
                                     System.out.println("Got boat marker: " + ((BoatMarker) po.getObject()).getProxy().toString());
                                     boatPanel.setProxy(((BoatMarker) po.getObject()).getProxy());
+                                } else if (po.getObject() instanceof TaskMarker) {
+                                    System.out.println("Got task marker");
+                                    taskPanel.setCurrTOP(((TaskMarker) po.getObject()).getTOP());
                                 }
                             }
                         }
@@ -135,7 +174,7 @@ public class OperatorConsole {
             });
 
 
-            wwd.addSelectListener(new SelectListener()     {
+            wwd.addSelectListener(new SelectListener() {
 
                 public void selected(SelectEvent event) {
 
@@ -166,16 +205,17 @@ public class OperatorConsole {
                 }
             });
 
-            wwd.addMouseListener(new MouseAdapter()     {
+            wwd.addMouseListener(new MouseAdapter() {
 
                 @Override
                 public void mousePressed(java.awt.event.MouseEvent e) {
 
                     if (e.isControlDown()) {
-                        System.out.println("Mouse pressed");
+
                         Position targetPos = wwd.getCurrentPosition();
                         // @todo Consider shifting this control to ProxyManager
                         boatPanel.setWaypoint(targetPos);
+                        System.out.println("Mouse pressed: " + targetPos);
                     }
                 }
             });
@@ -191,8 +231,8 @@ public class OperatorConsole {
         new ProxyManager();
         new OperatorConsole();
 
-        ConfigureBoatsFrame cf = new ConfigureBoatsFrame();
-        cf.setVisible(true);
+        //ConfigureBoatsFrame cf = new ConfigureBoatsFrame();
+        //cf.setVisible(true);
 
         /*
         JComboBox combo = new JComboBox(new String[]{"Dummy", "VBS", "Boats"});

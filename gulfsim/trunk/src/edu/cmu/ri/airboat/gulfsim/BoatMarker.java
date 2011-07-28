@@ -11,7 +11,7 @@ import gov.nasa.worldwind.render.markers.BasicMarkerAttributes;
 
 /**
  *
- * @author pscerri
+ * @author pscerri 
  */
 public class BoatMarker extends BasicMarker {
     private final BoatSimpleProxy proxy;

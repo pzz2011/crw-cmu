@@ -24,7 +24,6 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
     // Hack version for keeping mean value for drawing
     double mean = 0.0;
     double maxExtent = 1.0;
-    
     DecimalFormat df = new DecimalFormat("#.###");
 
     public void paint(Graphics g) {
@@ -43,7 +42,7 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
         } else {
             g2.clearRect(0, 0, (int) width, (int) height);
 
-            AutonomyController.LocationInfo[][] model = autonomy.locInfo;
+            AutonomyController.LocationInfo[][] model = autonomy.getLocInfo();
 
             int bx = (int) (width / model.length);
             int by = (int) (height / model[0].length);
@@ -56,8 +55,8 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
 
                     if (model[i][j] != null) {
 
-                        double v = 0.0;                        
-                        
+                        double v = 0.0;
+
                         if (showMean) {
                             v = model[i][j].getMean();
                         } else {
@@ -66,7 +65,7 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
 
                         g2.setColor(Color.black);
                         g2.drawString(df.format(v), bx * i, (int) (height - by * (j + 1)));
-                        
+
                         mean = (0.99 * mean) + (0.01 * v);
 
                         if (maxExtent < Math.abs(mean - v)) {
@@ -91,12 +90,14 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
                     }
 
                     g2.fillRect(bx * i, (int) (height - by * (j + 1)), bx, by);
-                    
+
                 }
             }
 
             g2.setColor(Color.black);
 
+
+            // Draw boats
             for (Integer boat : autonomy.getLocations().keySet()) {
                 double[] pose = autonomy.getBoatLocation(boat);
 
@@ -106,6 +107,24 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
                 // System.out.println("Drawing at " + x + " " + y + " based on " + pose[1] + " " + dy + " " + height + " " + autonomy.getHeight());
 
                 g2.drawString("B" + boat, x, (int) (height - y));
+
+                double[][] plan = autonomy.getPlans().get(boat);
+
+                if (plan != null) {
+                    
+                    // g2.drawLine(x, (int)(height - y), (int) (plan[0][0] * dx), (int) (height - plan[0][1] * dy));
+                    
+                    for (int i = 1; i < plan.length; i++) {
+                        double[] ds = plan[i - 1];
+                        double[] de = plan[i];
+                        g2.drawLine((int) (ds[0] * dx), (int) (height - ds[1] * dy), (int) (de[0] * dx), (int) (height - de[1] * dy));
+                    }
+                }
+            }
+
+            // Draw obstacles
+            for (AutonomyController.Obstacle o : autonomy.getObstacles()) {
+                g2.fillRect((int) (o.r.x * dx), (int) (height - (o.r.y * dy) - (o.r.height * dy)), (int) (o.r.width * dx), (int) (o.r.height * dy));
             }
         }
     }
