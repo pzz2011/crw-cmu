@@ -33,9 +33,8 @@ public class Main {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-
         // Disable DNS lookups
-        AirboatSecurityManager.loadIfDNSIsSlow();
+        AirboatSecurityManager.load();
 
         // Start a local loopback server 
         // (useful for testing, no big deal if this server fails to start)

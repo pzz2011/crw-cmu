@@ -115,7 +115,7 @@ public class IrrigationGUI extends javax.swing.JFrame {
             }
         });
 
-        algC.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Lawnmower", "Max Var.", "Max Grad." }));
+        algC.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Lawnmower", "Max Uncertainty", "Max Grad." }));
         algC.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 algCActionPerformed(evt);

@@ -11,7 +11,6 @@
 package edu.cmu.ri.airboat.gulfsim;
 
 import com.flat502.rox.server.XmlRpcServer;
-import edu.cmu.ri.airboat.server.AirboatDummy;
 import edu.cmu.ri.airboat.server.AirboatVbs;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
@@ -348,8 +347,8 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
         for (int i = 0; i < count; i++) {
             
             System.out.println("Creating simulated");
-            AirboatDummy dummy = new AirboatDummy();
-
+            AirboatDummy dummy = new AirboatDummy(lat, lon);
+            
             try {
                 XmlRpcServer _server = new XmlRpcServer(port + i);
                 _server.registerProxyingHandler(null, "^control\\.(.*)", dummy);
