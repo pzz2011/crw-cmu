@@ -58,11 +58,12 @@ public class SimpleFilter implements VehicleFilter {
 		predict(time);
 		
 		// On the first compass update, simply take on the initial heading
+		// (invert the heading because yaw is negative heading) 
 		if (_isInitializedCompass) {
 			double yaw = QuaternionUtils.toYaw(_pose.pose.orientation);
-			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, angleAverage(ALPHA_COMPASS, yaw, heading));
+			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, angleAverage(ALPHA_COMPASS, yaw, Math.PI - heading));
 		} else {
-			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, heading);
+			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, Math.PI - heading);
 			_isInitializedCompass = true;
 		}
 	}
