@@ -8,7 +8,7 @@ package edu.cmu.ri.airboat.irrigationtest;
  *
  * @author pscerri
  */
-public interface IrrigationTestInterface {
+public interface IrrigationTestInterface  {
     
     public void setWaypoints(int boatNo, double [][] poses);
     

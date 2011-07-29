@@ -10,12 +10,12 @@ package edu.cmu.ri.airboat.irrigationtest;
  */
 public class Observation {
 
-    private double[] waypoint = null; // new double[6];
-    private int waypointZone;
-    private boolean waypointHemisphereNorth;
+    public double[] waypoint = null; // new double[6];
+    public int waypointZone;
+    public boolean waypointHemisphereNorth;
     
-    private String variable = null;
-    private double value = 0.0;
+    public String variable = null;
+    public double value = 0.0;
     
     public Observation (String variable, double value, double [] waypoint, int waypointZone, boolean waypointHemisphereNorth) {
         this.variable = variable;

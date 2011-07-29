@@ -22,10 +22,10 @@ public class TestRosServer {
 	public static void main(String args[]) throws Exception {
 		
 		// Start a local ros core
-		RosCore core = RosCore.newPublic();
+		/*RosCore core = RosCore.newPublic(11311);
 		NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
 		core.awaitStart();
-		
+		*/
 		// Select if we want to use the local ros core or a remote one
 		//URI masterUri = core.getUri();
 		URI masterUri = new URI("http://localhost:11311");
@@ -86,11 +86,11 @@ public class TestRosServer {
 			System.err.println("Ros VehicleServer was uncleanly shutdown.");
 		}
 		
-		try {
+		/*try {
 			core.shutdown();
 		} catch (RosRuntimeException ex) {
 			System.err.println("Core was uncleanly shutdown.");
-		}
+		}*/
 		System.exit(0);
 	}
 }

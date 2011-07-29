@@ -100,6 +100,7 @@ public class InterfaceTester implements IrrigationTestInterface {
         final double baseline = 100.0;
         double[][] poses = null;
         int waypointIndex = 0;
+        final VehicleServer servers[];
 
         public SimBoat(int no, double lon, double lat) {
             this.no = no;
