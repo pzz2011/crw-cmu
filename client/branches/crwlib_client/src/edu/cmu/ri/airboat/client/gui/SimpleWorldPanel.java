@@ -66,7 +66,7 @@ public class SimpleWorldPanel extends WorldWindowGLJPanel {
         final USGSTopographicMaps usgsTopo = new USGSTopographicMaps();
         final USGSDigitalOrtho usgslayerOrtho = new USGSDigitalOrtho();
         final USGSTopoHighRes usgsTopoHR = new USGSTopoHighRes();
-        getModel().getLayers().add(usgsTopo);
+        getModel().getLayers().add(usgslayerOrtho);
 
         redraw();
 
