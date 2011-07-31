@@ -22,8 +22,7 @@
   </target>
 
   <target name="compile" depends="init">
-
-    <javac destdir="${build}">
+    <javac destdir="${build}" debug="on">
       <classpath refid="classpath" />
       <src path="${src}" />
     </javac>
@@ -49,8 +48,14 @@
         <path refid="classpath" />
     </copy>
 
-    <!-- Put everything in ${build} into the jar file -->
-    <jar jarfile="${dist}/${ant.project.name}_all.jar" basedir="${build}">
+    <!-- Put everything in ${build}, ${src}, and ${dist}/lib into the jar file -->
+    <jar jarfile="${dist}/${ant.project.name}_all.jar">
+        <fileset dir="${build}">
+            <include name="**/*.class"/>
+        </fileset>
+        <fileset dir="${src}">
+            <include name="**/*.java"/>
+        </fileset>
         <zipgroupfileset dir="${dist}/lib" includes="*.jar"/>
     </jar>
   </target>

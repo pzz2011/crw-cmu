@@ -139,6 +139,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					// TODO: handle different UTM zones!
 
 					// Compute the distance and angle to the waypoint
+					// TODO: compute distance more efficiently
 					double distance = Math.sqrt(Math.pow(
 							(waypoint.position.x - pose.position.x), 2)
 							+ Math.pow((waypoint.position.y - pose.position.y),
