@@ -352,12 +352,7 @@ public class AirboatService extends Service {
 	        _rosMasterUri = _rosCore.getUri();
 	        Log.i(TAG, "Local ROS core started");
 		}
-		/*try {
-			_rosMasterUri = new URI("http://128.237.242.74:11311");
-		} catch (URISyntaxException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}*/
+		
 		
 		// Create a RosVehicleServer to expose the data object
 		try {
