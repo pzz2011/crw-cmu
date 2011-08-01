@@ -547,10 +547,12 @@ public class AirboatImpl extends AbstractVehicleServer {
 						_controller.controller.update(AirboatImpl.this, dt);
 						
 						// TODO: measure dt directly instead of approximating
-	
+						
 						// Check for termination condition
+						// TODO: termination conditions should be tested by
+						// controller, not navigation function.
 						double dist = distToGoal(pose, waypoint);
-						if (dist < 1.0) {
+						if (dist < 3.0) {
 							obs.waypointUpdate(WaypointState.DONE);
 							_isNavigating = false;
 							return;
