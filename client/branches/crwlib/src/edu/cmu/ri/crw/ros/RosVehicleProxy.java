@@ -1,5 +1,6 @@
 package edu.cmu.ri.crw.ros;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
@@ -47,6 +48,7 @@ import org.ros.service.crwlib_msgs.SetSensorType;
 import org.ros.service.crwlib_msgs.SetState;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
+import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.ImagingObserver;
 import edu.cmu.ri.crw.WaypointObserver;
 
@@ -100,8 +102,9 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		// TODO: Remove this logging setting -- it is a stopgap for a rosjava bug
 		Logger.getLogger("org.ros.internal.node.client").setLevel(Level.SEVERE);
 		
-		// Get a legitimate hostname
-		String host = InetAddressFactory.newNonLoopback().getHostAddress();
+		// Get a legitimate hostname, first by trying ICMP echo to master URI
+		InetAddress addr = CrwNetworkUtils.getAddrForNeighbor(masterUri.getHost());
+		String host = (addr != null) ? addr.getHostAddress() : InetAddressFactory.newNonLoopback().getHostAddress();  
 		
 		// Create a node configuration and start a node
 		NodeConfiguration config = NodeConfiguration.newPublic(host, masterUri);
@@ -117,7 +120,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		
 		try {
 			_navClient = new RosVehicleNavigation.Spec()
-					.buildSimpleActionClient(nodeName + "/nav");
+					.buildSimpleActionClient(nodeName + "_nav");
 			runner.run(_navClient, navConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
@@ -130,7 +133,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		
 		try {
 			_imgClient = new RosVehicleImaging.Spec()
-					.buildSimpleActionClient(nodeName + "/img");
+					.buildSimpleActionClient(nodeName + "_img");
 			runner.run(_imgClient, imgConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start image action client: " + ex);
