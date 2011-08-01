@@ -1,5 +1,6 @@
 package edu.cmu.ri.crw.ros;
 
+import java.net.InetAddress;
 import java.net.URI;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,6 +52,7 @@ import org.ros.service.crwlib_msgs.SetPid;
 import org.ros.service.crwlib_msgs.SetSensorType;
 import org.ros.service.crwlib_msgs.SetState;
 
+import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.ImagingObserver;
 import edu.cmu.ri.crw.VehicleImageListener;
 import edu.cmu.ri.crw.VehicleSensorListener;
@@ -97,8 +99,9 @@ public class RosVehicleServer {
 		// TODO: Remove this logging setting -- it is a stopgap for a rosjava bug
 		Logger.getLogger("org.ros.internal.node.client").setLevel(Level.SEVERE);
 
-		// Get a legitimate hostname
-		String host = InetAddressFactory.newNonLoopback().getHostAddress();
+		// Get a legitimate hostname, first by trying ICMP echo to master URI
+		InetAddress addr = CrwNetworkUtils.getAddrForNeighbor(masterUri.getHost());
+		String host = (addr != null) ? addr.getHostAddress() : InetAddressFactory.newNonLoopback().getHostAddress();
 		
 		// Store the reference to VehicleServer implementation
 		_server = server;
@@ -146,7 +149,7 @@ public class RosVehicleServer {
 		// TODO: do we need to re-instantiate spec each time here?
 		try {
 			_navServer = new RosVehicleNavigation.Spec().buildSimpleActionServer(
-					_node, nodeName + "/nav", navigationHandler, false);
+					_node, nodeName + "_nav", navigationHandler, false);
 			runner.run(_navServer, navConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
@@ -160,7 +163,7 @@ public class RosVehicleServer {
 		// TODO: do we need to re-instantiate spec each time here?
 		try {
 			_imgServer = new RosVehicleImaging.Spec().buildSimpleActionServer(
-					_node, nodeName + "/img", imageCaptureHandler, false);
+					_node, nodeName + "_img", imageCaptureHandler, false);
 			runner.run(_imgServer, imgConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
