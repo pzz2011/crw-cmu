@@ -94,7 +94,7 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 		// Try to schedule a picture to be taken immediately	
 		Intent intent = new Intent(context, AirboatCameraActivity.class);
 		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // TODO: I don't know if this is the right flag here
-		intent.putExtra(SAVE_EXTRA, false);
+		intent.putExtra(SAVE_EXTRA, true); // TODO: change this back at future point to disable always saving images
 		intent.putExtra(QUALITY_EXTRA, 30);
 		intent.putExtra(WIDTH_EXTRA, width);
 		intent.putExtra(HEIGHT_EXTRA, height);
