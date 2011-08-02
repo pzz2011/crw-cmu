@@ -16,7 +16,10 @@
 #define SENSOR_PWR_PIN 32
 
 // Set the sensor reading interval (in 10s of ms)
-#define SENSOR_INTERVAL 50
+#define SENSOR_INTERVAL 100
+
+// Set the interval after which the sensor is forced off (if a timeout occurs)
+#define RESET_INTERVAL 50
 
 // Stack variables for use in protothreads
 static int d, c, t;
@@ -104,8 +107,8 @@ PT_THREAD(teUpdateThread(struct pt *pt))
   digitalWrite(SENSOR_PWR_PIN, HIGH);
   
   // Wait for power-up sequence (15ms high)  
-  delay(5);
-  PT_WAIT_UNTIL(pt, !digitalRead(SENSOR_RX_PIN)); // Wait for HIGH.                      
+  delay(1);
+  PT_WAIT_UNTIL(pt, !digitalRead(SENSOR_RX_PIN)); // Wait for HIGH.                     
   PT_WAIT_UNTIL(pt, digitalRead(SENSOR_RX_PIN));  // Wait for LOW.
 
   // Clear any spurious data (from while the sensor was off)  
@@ -159,13 +162,19 @@ void processTE() {
 // Wrapper function that will start a sensor reading
 void updateTE() {
 
-  // Every interval, start the sensor reading thread
-  // and reset the counter.
   ++teCount;
-  if (teCount >= SENSOR_INTERVAL) {
+  if (teCount >= RESET_INTERVAL) {
+
+    // Turn off sensor
+    digitalWrite(SENSOR_PWR_PIN, LOW);
+    
+  } if (teCount >= SENSOR_INTERVAL) {
+    
+    // Start the sensor reading thread and reset counter
     PT_INIT(&teUpdatePt);
     teIsReading = true;
     teCount = 0;
+    
   }
 }
 
