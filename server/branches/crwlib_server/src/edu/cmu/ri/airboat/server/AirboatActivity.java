@@ -34,6 +34,8 @@ public class AirboatActivity extends Activity {
 	public static final String KEY_MASTER_URI = "KEY_MASTER_URI";
 	public static final String KEY_BT_ADDR = "KEY_BT_ADDR";
 
+	private BroadcastReceiver _amarinoReceiver;
+	
 	/** Called when the activity is first created. */
     @Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -85,7 +87,7 @@ public class AirboatActivity extends Activity {
 		// Create a listener to update the connected devices autocomplete list
         final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line);
         connectAddress.setAdapter(adapter);
-        registerReceiver(new BroadcastReceiver() {
+        _amarinoReceiver = new BroadcastReceiver() {
 			
 			@Override
 			public void onReceive(Context context, Intent intent) {
@@ -119,7 +121,8 @@ public class AirboatActivity extends Activity {
 					});
 				}
 			}
-		}, amarinoFilter);
+		};
+		registerReceiver(_amarinoReceiver, amarinoFilter);
 		sendBroadcast(new Intent(AmarinoIntent.ACTION_GET_CONNECTED_DEVICES));
         
         // Register handler for toggle button
@@ -217,6 +220,13 @@ public class AirboatActivity extends Activity {
         SharedPreferences prefs = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
         connectAddress.setText(prefs.getString(KEY_BT_ADDR, connectAddress.getText().toString()));
         masterAddress.setText(prefs.getString(KEY_MASTER_URI, masterAddress.getText().toString()));
+    }
+    
+    @Override
+	public void onDestroy() {
+    	
+    	super.onDestroy();
+    	unregisterReceiver(_amarinoReceiver);
     }
     
     /**
