@@ -83,6 +83,9 @@ void loop()
 {     
   // Get any incoming messages and process them
   amarino.receive();
+
+  // Perform psuedothreaded updates in various modules
+  processTE();
   
   // Check if either the watchdog or the main loop is scheduled
   watchdogTimer.check();

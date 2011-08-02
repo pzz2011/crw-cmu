@@ -6,24 +6,44 @@
  */
 
 #include "pt.h"
+#include <stdio.h>
 
 // Define the char code for the Amarino callback
 #define RECV_TE_FN 's'
 
+// Define the pins used to interface with the sensor
 #define SENSOR_RX_PIN 19
-#define SENSOR_PWR_PIN 12
+#define SENSOR_PWR_PIN 32
 
+// Set the sensor reading interval (in 10s of ms)
+#define SENSOR_INTERVAL 50
+
+// Stack variables for use in protothreads
 static int d, c, t;
 static char type;
 static int crc = 0;
 static int output = 0;
+static byte val;
 
+// Protothread state structures
 static struct pt teUpdatePt, teReadPt;
 
+// Sensor reading status variables
+int teCount = 0;
+boolean teIsReading = false;
+
 void initTE()  {
-  Serial1.begin(115200);
-  PT_INIT(&teUpdatePt);
-  PT_INIT(&teReadPt);
+  
+  // Turn off sensor
+  pinMode(SENSOR_RX_PIN, INPUT);
+  pinMode(SENSOR_PWR_PIN, OUTPUT);
+  digitalWrite(SENSOR_PWR_PIN, LOW);
+  
+  // Enable serial port
+  Serial1.begin(1200);
+  
+  // Start counter to do reading every SENSOR_INTERVAL counts
+  teCount = 0;
 }
 
 // Converts from raw 5TE sensor value to a floating point Celsius temperature.
@@ -41,21 +61,21 @@ float toDielectric(const int &rawDielectric) {
    return ((float) rawDielectric) / 50.0;
 }
 
-// Wrapper function that will call the pseudothreaded code
-void updateTE() {
-  //teUpdateThread(&teUpdatePt);
-}
-
 // Reads a single ASCII plaintext integer from the serial stream.
 // (Note: also reads the first terminating character after integer)
-static int readInt(struct pt *pt) {
+static 
+PT_THREAD(readInt(struct pt *pt)) {
   PT_BEGIN(pt);
+
+  // Clear last integer that was read
+  output = 0;
   
+  // Read until a non-digit is reached
   while(1) {
     
     // Wait for incoming data
     PT_WAIT_UNTIL(pt, Serial1.available() > 0);
-    byte val = Serial1.read();
+    val = Serial1.read();
 
     // Increment checksum, exit on termination character
     crc += val;    
@@ -72,58 +92,80 @@ static int readInt(struct pt *pt) {
 // Powers up and reads the sensor values from a 5TE environmental sensor, 
 // and checks the resulting checksum for validity.  If the data is invalid,
 // all values will return zero.
-static int teUpdateThread(struct pt *pt)
+static 
+PT_THREAD(teUpdateThread(struct pt *pt))
 {
   PT_BEGIN(pt);
 
-  while(1)
-  {  
-    // Zero out checksum
-    crc = 0;
+  // Zero out checksum
+  crc = 0;
     
-    // Turn on sensor
-    digitalWrite(SENSOR_PWR_PIN, HIGH);
+  // Turn on sensor
+  digitalWrite(SENSOR_PWR_PIN, HIGH);
   
-    // Wait for power-up sequence (15ms high)  
-    delay(5);
-    PT_WAIT_UNTIL(pt, !digitalRead(SENSOR_RX_PIN)); // Wait for HIGH.                      
-    PT_WAIT_UNTIL(pt, digitalRead(SENSOR_RX_PIN));  // Wait for LOW.
+  // Wait for power-up sequence (15ms high)  
+  delay(5);
+  PT_WAIT_UNTIL(pt, !digitalRead(SENSOR_RX_PIN)); // Wait for HIGH.                      
+  PT_WAIT_UNTIL(pt, digitalRead(SENSOR_RX_PIN));  // Wait for LOW.
+
+  // Clear any spurious data (from while the sensor was off)  
+  Serial1.flush();
   
-    // Read data values
-    readInt(&teReadPt);
-    d = output;
-    readInt(&teReadPt);
-    c = output;
-    readInt(&teReadPt);
-    t = output;
+  // Read data values
+  PT_SPAWN(pt, &teReadPt, readInt(&teReadPt));
+  d = output;
+  PT_SPAWN(pt, &teReadPt, readInt(&teReadPt));
+  c = output;
+  PT_SPAWN(pt, &teReadPt, readInt(&teReadPt));
+  t = output;
     
-    // Wait for data, then read sensor type ('z' or 'x')
-    PT_WAIT_UNTIL(pt, Serial1.available() > 0);
-    type = Serial1.read();
-    crc += type;
+  // Wait for data, then read sensor type ('z' or 'x')
+  PT_WAIT_UNTIL(pt, Serial1.available() > 0);
+  type = Serial1.read();
+  crc += type;
     
-    // Verify sensor checksum
-    PT_WAIT_UNTIL(pt, Serial1.available() > 0);
-    byte checksum = Serial1.read();
-    if (checksum != (crc % 64 + 32)) {
-      d = 0;
-      c = 0;
-      t = 0;
-      type = '/0';
-    }
-  
-    // Turn off sensor
-    digitalWrite(SENSOR_PWR_PIN, LOW);
-  
-    // Convert and output the returned values
-    amarino.send(RECV_TE_FN);
-    amarino.send(toDielectric(d));
-    amarino.send(toConductivity(c));
-    amarino.send(toTemp(t));
-    amarino.sendln();
+  // Verify sensor checksum
+  PT_WAIT_UNTIL(pt, Serial1.available() > 0);
+  byte checksum = Serial1.read();
+  if (checksum != (crc % 64 + 32)) {
+    d = 0;
+    c = 0;
+    t = 0;
+    type = '/0';
   }
+  
+  // Turn off sensor
+  digitalWrite(SENSOR_PWR_PIN, LOW);
+  
+  // Convert and output the returned values
+  amarino.send(RECV_TE_FN);
+  amarino.send(toDielectric(d));
+  amarino.send(toConductivity(c));
+  amarino.send(toTemp(t));
+  amarino.sendln();
   
   PT_END(pt)
 }
 
+// Handles the actual processing associated with sensor
+void processTE() {
+  
+  // If the sensor is being read, reschedule the thread and update status
+  if (teIsReading) {
+    teIsReading = PT_SCHEDULE(teUpdateThread(&teUpdatePt));
+  }
+}
+
+// Wrapper function that will start a sensor reading
+void updateTE() {
+
+  // Every interval, start the sensor reading thread
+  // and reset the counter.
+  ++teCount;
+  if (teCount >= SENSOR_INTERVAL) {
+    PT_INIT(&teUpdatePt);
+    teIsReading = true;
+    teCount = 0;
+  }
+}
 
