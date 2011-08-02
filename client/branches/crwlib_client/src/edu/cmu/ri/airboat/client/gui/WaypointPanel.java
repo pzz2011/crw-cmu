@@ -189,7 +189,7 @@ public class WaypointPanel extends AbstractAirboatPanel {
                     currWp.utm.zone + " " + (currWp.utm.isNorth ? "North" : "South"));
 
             // Set marker position on globe map
-            if (_worldPanel != null) {
+            if (_worldPanel != null && currWp.utm.zone != 0) {
                 try {
                     String wwHemi = (currWp.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
                     UTMCoord boatPos = UTMCoord.fromUTM(currWp.utm.zone, wwHemi, currWp.pose.position.x, currWp.pose.position.y);

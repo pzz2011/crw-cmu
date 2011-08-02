@@ -224,7 +224,7 @@ public class PosePanel extends AbstractAirboatPanel {
                 yawLabel.setText(ANGLE_FORMAT.format(rpy[2]) + " rads");
 
                 // Set marker position on globe map
-                if (_worldPanel != null) {
+                if (_worldPanel != null && longZone != 0) {
                     try {
                         String wwHemi = (upwcs.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
                         UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, pose.position.x, pose.position.y);

@@ -116,7 +116,7 @@ public class CameraPanel extends AbstractAirboatPanel {
         takePictureButton.setSelected(true);
 
         // TODO: rename this button
-        _vehicle.startCamera(10, 0, 640, 480, null);
+        _vehicle.startCamera(10, 0.5, 640, 480, null);
 
         takePictureButton.setEnabled(true);
         takePictureButton.setSelected(false);
