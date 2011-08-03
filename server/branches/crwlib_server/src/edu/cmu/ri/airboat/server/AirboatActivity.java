@@ -151,21 +151,23 @@ public class AirboatActivity extends Activity {
 						// Try to open the URI in the text box, if it succeeds, make 
 						// the box change color accordingly
 				        URL url = new URL(masterAddress.getText().toString());
-				        HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
+				        if (InetAddress.getByName(url.getHost()).isReachable(200)) {
 				        
-				        if (urlConn != null) {
-				        	urlConn.setConnectTimeout(500);
-					        urlConn.connect();
-					        
-					        if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NOT_IMPLEMENTED) {
-					        	masterAddress.setBackgroundColor(Color.GREEN);
-					        } else {
-					        	masterAddress.setBackgroundColor(Color.RED);
+					        HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
+					        if (urlConn != null) {
+					        	urlConn.setConnectTimeout(200);
+					        	urlConn.setReadTimeout(200);
+						        urlConn.connect();
+						        
+						        if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NOT_IMPLEMENTED) {
+						        	masterAddress.setBackgroundColor(Color.GREEN);
+						        } else {
+						        	masterAddress.setBackgroundColor(Color.RED);
+						        }
+						        
+						        urlConn.disconnect();
 					        }
-					        
-					        urlConn.disconnect();
 				        }
-				        
 				    } catch (Exception e) { 
 				    	masterAddress.setBackgroundColor(Color.RED);
 				    }
