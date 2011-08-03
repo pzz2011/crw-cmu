@@ -43,10 +43,11 @@ public class AirboatImpl extends AbstractVehicleServer {
 	private static final com.google.code.microlog4android.Logger logger = 
 		LoggerFactory.getLogger();
 
-	public static final int UPDATE_INTERVAL_MS = 100;
 	private static final String logTag = AirboatImpl.class.getName();
+	public static final int UPDATE_INTERVAL_MS = 100;
+	public static final int NUM_SENSORS = 3;
 	
-	public final SensorType[] _sensorTypes = new SensorType[3];
+	public final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
 	public UtmPose _waypoint = null;
 
 	private final Object _captureLock = new Object();
@@ -516,8 +517,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	@Override
 	public int getNumSensors() {
-		// TODO Fix this
-		return 1;
+		return NUM_SENSORS;
 	}
 
 	@Override
