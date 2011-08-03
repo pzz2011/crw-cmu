@@ -3,7 +3,7 @@
   xmlns:android="http://schemas.android.com/apk/res/android"
   android:layout_width="fill_parent"
   android:layout_height="fill_parent" android:orientation="vertical">
-    <LinearLayout android:focusable="true" android:focusableInTouchMode="true" android:layout_width="0px" android:layout_height="0px" />
+    <LinearLayout android:id="@+id/FocusHolder" android:focusable="true" android:focusableInTouchMode="true" android:layout_width="0px" android:layout_height="0px" />
 	<TextView android:id="@+id/ConnectTitle" android:text="@string/connect_title" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
 	<AutoCompleteTextView android:id="@+id/ConnectAddress" android:text="@string/connect_default_addr" android:layout_width="fill_parent" android:layout_height="wrap_content" android:editable="true" android:isScrollContainer="false" android:singleLine="true" android:typeface="monospace" android:imeOptions="actionDone"></AutoCompleteTextView>
 	<TextView android:id="@+id/MasterTitle" android:text="@string/master_title" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
@@ -16,6 +16,4 @@
 	<TextView android:id="@+id/IpAddressText" android:text="@string/ipaddress_text" android:layout_width="fill_parent" android:layout_height="wrap_content" android:typeface="monospace" android:gravity="center_horizontal"></TextView>
 	<TextView android:id="@+id/LogTitle" android:text="@string/log_title" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
 	<ListView android:id="@+id/LogList" android:layout_width="wrap_content" android:layout_height="fill_parent"></ListView>
-
-
 </LinearLayout>

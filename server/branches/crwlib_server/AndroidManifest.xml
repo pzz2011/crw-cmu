@@ -11,7 +11,7 @@
 </intent-filter>
 </activity>
 <activity android:label="Airboat Control" android:icon="@drawable/icon" android:name="AirboatControlActivity"></activity>
-<activity android:label="Airboat Camera" android:icon="@drawable/icon" android:name="AirboatCameraActivity"></activity>
+<activity android:label="Airboat Camera" android:icon="@drawable/icon" android:name="AirboatCameraActivity" android:screenOrientation="nosensor" android:configChanges="keyboardHidden|orientation"></activity>
 
 </application>
 <uses-sdk android:targetSdkVersion="7" android:minSdkVersion="7"/>
