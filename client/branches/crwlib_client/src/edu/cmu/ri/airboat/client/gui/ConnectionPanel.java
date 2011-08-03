@@ -32,7 +32,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
     public static int UPDATE_PERIOD_MS = 1000;
 
     private Timer _timer = new Timer();
-    private VehicleServer _vehicle = null;
+    private RosVehicleProxy _vehicle = null;
     
     /** Creates new form ConnectionPanel */
     public ConnectionPanel() {
@@ -41,6 +41,15 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
         Preferences p = Preferences.userRoot();
         connectCombo.addItem(p.get(LAST_URI_KEY, ""));
+
+        // Insert a shutdown hook to cleanly close the vehicle down
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                if (_vehicle != null)
+                    _vehicle.shutdown();
+            }
+        });
     }
 
     /**
@@ -122,16 +131,28 @@ public class ConnectionPanel extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
-        
-        // Create a proxy server that accesses the vehicle
-        try {
-            URI masterUri = new URI((String)connectCombo.getSelectedItem());
-            _vehicle = new RosVehicleProxy(masterUri, "vehicle_client" + new Random().nextInt(1000000));
-            Preferences p = Preferences.userRoot();
-            p.put(LAST_URI_KEY, masterUri.toString());
+
+        synchronized(this) {
+            // Create a new proxy server that accesses the vehicle
+            RosVehicleProxy vehicle = null;
+            try {
+                URI masterUri = new URI((String)connectCombo.getSelectedItem());
+                vehicle = new RosVehicleProxy(masterUri, "vehicle_client" + new Random().nextInt(1000000));
+                Preferences p = Preferences.userRoot();
+                p.put(LAST_URI_KEY, masterUri.toString());
+            } catch (Exception ex) {
+                System.err.println("Failed to open vehicle proxy: " + ex);
+                return;
+            }
+
+            if (vehicle == null)
+                return;
+
+            if (_vehicle != null)
+                _vehicle.shutdown();
+
+            _vehicle = vehicle;
             fireConnectionListener(_vehicle);
-        } catch (Exception ex) {
-            System.err.println("Failed to open vehicle proxy: " + ex);
         }
     }//GEN-LAST:event_connectButtonActionPerformed
 
