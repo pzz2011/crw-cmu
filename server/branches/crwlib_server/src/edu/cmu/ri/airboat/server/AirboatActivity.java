@@ -1,9 +1,12 @@
 package edu.cmu.ri.airboat.server;
 
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.URL;
 import java.util.Enumeration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -12,7 +15,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -125,9 +130,78 @@ public class AirboatActivity extends Activity {
 		registerReceiver(_amarinoReceiver, amarinoFilter);
 		sendBroadcast(new Intent(AmarinoIntent.ACTION_GET_CONNECTED_DEVICES));
         
+		// Register handler for URI master that changes the color of the URI
+		// if a valid ROS core seems to be reached.
+		// TODO: Move this to its own class!
+		final AutoCompleteTextView masterAddress = (AutoCompleteTextView)findViewById(R.id.MasterAddress);
+		masterAddress.addTextChangedListener(new TextWatcher() {
+			
+			Handler handler = new Handler();
+			final AtomicBoolean _isUpdating = new AtomicBoolean(false);
+			final AtomicBoolean _isUpdated = new AtomicBoolean(false);
+			
+			final Runnable textUpdate = new Runnable() {
+				
+				@Override
+				public void run() {
+					_isUpdated.set(true);
+					_isUpdating.set(true);
+					
+					try {
+						// Try to open the URI in the text box, if it succeeds, make 
+						// the box change color accordingly
+				        URL url = new URL(masterAddress.getText().toString());
+				        HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
+				        
+				        if (urlConn != null) {
+				        	urlConn.setConnectTimeout(500);
+					        urlConn.connect();
+					        
+					        if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NOT_IMPLEMENTED) {
+					        	masterAddress.setBackgroundColor(Color.GREEN);
+					        } else {
+					        	masterAddress.setBackgroundColor(Color.RED);
+					        }
+					        
+					        urlConn.disconnect();
+				        }
+				        
+				    } catch (Exception e) { 
+				    	masterAddress.setBackgroundColor(Color.RED);
+				    }
+				    
+				    // Immediately reschedule if out of date, otherwise delay
+				    if (!_isUpdated.get()) {
+				    	handler.post(textUpdate);
+				    } else {
+				    	handler.postDelayed(textUpdate, 2000);
+				    }
+				    
+				    _isUpdating.set(false);
+				}
+			};
+			
+			@Override
+			public void onTextChanged(CharSequence s, int start, int before, int count) {}
+			
+			@Override
+			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+			
+			@Override
+			public void afterTextChanged(final Editable s) {
+				
+				_isUpdated.set(false);
+				
+				// If an update isn't already running, start one up
+				if (!_isUpdating.get()) {
+					handler.post(textUpdate);
+				}
+			}
+		});
+		
+		
         // Register handler for toggle button
         final ToggleButton connectToggle = (ToggleButton)findViewById(R.id.ConnectToggle);
-        final AutoCompleteTextView masterAddress = (AutoCompleteTextView)findViewById(R.id.MasterAddress);
         connectToggle.setChecked(AirboatService.isRunning); // Hack to determine initial service state
         connectToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
         	
