@@ -376,6 +376,9 @@ public class AirboatService extends Service {
 				if (_airboatImpl != null) {
 					velGains = _airboatImpl.getPID(0);
 					logger.info("PIDGAINS: " + "0 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
+				}
+				
+				if (_airboatImpl != null) {
 					velGains = _airboatImpl.getPID(5);
 					logger.info("PIDGAINS: " + "5 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
 				}
