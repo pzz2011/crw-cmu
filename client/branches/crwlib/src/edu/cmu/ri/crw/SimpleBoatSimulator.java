@@ -3,6 +3,7 @@ package edu.cmu.ri.crw;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
@@ -10,8 +11,6 @@ import org.ros.message.geometry_msgs.Pose;
 import org.ros.message.geometry_msgs.Twist;
 import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CompressedImage;
-
-import edu.cmu.ri.crw.QuaternionUtils;
 
 /**
  * A simple simulation of an unmanned boat.
@@ -36,9 +35,13 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	public Twist _velocity = new Twist();
 	public UtmPose _waypoint = null;
 
-	private volatile boolean _isCapturing = false;
-	private volatile boolean _isNavigating = false;
-	private volatile boolean _isAutonomous = true;
+	private final Object _captureLock = new Object();
+	private AtomicBoolean _isCapturing = null;
+	
+	private final Object _navigationLock = new Object();
+	private AtomicBoolean _isNavigating = null;
+	
+	private final AtomicBoolean _isAutonomous = new AtomicBoolean(true);
 	
 	public SimpleBoatSimulator() {
 		final double dt = UPDATE_INTERVAL_MS / 1000.0;
@@ -93,7 +96,9 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 	@Override
 	public UtmPose getWaypoint() {
-		return _waypoint;
+		synchronized(_navigationLock) {
+			return _waypoint;
+		}
 	}
 
 	@Override
@@ -108,90 +113,127 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 	@Override
 	public void startWaypoint(final UtmPose waypoint, final WaypointObserver obs) {
-		_isNavigating = true;
-		_waypoint = waypoint;
-
+		
+		// Keep a reference to the navigation flag for THIS waypoint
+		final AtomicBoolean isNavigating = new AtomicBoolean(true);
+		
+		synchronized(_navigationLock) {
+			if (_isNavigating != null) {
+				_isNavigating.set(false);
+			_isNavigating = isNavigating;
+			_waypoint = waypoint;
+		}
+		
 		new Thread(new Runnable() {
 
 			@Override
 			public void run() {
-				while (_isNavigating) {
+				while (isNavigating.get()) {
 
+					// If we are not set in autonomous mode, don't try to drive!
+					if (_isAutonomous.get()) {
+
+						// Get the position of the vehicle and the waypoint
+						UtmPoseWithCovarianceStamped state = getState();
+						Pose pose = state.pose.pose.pose;
+						Pose wpPose = waypoint.pose;
+		
+						// TODO: handle different UTM zones!
+	
+						// Compute the distance and angle to the waypoint
+						// TODO: compute distance more efficiently
+						double distance = Math.sqrt(Math.pow(
+								(wpPose.position.x - pose.position.x), 2)
+								+ Math.pow((wpPose.position.y - pose.position.y),
+										2));
+						double angle = Math.atan2(
+								(wpPose.position.y - pose.position.y),
+								(wpPose.position.x - pose.position.x))
+								- QuaternionUtils.toYaw(pose.orientation);
+						angle = normalizeAngle(angle);
+	
+						// Choose driving behavior depending on direction and
+						// where we are
+						if (Math.abs(angle) > 1.0) {
+	
+							// If we are facing away, turn around first
+							_velocity.linear.x = 0.5;
+							_velocity.angular.z = Math.max(Math.min(angle / 1.0, 1.0),
+									-1.0);
+						} else if (distance >= 3.0) {
+	
+							// If we are far away, drive forward and turn
+							_velocity.linear.x = Math.min(distance / 10.0, 1.0);
+							_velocity.angular.z = Math.max(Math.min(angle / 10.0, 1.0),
+									-1.0);
+						} else  /*(distance < 3.0)*/ {
+							_velocity.linear.x = 0.0;
+							_velocity.angular.z = 0.0;
+							
+							if (obs != null)
+								obs.waypointUpdate(WaypointState.DONE);
+							isNavigating.set(false);
+							return;
+						}
+					}
+					
 					// Pause for a while
 					try {
 						Thread.sleep(UPDATE_INTERVAL_MS);
-						obs.waypointUpdate(WaypointState.GOING);
+						if (obs != null)
+							obs.waypointUpdate(WaypointState.GOING);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-					
-					// If we are not set in autonomous mode, don't try to drive!
-					if (!_isAutonomous)
-						continue;
-					
-					// Get the position of the vehicle and the waypoint
-					UtmPoseWithCovarianceStamped state = getState();
-					Pose pose = state.pose.pose.pose;
-
-					UtmPose waypointState = getWaypoint();
-					Pose waypoint = waypointState.pose;
-
-					// TODO: handle different UTM zones!
-
-					// Compute the distance and angle to the waypoint
-					// TODO: compute distance more efficiently
-					double distance = Math.sqrt(Math.pow(
-							(waypoint.position.x - pose.position.x), 2)
-							+ Math.pow((waypoint.position.y - pose.position.y),
-									2));
-					double angle = Math.atan2(
-							(waypoint.position.y - pose.position.y),
-							(waypoint.position.x - pose.position.x))
-							- QuaternionUtils.toYaw(pose.orientation);
-					angle = normalizeAngle(angle);
-
-					// Choose driving behavior depending on direction and
-					// where we are
-					if (Math.abs(angle) > 1.0) {
-
-						// If we are facing away, turn around first
-						_velocity.linear.x = 0.5;
-						_velocity.angular.z = Math.max(Math.min(angle / 1.0, 1.0),
-								-1.0);
-					} else if (distance >= 3.0) {
-
-						// If we are far away, drive forward and turn
-						_velocity.linear.x = Math.min(distance / 10.0, 1.0);
-						_velocity.angular.z = Math.max(Math.min(angle / 10.0, 1.0),
-								-1.0);
-					} else  /*(distance < 3.0)*/ {
-						_velocity.linear.x = 0.0;
-						_velocity.angular.z = 0.0;
-						
-						obs.waypointUpdate(WaypointState.DONE);
-						_isNavigating = false;
-						return;
-					}
 				}
 				
-				// If we broke out of the loop, it means someone cancelled us
-				obs.waypointUpdate(WaypointState.CANCELLED);
+				// If we broke out of the loop, it means someone cancelled us,
+				// so stop the vehicle and report status
+				_velocity.linear.x = 0.0;
+				_velocity.angular.z = 0.0;
+				if (obs != null)
+					obs.waypointUpdate(WaypointState.CANCELLED);
 			}
 		}).start();
 	}
 
 	@Override
 	public void stopWaypoint() {
-		// Stop the thread that is doing the "navigation"
-		_isNavigating = false;
-		_waypoint = null;
+		// Stop the thread that is doing the "navigation" by terminating its
+		// navigation flag and then removing the reference to the old flag.
+		synchronized(_navigationLock) {
+			if (_isNavigating != null) {
+				_isNavigating.set(false);
+				_isNavigating = null;
+			}
+			_waypoint = null;
+		}
+	}
+
+	public WaypointState getWaypointStatus() {
+		synchronized(_navigationLock) {
+			if (_isNavigating.get()) {
+				return WaypointState.GOING;
+			} else {
+				return WaypointState.DONE;
+			}
+		}
 	}
 
 	@Override
 	public void startCamera(final long numFrames, final double interval,
 			final int width, final int height, final ImagingObserver obs) {
-		_isCapturing = true;
 
+		// Keep a reference to the capture flag for THIS capture process
+		final AtomicBoolean isCapturing = new AtomicBoolean(true);
+		
+		// Set this to be the current capture flag
+		synchronized(_captureLock) {
+			if (_isCapturing != null) {
+				_isCapturing.set(false);		
+			_isCapturing = isCapturing;
+		}
+		
 		new Thread(new Runnable() {
 
 			@Override
@@ -199,43 +241,54 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 				int iFrame = 0;
 				long int_ms = (long)(interval * 1000.0);
 
-				while (_isCapturing && (numFrames <= 0 || iFrame < numFrames)) {
+				while (isCapturing.get() && (numFrames <= 0 || iFrame < numFrames)) {
 
 					// Every so often, send out a random picture
 					sendImage(captureImage(width, height));
 					iFrame++;
 
-					if (obs != null) {
+					if (obs != null)
 						obs.imagingUpdate(CameraState.CAPTURING);
-					}
 
 					// Wait for a while
 					try {
 						Thread.sleep(int_ms);
 					} catch (InterruptedException ex) {
-						obs.imagingUpdate(CameraState.CANCELLED);
-						_isCapturing = false;
+						if (obs != null)
+							obs.imagingUpdate(CameraState.CANCELLED);
+						isCapturing.set(false);
 						return;
 					}
 				}
 
-				obs.imagingUpdate(CameraState.DONE);
-				_isCapturing = false;
+				if (obs != null)
+					obs.imagingUpdate(CameraState.DONE);
+				isCapturing.set(false);
 			}
 		}).start();
 	}
 
 	@Override
 	public void stopCamera() {
-		// Stop the thread that sends out images
-		_isCapturing = false;
+		// Stop the thread that sends out images by terminating its
+		// navigation flag and then removing the reference to the old flag.
+		synchronized(_captureLock) {
+			if (_isCapturing != null) {
+				_isCapturing.set(false);
+				_isCapturing = null;
+			}
+		}
 	}
 
-	public WaypointState getWaypointStatus() {
-		if (this._isNavigating)
-			return WaypointState.GOING;
-		else
-			return WaypointState.DONE;
+	@Override
+	public CameraState getCameraStatus() {
+		synchronized(_captureLock) {
+			if (_isCapturing.get()) {
+				return CameraState.CAPTURING;
+			} else {
+				return CameraState.OFF;
+			}
+		}
 	}
 
 	double distToGoal(Pose x, Pose y) {
@@ -271,15 +324,6 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		return velMsg;
 	}
 
-	@Override
-	public CameraState getCameraStatus() {
-		if (this._isCapturing) {
-			return CameraState.CAPTURING;
-		} else {
-			return CameraState.OFF;
-		}
-	}
-
 	/**
 	 * Takes an angle and shifts it to be in the range -Pi to Pi.
 	 * 
@@ -296,12 +340,12 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 	@Override
 	public boolean isAutonomous() {
-		return _isAutonomous;
+		return _isAutonomous.get();
 	}
 
 	@Override
 	public void setAutonomous(boolean auto) {
-		_isAutonomous = auto;
+		_isAutonomous.set(auto);
 		_velocity = new Twist(); // Reset velocity when changing modes
 	}
 }
