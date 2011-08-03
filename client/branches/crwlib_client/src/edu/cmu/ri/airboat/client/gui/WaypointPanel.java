@@ -55,6 +55,7 @@ public class WaypointPanel extends AbstractAirboatPanel {
         completedBox = new ReadOnlyCheckBox();
         sendButton = new javax.swing.JButton();
         jSeparator1 = new javax.swing.JSeparator();
+        cancelButton = new javax.swing.JButton();
 
         currWaypointLabel.setText("Current:");
 
@@ -76,6 +77,13 @@ public class WaypointPanel extends AbstractAirboatPanel {
             }
         });
 
+        cancelButton.setText("Cancel");
+        cancelButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cancelButtonActionPerformed(evt);
+            }
+        });
+
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -84,13 +92,14 @@ public class WaypointPanel extends AbstractAirboatPanel {
                 .add(currWaypointLabel)
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, 75, Short.MAX_VALUE)
                 .add(completedBox))
-            .add(currWaypointText, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 226, Short.MAX_VALUE)
-            .add(org.jdesktop.layout.GroupLayout.TRAILING, jSeparator1, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 226, Short.MAX_VALUE)
+            .add(currWaypointText, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 238, Short.MAX_VALUE)
+            .add(org.jdesktop.layout.GroupLayout.TRAILING, jSeparator1, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 238, Short.MAX_VALUE)
             .add(layout.createSequentialGroup()
                 .add(selectedWaypointLabel)
                 .addContainerGap())
-            .add(selectedWaypointText, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 226, Short.MAX_VALUE)
-            .add(sendButton, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 226, Short.MAX_VALUE)
+            .add(selectedWaypointText, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 238, Short.MAX_VALUE)
+            .add(sendButton, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 238, Short.MAX_VALUE)
+            .add(cancelButton, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 238, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
@@ -108,7 +117,9 @@ public class WaypointPanel extends AbstractAirboatPanel {
                 .add(selectedWaypointText, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                 .add(1, 1, 1)
                 .add(sendButton)
-                .addContainerGap())
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                .add(cancelButton)
+                .addContainerGap(org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -125,8 +136,13 @@ public class WaypointPanel extends AbstractAirboatPanel {
 
     }//GEN-LAST:event_sendButtonActionPerformed
 
+    private void cancelButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cancelButtonActionPerformed
+        completedBox.setSelected(false);
+        _vehicle.stopWaypoint();
+    }//GEN-LAST:event_cancelButtonActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton cancelButton;
     private javax.swing.JCheckBox completedBox;
     private javax.swing.JLabel currWaypointLabel;
     private javax.swing.JTextField currWaypointText;
