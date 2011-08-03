@@ -12,6 +12,8 @@ import org.ros.message.geometry_msgs.Twist;
 import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CompressedImage;
 
+import edu.cmu.ri.crw.VehicleServer.WaypointState;
+
 /**
  * A simple simulation of an unmanned boat.
  * 
@@ -168,13 +170,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 							_velocity.angular.z = Math.max(Math.min(angle / 10.0, 1.0),
 									-1.0);
 						} else  /*(distance < 3.0)*/ {
-							_velocity.linear.x = 0.0;
-							_velocity.angular.z = 0.0;
-							
-							if (obs != null)
-								obs.waypointUpdate(WaypointState.DONE);
-							isNavigating.set(false);
-							return;
+							break;
 						}
 					}
 					
@@ -188,12 +184,19 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 					}
 				}
 				
-				// If we broke out of the loop, it means someone cancelled us,
-				// so stop the vehicle and report status
+				// Stop the vehicle
 				_velocity.linear.x = 0.0;
 				_velocity.angular.z = 0.0;
-				if (obs != null)
-					obs.waypointUpdate(WaypointState.CANCELLED);
+				
+				// Upon completion, report status 
+				// (if isNavigating is still true, we completed on our own)
+				if (isNavigating.getAndSet(false)) {
+					if (obs != null)
+						obs.waypointUpdate(WaypointState.DONE);
+				} else {
+					if (obs != null)
+						obs.waypointUpdate(WaypointState.CANCELLED);
+				}
 			}
 		}).start();
 	}
