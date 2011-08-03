@@ -68,14 +68,14 @@ public class CameraPanel extends AbstractAirboatPanel {
         takePictureButton = new javax.swing.JButton();
         pictureLabel = new javax.swing.JLabel();
 
-        savePictureButton.setText("Save Picture");
+        savePictureButton.setText("Stop Capturing");
         savePictureButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 savePictureButtonActionPerformed(evt);
             }
         });
 
-        takePictureButton.setText("Take Picture");
+        takePictureButton.setText("Start Capturing");
         takePictureButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 takePictureButtonActionPerformed(evt);

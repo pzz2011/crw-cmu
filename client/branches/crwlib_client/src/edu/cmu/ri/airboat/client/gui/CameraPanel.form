@@ -44,7 +44,7 @@
   <SubComponents>
     <Component class="javax.swing.JButton" name="savePictureButton">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Save Picture"/>
+        <Property name="text" type="java.lang.String" value="Stop Capturing"/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="savePictureButtonActionPerformed"/>
@@ -52,7 +52,7 @@
     </Component>
     <Component class="javax.swing.JButton" name="takePictureButton">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Take Picture"/>
+        <Property name="text" type="java.lang.String" value="Start Capturing"/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="takePictureButtonActionPerformed"/>
