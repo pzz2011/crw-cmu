@@ -474,7 +474,7 @@ public class RosVehicleServer {
 		@Override
 		public void preemptCallback(
 				SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> actionServer) {
-			logger.info("Navigation cancelled: ");
+			logger.info("Navigation cancelled.");
 			_server.stopWaypoint();
 			_navServer.setAborted();
 		}
