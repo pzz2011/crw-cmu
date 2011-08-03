@@ -123,7 +123,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	protected synchronized boolean connect() {
 
 		// Get a localhost address 
-		String host = getLocalhost(_masterUri.getHost());
+		String host = CrwNetworkUtils.getLocalhost(_masterUri.getHost());
 		if (host == null || host.isEmpty()) return false;
 		
 		// Create a node configuration and start a node
@@ -254,23 +254,6 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		} catch (Exception e) {
 			logger.warning("Unclean disconnection: " + e);
 		}
-	}
-
-
-	protected String getLocalhost(String masterUri) {
-		InetAddress addr;
-		
-		// Get a legitimate hostname, first by trying ICMP echo to master URI
-		addr = CrwNetworkUtils.getAddrForNeighbor(_masterUri.getHost());
-		
-		// If that fails, go for any non-loopback IPv4 address
-		if (addr == null) addr = InetAddressFactory.newNonLoopback();
-		
-		// If that fails, settle for a loopback address
-		if (addr == null) addr = InetAddressFactory.newLoopback();
-		
-		// If THAT fails, we are done here
-		return (addr == null) ? null : addr.getHostAddress();
 	}
 
 	/**
