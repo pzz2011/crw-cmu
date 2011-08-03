@@ -53,7 +53,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
         _timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                if (_vehicle != null) {
+                if (_vehicle != null && (_vehicle.getNumSensors() > 0)) {
                     autonomousBox.setSelected(_vehicle.isAutonomous());
                     connectedBox.setSelected(true);
                     connectButton.setBackground(Color.GREEN);
