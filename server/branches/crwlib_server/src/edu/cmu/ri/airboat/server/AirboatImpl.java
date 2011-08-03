@@ -3,6 +3,7 @@ package edu.cmu.ri.airboat.server;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.ros.internal.time.WallclockProvider;
 import org.ros.message.crwlib_msgs.SensorData;
@@ -48,8 +49,11 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public final SensorType[] _sensorTypes = new SensorType[3];
 	public UtmPose _waypoint = null;
 
-	private volatile boolean _isCapturing = false;
-	private volatile boolean _isNavigating = false;	
+	private final Object _captureLock = new Object();
+	private AtomicBoolean _isCapturing = null;
+	
+	private final Object _navigationLock = new Object();
+	private AtomicBoolean _isNavigating = null;
 
 	/**
 	 * Defines the PID gains that will be returned if there is an error.
@@ -70,8 +74,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public static final int RESPONSE_TIMEOUT_MS = 250; // was 200 earlier
 
 	// Status information
-	boolean _isConnected = true;
-	boolean _isAutonomous = false;
+	AtomicBoolean _isConnected = new AtomicBoolean(true) ;
+	AtomicBoolean _isAutonomous = new AtomicBoolean(false);
 
 	// Internal data structures for Amarino callbacks
 	final Context _context;
@@ -178,7 +182,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 		Amarino.sendDataToArduino(_context, _arduinoAddr, GET_GAINS_FN, axis);
 
 		// Wait for response here (only if connected)
-		if (_isConnected) {
+		if (_isConnected.get()) {
 			synchronized (_velocityGainLock) {
 
 				// Clear any old return value
@@ -227,7 +231,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * @see AirboatCommand#isConnected()
 	 */
 	public boolean isConnected() {
-		return _isConnected;
+		return _isConnected.get();
 	}
 
 	/**
@@ -235,7 +239,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * (indicating whether currently in contact with vehicle controller).
 	 */
 	protected void setConnected(boolean isConnected) {
-		_isConnected = isConnected;
+		_isConnected.set(isConnected);
 	}
 
 	/**
@@ -439,25 +443,35 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public void startCamera(final long numFrames, final double interval,
 			final int width, final int height, final ImagingObserver obs) {
 		
+		// Precompute the timing interval in ms
 		final long int_ms = (long)(interval * 1000.0);
-		_isCapturing = true;
+		
+		// Keep a reference to the capture flag for THIS capture process
+		final AtomicBoolean isCapturing = new AtomicBoolean(true);
+		
+		// Set this to be the current capture flag
+		synchronized(_captureLock) {
+			if (_isCapturing != null)
+				_isCapturing.set(false);		
+			_isCapturing = isCapturing;
+		}
 
+		// Start a capturing thread
 		new Thread(new Runnable() {
 
 			@Override
 			public void run() {
 				int iFrame = 0;
 
-				while (_isCapturing && (iFrame < numFrames)) {
+				while (isCapturing.get() && (iFrame < numFrames)) {
 
 					// Every so often, send out a random picture
 					sendImage(captureImage(width, height));
 					iFrame++;
 					
 					// Report status
-					if (obs != null) {
+					if (obs != null)
 						obs.imagingUpdate(CameraState.CAPTURING);
-					}
 
 					// Wait for a while
 					try {
@@ -467,9 +481,9 @@ public class AirboatImpl extends AbstractVehicleServer {
 					}
 				}
 				
-				// TODO: fix threading issue (fast stop/start)
-				if (_isCapturing == true) {
-					_isCapturing = false;
+				// Upon completion, report status 
+				// (if isCapturing is still true, we completed on our own)
+				if (isCapturing.getAndSet(false)) {
 					if (obs != null)
 						obs.imagingUpdate(CameraState.DONE);
 				} else {
@@ -482,8 +496,14 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	@Override
 	public void stopCamera() {
-		// Stop the thread that sends out images
-		_isCapturing = false;
+		// Stop the thread that sends out images by terminating its
+		// navigation flag and then removing the reference to the old flag.
+		synchronized(_captureLock) {
+			if (_isCapturing != null) {
+				_isCapturing.set(false);
+				_isCapturing = null;
+			}
+		}
 	}
 
 	double distToGoal(Pose x, Pose y) {
@@ -530,34 +550,51 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	public WaypointState getWaypointStatus() {
-		return (_isNavigating ? WaypointState.GOING : WaypointState.OFF); 
+		synchronized(_navigationLock) {
+			return (_isNavigating.get() ? WaypointState.GOING : WaypointState.OFF);
+		}
+		 
 	}
 	
 	@Override
-	public void startWaypoint(UtmPose waypoint, final WaypointObserver obs ) {
+	public void startWaypoint(final UtmPose waypoint, final WaypointObserver obs ) {
 		
+		// Precompute timing interval in ms
+		// TODO: use actual time to compute timesteps on the fly for navigation
 		final double dt = (double)UPDATE_INTERVAL_MS / 1000.0;
-		_waypoint = waypoint.clone();
-		_isNavigating = true;
 		
+		// Keep a reference to the navigation flag for THIS waypoint
+		final AtomicBoolean isNavigating = new AtomicBoolean(true);
+		
+		// Set this to be the current navigation flag
+		synchronized(_navigationLock) {
+			if (_isNavigating != null)
+				_isNavigating.set(false);
+			_isNavigating = isNavigating;
+			_waypoint = waypoint.clone();
+		}
+		
+		// Start a navigation thread
 		new Thread(new Runnable() {
 
 			@Override
 			public void run() {
-				while (_isNavigating) {
+				while (isNavigating.get()) {
 					
 					// If we are not set in autonomous mode, don't try to drive!
-					if (!_isAutonomous) {
+					if (!_isAutonomous.get()) {
 						// TODO: probably should add a "paused" state
-						obs.waypointUpdate(WaypointState.OFF);
+						if (obs != null) 
+							obs.waypointUpdate(WaypointState.OFF);
 					} else {
 						// Report our status as moving toward target
-						obs.waypointUpdate(WaypointState.GOING);
+						if (obs != null)
+							obs.waypointUpdate(WaypointState.GOING);
 						
 						// Get the position of the vehicle and the waypoint
 						// TODO: fix threading issue (fast stop/start)
 						Pose pose = _pose.pose.pose.pose;
-						Pose waypoint = _waypoint.pose;
+						Pose wpPose = waypoint.pose;
 	
 						// TODO: handle different UTM zones!
 	
@@ -567,14 +604,9 @@ public class AirboatImpl extends AbstractVehicleServer {
 						// TODO: measure dt directly instead of approximating
 						
 						// Check for termination condition
-						// TODO: termination conditions should be tested by
-						// controller, not navigation function.
-						double dist = distToGoal(pose, waypoint);
-						if (dist < 3.0) {
-							obs.waypointUpdate(WaypointState.DONE);
-							_isNavigating = false;
-							return;
-						}
+						// TODO: termination conditions tested by controller
+						double dist = distToGoal(pose, wpPose);
+						if (dist < 3.0) break;
 					}
 					
 					// Pause for a while
@@ -583,17 +615,39 @@ public class AirboatImpl extends AbstractVehicleServer {
 					} catch (InterruptedException e) {}
 				}
 				
-				// If we broke out of the loop, it means someone cancelled us
-				obs.waypointUpdate(WaypointState.CANCELLED);
+				// Stop the vehicle
+				_velocities.linear.x = 0.0;
+				_velocities.linear.y = 0.0;
+				_velocities.linear.z = 0.0;
+				_velocities.angular.x = 0.0;
+				_velocities.angular.y = 0.0;
+				_velocities.angular.z = 0.0;
+				
+				// Upon completion, report status 
+				// (if isNavigating is still true, we completed on our own)
+				if (isNavigating.getAndSet(false)) {
+					if (obs != null)
+						obs.waypointUpdate(WaypointState.DONE);
+				} else {
+					if (obs != null)
+						obs.waypointUpdate(WaypointState.CANCELLED);
+				}
 			}
 		}).start();
 	}
 	
 	@Override
 	public void stopWaypoint() {
-
-		_isNavigating = false;
-		_waypoint = null;
+		
+		// Stop the thread that is doing the "navigation" by terminating its
+		// navigation flag and then removing the reference to the old flag.
+		synchronized(_navigationLock) {
+			if (_isNavigating != null) {
+				_isNavigating.set(false);
+				_isNavigating = null;
+			}
+			_waypoint = null;
+		}
 	}
 
 	/**
@@ -615,18 +669,19 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	@Override
 	public CameraState getCameraStatus() {
-		return (_isCapturing ? CameraState.CAPTURING : CameraState.OFF);
+		synchronized(_captureLock) {
+			return (_isCapturing.get() ? CameraState.CAPTURING : CameraState.OFF);
+		}
 	}
 
 	@Override
 	public boolean isAutonomous() {
-		return _isAutonomous;
+		return _isAutonomous.get();
 	}
 
 	@Override
 	public void setAutonomous(boolean isAutonomous) {
-		
-		_isAutonomous = isAutonomous;
+		_isAutonomous.set(isAutonomous);
 		
 		// Set velocities to zero to allow for safer transitions
 		_velocities.linear.x = 0.0;
@@ -641,10 +696,9 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * Performs cleanup functions in preparation for stopping the server.
 	 */
 	public void shutdown() {
-		_isAutonomous = false;
-		_isConnected = false;
-		_isNavigating = false;
-		_isCapturing = false;
+		_isAutonomous.set(false);
+		_isConnected.set(false);
+		_isNavigating.set(false);
+		_isCapturing.set(false);
 	}
-
 }
