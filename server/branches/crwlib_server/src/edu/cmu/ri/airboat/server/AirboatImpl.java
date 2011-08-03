@@ -551,6 +551,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	public WaypointState getWaypointStatus() {
 		synchronized(_navigationLock) {
+			if (_isNavigating == null) return WaypointState.OFF;
 			return (_isNavigating.get() ? WaypointState.GOING : WaypointState.OFF);
 		}
 		 
@@ -670,6 +671,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	@Override
 	public CameraState getCameraStatus() {
 		synchronized(_captureLock) {
+			if (_isCapturing == null) return CameraState.OFF;
 			return (_isCapturing.get() ? CameraState.CAPTURING : CameraState.OFF);
 		}
 	}
