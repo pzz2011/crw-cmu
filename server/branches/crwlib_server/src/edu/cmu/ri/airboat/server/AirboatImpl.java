@@ -696,9 +696,10 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * Performs cleanup functions in preparation for stopping the server.
 	 */
 	public void shutdown() {
+		stopWaypoint();
+		stopCamera();
+		
 		_isAutonomous.set(false);
 		_isConnected.set(false);
-		_isNavigating.set(false);
-		_isCapturing.set(false);
 	}
 }
