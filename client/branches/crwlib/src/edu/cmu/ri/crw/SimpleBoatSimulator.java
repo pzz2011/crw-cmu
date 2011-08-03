@@ -117,11 +117,12 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		// Keep a reference to the navigation flag for THIS waypoint
 		final AtomicBoolean isNavigating = new AtomicBoolean(true);
 		
+		// Set this to be the current navigation flag
 		synchronized(_navigationLock) {
 			if (_isNavigating != null)
 				_isNavigating.set(false);
 			_isNavigating = isNavigating;
-			_waypoint = waypoint;
+			_waypoint = waypoint.clone();
 		}
 		
 		new Thread(new Runnable() {
@@ -199,6 +200,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 	@Override
 	public void stopWaypoint() {
+		
 		// Stop the thread that is doing the "navigation" by terminating its
 		// navigation flag and then removing the reference to the old flag.
 		synchronized(_navigationLock) {
