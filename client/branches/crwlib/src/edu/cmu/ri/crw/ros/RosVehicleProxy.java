@@ -11,6 +11,7 @@ import org.ros.actionlib.state.SimpleClientGoalState;
 import org.ros.address.InetAddressFactory;
 import org.ros.exception.RemoteException;
 import org.ros.exception.RosException;
+import org.ros.exception.RosRuntimeException;
 import org.ros.exception.ServiceNotFoundException;
 import org.ros.message.MessageListener;
 import org.ros.message.crwlib_msgs.UtmPose;
@@ -68,7 +69,10 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		Logger.getLogger(RosVehicleProxy.class.getName());
 
 	public static final String DEFAULT_NODE_NAME = "vehicle_client";
-
+	
+	protected final URI _masterUri;
+	protected final String _nodeName;
+	
 	protected Node _node;
 	protected Publisher<Twist> _velocityPublisher;
 	protected RosVehicleNavigation.Client _navClient; 
@@ -102,41 +106,57 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		// TODO: Remove this logging setting -- it is a stopgap for a rosjava bug
 		Logger.getLogger("org.ros.internal.node.client").setLevel(Level.SEVERE);
 		
-		// Get a legitimate hostname, first by trying ICMP echo to master URI
-		InetAddress addr = CrwNetworkUtils.getAddrForNeighbor(masterUri.getHost());
-		String host = (addr != null) ? addr.getHostAddress() : InetAddressFactory.newNonLoopback().getHostAddress();  
+		_masterUri = masterUri;
+		_nodeName = nodeName;
+		
+		connect();
+	}
+	
+	/**
+	 * Performs a single attempt at connecting to a ROS core.  On failure, a
+	 * disconnect() should be called to perform any residual cleanup.
+	 * 
+	 * @return true if the connection was successful, false if it failed
+	 */
+	protected synchronized boolean connect() {
+
+		// Get a localhost address 
+		String host = getLocalhost(_masterUri.getHost());
+		if (host == null || host.isEmpty()) return false;
 		
 		// Create a node configuration and start a node
-		NodeConfiguration config = NodeConfiguration.newPublic(host, masterUri);
-	    _node = new DefaultNodeFactory().newNode(nodeName, config);		
+		NodeConfiguration config = NodeConfiguration.newPublic(host, _masterUri);
+	    _node = new DefaultNodeFactory().newNode(_nodeName, config);		
 		
 	    // Start up action clients to run navigation and imaging
 	    NodeRunner runner = NodeRunner.newDefault();
 	    
 	    // Create an action server for vehicle navigation
-	    NodeConfiguration navConfig = NodeConfiguration.newPublic(host, masterUri);
+	    NodeConfiguration navConfig = NodeConfiguration.newPublic(host, _masterUri);
 		NameResolver navResolver = NameResolver.create("/nav");
 		navConfig.setParentResolver(navResolver);
 		
 		try {
 			_navClient = new RosVehicleNavigation.Spec()
-					.buildSimpleActionClient(nodeName + "_nav");
+					.buildSimpleActionClient(_nodeName + "_nav");
 			runner.run(_navClient, navConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
+			return false;
 		}
 
 		// Create an action server for image capturing
-		NodeConfiguration imgConfig = NodeConfiguration.newPublic(host, masterUri);
+		NodeConfiguration imgConfig = NodeConfiguration.newPublic(host, _masterUri);
 		NameResolver imgResolver = NameResolver.create("/img");
 		imgConfig.setParentResolver(imgResolver);
 		
 		try {
 			_imgClient = new RosVehicleImaging.Spec()
-					.buildSimpleActionClient(nodeName + "_img");
+					.buildSimpleActionClient(_nodeName + "_img");
 			runner.run(_imgClient, imgConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start image action client: " + ex);
+			return false;
 		}
 
 		// Register subscriber for state
@@ -173,91 +193,128 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		_velocityPublisher = _node.newPublisher("cmd_vel", "geometry_msgs/Twist");
 		
 		// Register services for two-way setters and accessor functions
-		try {
-		    _setStateClient = _node.newServiceClient("/set_state", "crwlib_msgs/SetState");    
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for SetState.");
-		}
+		_setStateClient = registerService("/set_state", "crwlib_msgs/SetState");
+		if (_setStateClient == null) return false;
 		
-		try { 
-			_getStateClient = _node.newServiceClient("/get_state", "crwlib_msgs/GetState");
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for GetState.");
-		}
+		_getStateClient = registerService("/get_state", "crwlib_msgs/GetState");
+		if (_getStateClient == null) return false;
 		
-		try {
-		    _captureImageClient = _node.newServiceClient("/capture_image", "crwlib_msgs/CaptureImage");
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for CaptureImage.");
-		}
+		_captureImageClient = registerService("/capture_image", "crwlib_msgs/CaptureImage");
+		if (_captureImageClient == null) return false;
 		
-		try {
-		    _getCameraStatusClient = _node.newServiceClient("/get_camera_status", "crwlib_msgs/GetCameraStatus");    
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for GetCameraStatus.");
-		}
+		_getCameraStatusClient = registerService("/get_camera_status", "crwlib_msgs/GetCameraStatus");
+		if (_getCameraStatusClient == null) return false;
 		
-		try {
-		    _setSensorTypeClient = _node.newServiceClient("/set_sensor_type", "crwlib_msgs/SetSensorType");    
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for SetSensorType.");
-		}
+		_setSensorTypeClient = registerService("/set_sensor_type", "crwlib_msgs/SetSensorType");
+		if (_setSensorTypeClient == null) return false;
 		
-		try {
-			_getSensorTypeClient = _node.newServiceClient("/get_sensor_type", "crwlib_msgs/GetSensorType");    
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for GetSensorType.");
-		}
+		_getSensorTypeClient = registerService("/get_sensor_type", "crwlib_msgs/GetSensorType");
+		if (_getSensorTypeClient == null) return false;
 		
-		try {
-			_getNumSensorsClient = _node.newServiceClient("/get_num_sensors", "crwlib_msgs/GetNumSensors");    
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for GetNumSensors.");
-		}
+		_getNumSensorsClient = registerService("/get_num_sensors", "crwlib_msgs/GetNumSensors");
+		if (_getNumSensorsClient == null) return false;
 		
-		try {
-			_getVelocityClient = _node.newServiceClient("/get_velocity", "crwlib_msgs/GetVelocity");    
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for GetVelocity.");
-		}
+		_getVelocityClient = registerService("/get_velocity", "crwlib_msgs/GetVelocity");
+		if (_getVelocityClient == null) return false;
 		
-		try {
-			_isAutonomousClient = _node.newServiceClient("/is_autonomous", "crwlib_msgs/IsAutonomous");    
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for IsAutonomous.");
-		}
+		_isAutonomousClient = registerService("/is_autonomous", "crwlib_msgs/IsAutonomous");
+		if (_isAutonomousClient == null) return false;
 		
-		try {
-			_setAutonomousClient = _node.newServiceClient("/set_autonomous", "crwlib_msgs/SetAutonomous");    
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for SetAutonomous.");
-		}
-	    
-		try {
-			_getWaypointClient = _node.newServiceClient("/get_waypoint", "crwlib_msgs/GetWaypoint"); 
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for GetWaypoint.");
-		}
+		_setAutonomousClient = registerService("/set_autonomous", "crwlib_msgs/SetAutonomous");
+		if (_setAutonomousClient == null) return false;
 		
-		try {
-			_getWaypointStatusClient = _node.newServiceClient("/get_waypoint_status", "crwlib_msgs/GetWaypointStatus");    
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for GetWaypointStatus.");
-		}
+		_getWaypointClient = registerService("/get_waypoint", "crwlib_msgs/GetWaypoint");
+		if (_getWaypointClient == null) return false;
 		
-		try {
-			_setPidClient = _node.newServiceClient("/set_pid", "crwlib_msgs/SetPid");    
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for SetPid.");
-		}
-	
-		try {
-			_getPidClient = _node.newServiceClient("/get_pid", "crwlib_msgs/GetPid");  
-		} catch (ServiceNotFoundException ex) {
-			logger.warning("Failed to find service for GetPid.");
-		}
+		_getWaypointStatusClient = registerService("/get_waypoint_status", "crwlib_msgs/GetWaypointStatus");
+		if (_getWaypointStatusClient == null) return false;
+		
+		_setPidClient = registerService("/set_pid", "crwlib_msgs/SetPid");
+		if (_setPidClient == null) return false;
+		
+		_getPidClient = registerService("/get_pid", "crwlib_msgs/GetPid");
+		if (_getPidClient == null) return false;
 		
 		logger.info("Proxy initialized successfully.");
+		return true;
+	}
+	
+	protected synchronized void disconnect() {
+		try {
+			if (_navClient != null)
+				_navClient.shutdown();
+			
+			if (_imgClient != null)
+				_imgClient.shutdown();
+			
+			if (_node != null)
+				_node.shutdown();
+		} catch (Exception e) {
+			logger.warning("Unclean disconnection: " + e);
+		}
+	}
+
+
+	protected String getLocalhost(String masterUri) {
+		InetAddress addr;
+		
+		// Get a legitimate hostname, first by trying ICMP echo to master URI
+		addr = CrwNetworkUtils.getAddrForNeighbor(_masterUri.getHost());
+		
+		// If that fails, go for any non-loopback IPv4 address
+		if (addr == null) addr = InetAddressFactory.newNonLoopback();
+		
+		// If that fails, settle for a loopback address
+		if (addr == null) addr = InetAddressFactory.newLoopback();
+		
+		// If THAT fails, we are done here
+		return (addr == null) ? null : addr.getHostAddress();
+	}
+
+	/**
+	 * Helper function to register services for two-way setters and accessor 
+	 * functions.
+	 * 
+	 * @param topic
+	 * @param msgType
+	 * @return
+	 */
+	protected <Request, Response> ServiceClient<Request, Response> registerService(String topic, String msgType) {
+		try {
+			ServiceClient<Request, Response> serviceClient = _node.newServiceClient(topic, msgType);
+			return serviceClient;
+		} catch (ServiceNotFoundException ex) {
+			logger.warning("Failed to find service for: " + topic);
+			return null;
+		} catch (RosRuntimeException e) {
+			logger.warning("Failed to register service " + topic + ":" + e);
+			return null;
+		}
+	}
+	
+	/**
+	 * Helper function to safely call services, and reconnect if the service
+	 * fails to respond correctly.
+	 * 
+	 * @param <Request>
+	 * @param <Response>
+	 * @param client
+	 * @param request
+	 * @return
+	 */
+	protected <Request, Response> Response safeCall(ServiceClient<Request, Response> client, Request request) {
+		if (client == null)
+			return null;
+		
+		try {
+			BlockingListener<Response> listener = new BlockingListener<Response>();
+			client.call(request, listener);
+			Response response = listener.waitForCompletion();
+			return response;
+		} catch (RosRuntimeException e) {
+			logger.warning("Failed to call " + client + ":" + e);
+			return null;
+		}
 	}
 	
 	protected class BlockingListener<MessageType> implements ServiceResponseListener<MessageType> {
@@ -291,9 +348,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	 * Terminates the ROS processes wrapping a VehicleServer.
 	 */
 	public void shutdown() {
-		_navClient.shutdown();
-		_imgClient.shutdown();
-		_node.shutdown();
+		disconnect();
 	}
 
 	protected class NavigationHandler implements SimpleActionClientCallbacks<VehicleNavigationFeedback, VehicleNavigationResult> {
@@ -314,8 +369,13 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		public void doneCallback(SimpleClientGoalState state,
 				VehicleNavigationResult result) {
 			logger.fine("Navigation finished");
-			if (_obs != null)
-				_obs.waypointUpdate(WaypointState.values()[result.status]);
+			if (_obs != null) {
+				if (result == null) {
+					_obs.waypointUpdate(WaypointState.UNKNOWN);
+				} else {
+					_obs.waypointUpdate(WaypointState.values()[result.status]);
+				}
+			}
 		}
 
 		@Override
@@ -341,8 +401,14 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		@Override
 		public void doneCallback(SimpleClientGoalState state, VehicleImageCaptureResult result) {
 			logger.fine("Capture finished");
-			if (_obs != null)
-				_obs.imagingUpdate(CameraState.values()[result.status]);
+			if (_obs != null) {
+				if (result == null) {
+					_obs.imagingUpdate(CameraState.UNKNOWN);
+				} else {
+					_obs.imagingUpdate(CameraState.values()[result.status]);
+				}
+			}
+			
 		}
 
 		@Override
@@ -358,27 +424,20 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		request.width = width;
 		request.height = height;
 		
-		BlockingListener<CaptureImage.Response> listener = new BlockingListener<CaptureImage.Response>();
-		_captureImageClient.call(request, listener);
-		CaptureImage.Response response = listener.waitForCompletion();
-		
+		CaptureImage.Response response = safeCall(_captureImageClient, request);
 		// TODO: return actual taken image
 		return (response != null) ? new CompressedImage() : null;
 	}
 
 	@Override
 	public CameraState getCameraStatus() {
-		BlockingListener<GetCameraStatus.Response> listener = new BlockingListener<GetCameraStatus.Response>();
-		_getCameraStatusClient.call(new GetCameraStatus.Request(), listener);
-		GetCameraStatus.Response response = listener.waitForCompletion();
+		GetCameraStatus.Response response = safeCall(_getCameraStatusClient, new GetCameraStatus.Request());
 		return (response != null) ? CameraState.values()[response.status] : CameraState.UNKNOWN;
 	}
 
 	@Override
 	public int getNumSensors() {
-		BlockingListener<GetNumSensors.Response> listener = new BlockingListener<GetNumSensors.Response>();
-		_getNumSensorsClient.call(new GetNumSensors.Request(), listener);
-		GetNumSensors.Response response = listener.waitForCompletion();
+		GetNumSensors.Response response = safeCall(_getNumSensorsClient, new GetNumSensors.Request());
 		return (response != null) ? response.numSensors : -1;
 	}
 
@@ -387,9 +446,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		GetPid.Request request = new GetPid.Request();
 		request.axis = (byte)axis;
 		
-		BlockingListener<GetPid.Response> listener = new BlockingListener<GetPid.Response>();
-		_getPidClient.call(request, listener);
-		GetPid.Response response = listener.waitForCompletion();
+		GetPid.Response response = safeCall(_getPidClient, request); 
 		return (response != null) ? response.gains : new double[0];
 	}
 	
@@ -397,50 +454,38 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	public SensorType getSensorType(int channel) {
 		GetSensorType.Request request = new GetSensorType.Request();
 		request.channel = (byte)channel;
-		
-		BlockingListener<GetSensorType.Response> listener = new BlockingListener<GetSensorType.Response>();
-		_getSensorTypeClient.call(request, listener);
-		GetSensorType.Response response = listener.waitForCompletion();
+			
+		GetSensorType.Response response = safeCall(_getSensorTypeClient, request);
 		return (response != null) ? SensorType.values()[response.type] : SensorType.UNKNOWN;
 	}
 
 	@Override
 	public UtmPoseWithCovarianceStamped getState() {
-		BlockingListener<GetState.Response> listener = new BlockingListener<GetState.Response>();
-		_getStateClient.call(new GetState.Request(), listener);
-		GetState.Response response = listener.waitForCompletion();
-		return (response != null) ? response.pose : null;	
+		GetState.Response response = safeCall(_getStateClient, new GetState.Request());
+		return (response != null) ? response.pose : null;
 	}
 
 	@Override
 	public TwistWithCovarianceStamped getVelocity() {
-		BlockingListener<GetVelocity.Response> listener = new BlockingListener<GetVelocity.Response>();
-		_getVelocityClient.call(new GetVelocity.Request(), listener);
-		GetVelocity.Response response = listener.waitForCompletion();
+		GetVelocity.Response response = safeCall(_getVelocityClient, new GetVelocity.Request());
 		return (response != null) ? response.velocity : null;
 	}
 
 	@Override
 	public UtmPose getWaypoint() {
-		BlockingListener<GetWaypoint.Response> listener = new BlockingListener<GetWaypoint.Response>();
-		_getWaypointClient.call(new GetWaypoint.Request(), listener);
-		GetWaypoint.Response response = listener.waitForCompletion();
+		GetWaypoint.Response response = safeCall(_getWaypointClient, new GetWaypoint.Request());
 		return (response != null) ? response.waypoint : null;
 	}
 
 	@Override
 	public WaypointState getWaypointStatus() {
-		BlockingListener<GetWaypointStatus.Response> listener = new BlockingListener<GetWaypointStatus.Response>();
-		_getWaypointStatusClient.call(new GetWaypointStatus.Request(), listener);
-		GetWaypointStatus.Response response = listener.waitForCompletion();
-		return (response != null) ? WaypointState.values()[response.status] : WaypointState.UNKNOWN;	
+		GetWaypointStatus.Response response = safeCall(_getWaypointStatusClient, new GetWaypointStatus.Request());
+		return (response != null) ? WaypointState.values()[response.status] : WaypointState.UNKNOWN;
 	}
 
 	@Override
 	public boolean isAutonomous() {
-		BlockingListener<IsAutonomous.Response> listener = new BlockingListener<IsAutonomous.Response>();
-		_isAutonomousClient.call(new IsAutonomous.Request(), listener);
-		IsAutonomous.Response response = listener.waitForCompletion();
+		IsAutonomous.Response response = safeCall(_isAutonomousClient, new IsAutonomous.Request());
 		return (response != null) ? response.isAutonomous : false;
 	}
 
@@ -448,10 +493,8 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	public void setAutonomous(boolean auto) {
 		SetAutonomous.Request request = new SetAutonomous.Request();
 		request.isAutonomous = auto;
-		
-		BlockingListener<SetAutonomous.Response> listener = new BlockingListener<SetAutonomous.Response>();
-		_setAutonomousClient.call(request, listener);
-		listener.waitForCompletion();
+				
+		safeCall(_setAutonomousClient, request);
 	}
 
 	@Override
@@ -459,10 +502,8 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		SetPid.Request request = new SetPid.Request();
 		request.axis = (byte)axis;
 		request.gains = gains;
-		
-		BlockingListener<SetPid.Response> listener = new BlockingListener<SetPid.Response>();
-		_setPidClient.call(request, listener);
-		listener.waitForCompletion();
+				
+		safeCall(_setPidClient, request);
 	}
 	
 	@Override
@@ -471,19 +512,15 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		request.channel = (byte)channel;
 		request.type = (byte)type.ordinal();
 		
-		BlockingListener<SetSensorType.Response> listener = new BlockingListener<SetSensorType.Response>();
-		_setSensorTypeClient.call(request, listener);
-		listener.waitForCompletion();
+		safeCall(_setSensorTypeClient, request);
 	}
 
 	@Override
 	public void setState(UtmPose state) {
 		SetState.Request request = new SetState.Request();
 		request.pose = state;
-		
-		BlockingListener<SetState.Response> listener = new BlockingListener<SetState.Response>();
-		_setStateClient.call(request, listener);
-		listener.waitForCompletion();
+
+		safeCall(_setStateClient, request);
 	}
 
 	@Override
