@@ -1,13 +1,11 @@
 package edu.cmu.ri.crw.ros;
 
-import java.net.InetAddress;
 import java.net.URI;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.ros.actionlib.server.SimpleActionServer;
 import org.ros.actionlib.server.SimpleActionServerCallbacks;
-import org.ros.address.InetAddressFactory;
 import org.ros.exception.RosException;
 import org.ros.internal.node.service.ServiceResponseBuilder;
 import org.ros.internal.time.WallclockProvider;
@@ -90,7 +88,7 @@ public class RosVehicleServer {
 	protected RosVehicleNavigation.Server _navServer;
 	protected RosVehicleImaging.Server _imgServer;
 	
-	public RosVehicleServer(VehicleServer server) {
+	public RosVehicleServer(VehicleServer server) throws RosException {
 		this(NodeConfiguration.DEFAULT_MASTER_URI, DEFAULT_NODE_NAME, server);
 	}
 
@@ -99,9 +97,9 @@ public class RosVehicleServer {
 		// TODO: Remove this logging setting -- it is a stopgap for a rosjava bug
 		Logger.getLogger("org.ros.internal.node.client").setLevel(Level.SEVERE);
 
-		// Get a legitimate hostname, first by trying ICMP echo to master URI
-		InetAddress addr = CrwNetworkUtils.getAddrForNeighbor(masterUri.getHost());
-		String host = (addr != null) ? addr.getHostAddress() : InetAddressFactory.newNonLoopback().getHostAddress();
+		// Get a localhost address 
+		String host = CrwNetworkUtils.getLocalhost(masterUri.getHost());
+		if (host == null || host.isEmpty()) return;
 		
 		// Store the reference to VehicleServer implementation
 		_server = server;
@@ -322,7 +320,6 @@ public class RosVehicleServer {
 		});
 		
 	    // TODO: we should probably use awaitPublisher here
-
 		logger.info("Server initialized successfully.");
 	}
 	

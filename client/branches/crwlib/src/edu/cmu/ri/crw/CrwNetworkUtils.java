@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.ros.address.InetAddressFactory;
+
 /**
  * Contains network utility functions for finding hosts, interfaces, etc. 
  * 
@@ -78,5 +80,30 @@ public class CrwNetworkUtils {
 		} catch (UnknownHostException e) { 
 			return null;
 		}
+	}
+	
+	/**
+	 * Do a best effort search to find a local hostname that will make sense
+	 * to a given external host.  Starts by using ICMP to try to reach the 
+	 * external host, then tries non-loopback addresses, then loopback 
+	 * addresses.
+	 * 
+	 * @param externalHost the external host that the hostname should be visible to
+	 * @return a local hostname that the external host would be able to use
+	 */
+	public static String getLocalhost(String externalHost) {
+		InetAddress addr;
+		
+		// Get a legitimate hostname, first by trying ICMP echo to master URI
+		addr = CrwNetworkUtils.getAddrForNeighbor(externalHost);
+		
+		// If that fails, go for any non-loopback IPv4 address
+		if (addr == null) addr = InetAddressFactory.newNonLoopback();
+		
+		// If that fails, settle for a loopback address
+		if (addr == null) addr = InetAddressFactory.newLoopback();
+		
+		// If THAT fails, we are done here
+		return (addr == null) ? null : addr.getHostAddress();
 	}
 }
