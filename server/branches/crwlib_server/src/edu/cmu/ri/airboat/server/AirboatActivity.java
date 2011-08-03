@@ -15,7 +15,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
@@ -136,14 +136,16 @@ public class AirboatActivity extends Activity {
 		final AutoCompleteTextView masterAddress = (AutoCompleteTextView)findViewById(R.id.MasterAddress);
 		masterAddress.addTextChangedListener(new TextWatcher() {
 			
-			Handler handler = new Handler();
+			final Handler handler = new Handler();
 			final AtomicBoolean _isUpdating = new AtomicBoolean(false);
 			final AtomicBoolean _isUpdated = new AtomicBoolean(false);
 			
-			final Runnable textUpdate = new Runnable() {
+			final class TextUpdate extends AsyncTask<Void, Void, Integer> {
 				
 				@Override
-				public void run() {
+				protected Integer doInBackground(Void... urls) {
+					int textBkgnd = 0xFFFFCCCC;
+					
 					_isUpdated.set(true);
 					_isUpdating.set(true);
 					
@@ -151,34 +153,40 @@ public class AirboatActivity extends Activity {
 						// Try to open the URI in the text box, if it succeeds, make 
 						// the box change color accordingly
 				        URL url = new URL(masterAddress.getText().toString());
-				        if (InetAddress.getByName(url.getHost()).isReachable(200)) {
+				        if (InetAddress.getByName(url.getHost()).isReachable(300)) {
 				        
 					        HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
 					        if (urlConn != null) {
-					        	urlConn.setConnectTimeout(200);
-					        	urlConn.setReadTimeout(200);
+					        	urlConn.setConnectTimeout(300);
+					        	urlConn.setReadTimeout(300);
 						        urlConn.connect();
-						        
-						        if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NOT_IMPLEMENTED) {
-						        	masterAddress.setBackgroundColor(Color.GREEN);
-						        } else {
-						        	masterAddress.setBackgroundColor(Color.RED);
-						        }
-						        
+						        if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NOT_IMPLEMENTED)
+						        	textBkgnd = 0xFFCCFFCC;
 						        urlConn.disconnect();
 					        }
 				        }
-				    } catch (Exception e) { 
-				    	masterAddress.setBackgroundColor(Color.RED);
-				    }
+				    } catch (Exception e) {}
 				    
-				    // Immediately reschedule if out of date, otherwise delay
+				    return textBkgnd;
+				}
+
+				@Override
+				protected void onPostExecute(Integer result) {
+					masterAddress.setBackgroundColor(result);
+
+					// Immediately reschedule if out of date, otherwise delay
 				    if (!_isUpdated.get()) {
-				    	handler.post(textUpdate);
+				    	new TextUpdate().execute((Void[])null);
 				    } else {
-				    	handler.postDelayed(textUpdate, 2000);
+				    	handler.postDelayed(new Runnable() {
+							@Override
+							public void run() {
+								new TextUpdate().execute((Void[])null);
+							}
+						}, 2000);
 				    }
 				    
+				    // In any case, we are now done updating
 				    _isUpdating.set(false);
 				}
 			};
@@ -196,7 +204,7 @@ public class AirboatActivity extends Activity {
 				
 				// If an update isn't already running, start one up
 				if (!_isUpdating.get()) {
-					handler.post(textUpdate);
+					new TextUpdate().execute((Void[])null);
 				}
 			}
 		});
