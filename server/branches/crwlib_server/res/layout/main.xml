@@ -3,6 +3,7 @@
   xmlns:android="http://schemas.android.com/apk/res/android"
   android:layout_width="fill_parent"
   android:layout_height="fill_parent" android:orientation="vertical">
+    <LinearLayout android:focusable="true" android:focusableInTouchMode="true" android:layout_width="0px" android:layout_height="0px" />
 	<TextView android:id="@+id/ConnectTitle" android:text="@string/connect_title" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
 	<AutoCompleteTextView android:id="@+id/ConnectAddress" android:text="@string/connect_default_addr" android:layout_width="fill_parent" android:layout_height="wrap_content" android:editable="true" android:isScrollContainer="false" android:singleLine="true" android:typeface="monospace" android:imeOptions="actionDone"></AutoCompleteTextView>
 	<TextView android:id="@+id/MasterTitle" android:text="@string/master_title" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
