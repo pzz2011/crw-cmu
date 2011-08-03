@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.ros.internal.time.WallclockProvider;
+import org.ros.message.crwlib_msgs.SensorData;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.Pose;
@@ -298,7 +299,24 @@ public class AirboatImpl extends AbstractVehicleServer {
 			logger.info("THRUST: " + cmd);
 			break;
 		case GET_TE_FN:
-			logger.info("TE: " + cmd);
+			// Check size of function
+			if (cmd.size() != 5) {
+				Log.w(logTag, "Received corrupt sensor function: " + cmd);
+				return;
+			}
+			
+			// Broadcast the sensor reading
+			try {
+				SensorData reading = new SensorData();
+				reading.data = new double[3];
+				reading.type = (byte)SensorType.TE.ordinal();
+				for (int i = 0; i < 3; i++)
+					reading.data[i] = Double.parseDouble(cmd.get(i + 1));
+				sendSensor(0, reading);
+				logger.info("TE: " + cmd);
+			} catch (NumberFormatException e) {
+				Log.w(logTag, "Received corrupt sensor reading: " + cmd);
+			}
 			break;
 		default:
 			Log.w(logTag, "Received unknown function type: " + cmd);
@@ -479,7 +497,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	@Override
 	public int getNumSensors() {
 		// TODO Fix this
-		return 0;
+		return 1;
 	}
 
 	@Override
