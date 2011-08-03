@@ -451,13 +451,6 @@ public class RosVehicleServer {
 							result.finalPose.pose.pose = goal.targetPose.pose; // TODO: Should this be vehicle pose or waypoint pose?
 							result.finalPose.utm = goal.targetPose.utm;
 							_navServer.setSucceeded(result, "DONE");
-						} else if (status == WaypointState.CANCELLED) {
-							VehicleNavigationResult result = new VehicleNavigationResult();
-							result.header.stamp = new WallclockProvider().getCurrentTime();
-							result.status = (byte) status.ordinal();
-							result.finalPose.pose.pose = goal.targetPose.pose; // TODO: Should this be vehicle pose or waypoint pose?
-							result.finalPose.utm = goal.targetPose.utm;
-							_navServer.setAborted(result, "CANCELLED");
 						} else {
 							VehicleNavigationFeedback feedback = new VehicleNavigationFeedback();
 							feedback.header.stamp = new WallclockProvider().getCurrentTime();
@@ -476,7 +469,6 @@ public class RosVehicleServer {
 				SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> actionServer) {
 			logger.info("Navigation cancelled.");
 			_server.stopWaypoint();
-			_navServer.setAborted();
 		}
 
 		@Override
@@ -513,11 +505,6 @@ public class RosVehicleServer {
 							result.header.stamp = new WallclockProvider().getCurrentTime();
 							result.status = (byte) status.ordinal();
 							_imgServer.setSucceeded(result, "DONE");
-						} else if (status == CameraState.CANCELLED) {
-							VehicleImageCaptureResult result = new VehicleImageCaptureResult();
-							result.header.stamp = new WallclockProvider().getCurrentTime();
-							result.status = (byte) status.ordinal();
-							_imgServer.setAborted(result, "CANCELLED");
 						} else {
 							VehicleImageCaptureFeedback feedback = new VehicleImageCaptureFeedback();
 							feedback.header.stamp = new WallclockProvider().getCurrentTime();
