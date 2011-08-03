@@ -3,6 +3,7 @@ package edu.cmu.ri.crw.ros;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -69,6 +70,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		Logger.getLogger(RosVehicleProxy.class.getName());
 
 	public static final String DEFAULT_NODE_NAME = "vehicle_client";
+	public static final int SERVICE_TIMEOUT_MS = 1000;
 	
 	protected final URI _masterUri;
 	protected final String _nodeName;
@@ -336,7 +338,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
     	
     	public MessageType waitForCompletion() {
 			try {
-				_complete.await();
+				_complete.await(SERVICE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 				return _result;
 			} catch (InterruptedException e) {
 				return null;
