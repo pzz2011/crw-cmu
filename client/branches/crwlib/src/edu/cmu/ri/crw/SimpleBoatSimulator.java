@@ -118,7 +118,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		final AtomicBoolean isNavigating = new AtomicBoolean(true);
 		
 		synchronized(_navigationLock) {
-			if (_isNavigating != null) {
+			if (_isNavigating != null)
 				_isNavigating.set(false);
 			_isNavigating = isNavigating;
 			_waypoint = waypoint;
@@ -229,7 +229,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		
 		// Set this to be the current capture flag
 		synchronized(_captureLock) {
-			if (_isCapturing != null) {
+			if (_isCapturing != null)
 				_isCapturing.set(false);		
 			_isCapturing = isCapturing;
 		}
