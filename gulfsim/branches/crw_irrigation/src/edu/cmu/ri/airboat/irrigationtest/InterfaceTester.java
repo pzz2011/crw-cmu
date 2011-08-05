@@ -13,12 +13,16 @@ import edu.cmu.ri.crw.VehicleStateListener;
 import edu.cmu.ri.crw.VehicleVelocityListener;
 import edu.cmu.ri.crw.WaypointObserver;
 import edu.cmu.ri.crw.ros.RosVehicleProxy;
+import edu.cmu.ri.crw.ros.RosVehicleServer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.ros.message.crwlib_msgs.SensorData;
@@ -27,20 +31,20 @@ import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.Pose;
 
 /**
+ * A wrapper to implement Irrigation Test Interface with Airboat Server
  *
  * @author pscerri
+ * @author kss
  */
 public class InterfaceTester implements IrrigationTestInterface {
 
     public static double speed = 1.0;
     public static long sleepTime = 1000;
     private Random rand = new Random();
-    Hashtable<Integer, VehicleServer> boats = new Hashtable<Integer, VehicleServer>();
+    Hashtable<Integer, Boat> boats = new Hashtable<Integer, Boat>();
     ArrayList<IrrigationTestInterfaceListener> listeners = new ArrayList<IrrigationTestInterfaceListener>();
     double[] ul = null;
     double[] lr = null;
-    protected List<VehicleSensorListener> sensorListeners = new ArrayList<VehicleSensorListener>();
-    protected List<VehicleStateListener> stateListeners = new ArrayList<VehicleStateListener>();
     protected final List<UtmPose> boatPoses = new ArrayList<UtmPose>();
     protected final List<Observation> observers = new ArrayList<Observation>();
     private final String MASTER_URI = "http://localhost:11311";
@@ -53,16 +57,12 @@ public class InterfaceTester implements IrrigationTestInterface {
         }
         //TODO This current implementation should be run as a separate thread
         // for each boatNumber, currently is a blocking function call.
-        VehicleServer boat = boats.get(boatNo);
+        Boat boat = boats.get(boatNo);
         if (boat == null) {               //i.e. if no Vehicle Server exists
             try {
                 //i.e. if no Vehicle Server exists, intialize one
-                intializeBoat(boatNo);
-                boat = new RosVehicleProxy(new URI(MASTER_URI), "vehicle" + boatNo);
+                boat = new Boat(boatNo, MASTER_URI, "vehicle" + boatNo);
 
-                //add Listeners
-                boat.addStateListener(stateListeners.get(boatNo));
-                boat.addSensorListener(boatNo, sensorListeners.get(boatNo));
 
                 //Add this to the list
                 boats.put(boatNo, boat);
@@ -71,55 +71,12 @@ public class InterfaceTester implements IrrigationTestInterface {
             }
         } else //Cancel all current waypoints
         {
-            boat.stopWaypoint();
+            boat.stopAllWaypoints();
         }
-        //In a loop, get the boat to start moving along given waypoints
-        for (int i = 0;
-                i < poses.length;
-                i++) {
-            //Start the ith Waypoint
-            boat.startWaypoint(DoubleToUtmPose(poses[i]), new WaypointObserver() {
 
-                public void waypointUpdate(WaypointState ws) {
-                    System.out.print("STATUS::");
-                    switch (ws) {
-                        case DONE:
-                            System.out.println("Performed waypoint");
-                        case GOING:
-                            System.out.println("Goint to Waypoint");
-                        case CANCELLED:
-                            System.out.println("Cancelled");
-                        default:
-                            System.out.println("ERROR!!!!");
-                    }
-                }
-            });
+        //Send the boat the waypoints
+        boat.setWaypoints(poses);
 
-            //Ideally should be handled better
-            boolean exit = false;
-            do {
-                switch (boat.getWaypointStatus()) {
-                    case DONE:
-                        exit = true;
-                        System.out.println("Waypoint " + (i + 1) + " achieved!");
-                        break;
-                    case CANCELLED:
-                        System.out.println("Waypoint " + (i + 1) + " cancelled!");
-                        exit = true;
-                        break;
-                    default:
-                        //TODO Inform about current status
-                        continue;
-
-                }
-            } while (!exit);
-            //TODO If I get a cancel, should I terminate this method?
-        }
-        //Reaching here normally implies that all Waypoints have been achieved
-
-        System.out.println("All Waypoints Done!");
-
-        reportDone(boatNo);
     }
 
     public void addListener(IrrigationTestInterfaceListener l) {
@@ -129,7 +86,7 @@ public class InterfaceTester implements IrrigationTestInterface {
     private void reportLoc(int no, double[] pose) {
         for (IrrigationTestInterfaceListener l : listeners) {
             l.newBoatPosition(no, pose);
-         }
+        }
     }
 
     private void reportObs(Observation o) {
@@ -147,8 +104,9 @@ public class InterfaceTester implements IrrigationTestInterface {
     }
 
     public void setExtent(double[] ul, double[] lr) {
-        this.ul = ul;
-        this.lr = lr;
+        this.ul = ul;//upper left corner of rectangle
+        this.lr = lr;//lower right corner of rectangle
+
     }
 
     public double randLon() {
@@ -192,43 +150,119 @@ public class InterfaceTester implements IrrigationTestInterface {
         return _pose;
     }
 
-    private void intializeBoat(final int boatNo) {
-        //Initialize the boat by initalizing a proxy server for it
-        VehicleStateListener state = stateListeners.get(boatNo);
-        state = new VehicleStateListener() {
+    protected class Boat {
 
-            public void receivedState(UtmPoseWithCovarianceStamped upwcs) {
-                UtmPose pose = new UtmPose();
-                pose.pose = upwcs.pose.pose.pose.clone();
-                pose.utm = upwcs.utm.clone();
-                boatPoses.set(boatNo, pose);
+        RosVehicleProxy _server;
+        VehicleStateListener _stateListener;
+        VehicleSensorListener _sensorListener;
+        int _boatNo;
+        UtmPose _pose;
+        final Queue<UtmPose> _waypoints = new LinkedList<UtmPose>();
+        volatile boolean _isShutdown = false;
 
-                reportLoc(boatNo, UtmPoseToDouble(boatPoses.get(boatNo).pose));
+        Boat(final int boatNo, String masterURI, String nodeName) throws URISyntaxException {
+            //Initialize the boat by initalizing a proxy server for it
+            // Connect to boat
+            _boatNo = boatNo;
+            _server = new RosVehicleProxy(new URI(masterURI), nodeName);
+            _stateListener = new VehicleStateListener() {
+
+                public void receivedState(UtmPoseWithCovarianceStamped upwcs) {
+                    _pose = new UtmPose();
+                    _pose.pose = upwcs.pose.pose.pose.clone();
+                    _pose.utm = upwcs.utm.clone();
+
+                    reportLoc(_boatNo, UtmPoseToDouble(_pose.pose));
+                }
+            };
+
+            _sensorListener = new VehicleSensorListener() {
+
+                public void receivedSensor(SensorData sd) {
+                    //TODO Perform Sensor value assignment correctly
+
+                    //Since the sensor Update is called just after state update
+                    //There shouldn't be too much error with regards to the
+                    //position of the sampling point
+                    Observation o = new Observation(
+                            "Sensor" + sd.type,
+                            sd.data[0],
+                            UtmPoseToDouble(_pose.pose),
+                            _pose.utm.zone,
+                            _pose.utm.isNorth);
+
+
+                    reportObs(o);
+                }
+            };
+
+            System.out.println("New boat created, boat # " + _boatNo);
+
+            //add Listeners
+            _server.addStateListener(_stateListener);
+            _server.addSensorListener(0, _sensorListener);
+
+
+            // Start update thread
+            new Thread(new Runnable() {
+
+                private boolean _waypointsWereUpdated;
+
+                public void run() {
+                    UtmPose waypoint = null;
+
+                    while (!_isShutdown) {
+                        _waypointsWereUpdated = false;
+
+                        // Get the next waypoint that needs doing
+                        synchronized (_waypoints) {
+                            if (_waypoints.isEmpty()) {
+                                Thread.yield();
+                            } else {
+                                waypoint = _waypoints.poll();
+                            }
+                        }
+
+                        // Tell the vehicle to start doing it
+                        final AtomicBoolean waypointDone = new AtomicBoolean(false);
+                        _server.startWaypoint(waypoint, new WaypointObserver() {
+
+                            public void waypointUpdate(WaypointState state) {
+                                if (state == WaypointState.DONE || state == WaypointState.CANCELLED) {
+                                    waypointDone.set(true);
+                                    reportDone(boatNo);
+                                }
+                            }
+                        });
+
+                        // Wait until the waypoint is done or someone changes the waypoints
+                        while (!waypointDone.get() && !_waypointsWereUpdated) {
+                            Thread.yield(); // TODO: this is inefficient, but should work alright.
+                        }
+                    }
+                }
+            }).start();
+
+        }
+
+        public void setWaypoints(double[][] waypoints) {
+            synchronized (_waypoints) {
+                _waypoints.clear();
+                for (double[] waypoint : waypoints) {
+                    UtmPose pose = DoubleToUtmPose(waypoint);
+                    _waypoints.add(pose);
+                }
             }
-        };
+        }
 
-        VehicleSensorListener sensor = sensorListeners.get(boatNo);
-        sensor = new VehicleSensorListener() {
+        public void shutdown() {
+            _isShutdown = true;
+            _server.shutdown();
+        }
 
-            public void receivedSensor(SensorData sd) {
-                //TODO Perform Sensor value assignment correctly
+        public void stopAllWaypoints() {
+            _waypoints.clear();
 
-                //Since the sensor Update is called just after state update
-                //There shouldn't be too much error with regards to the
-                //position of the sampling point
-                Observation o = new Observation(
-                        "Sensor" + sd.type,
-                        sd.data[0],
-                        UtmPoseToDouble(boatPoses.get(boatNo).pose),
-                        boatPoses.get(boatNo).utm.zone,
-                        boatPoses.get(boatNo).utm.isNorth);
-
-                observers.set(boatNo, o);
-                reportObs(observers.get(boatNo));
-            }
-        };
-
-        System.out.println("New boat created, boat # " + boatNo);
-
+        }
     }
 }
