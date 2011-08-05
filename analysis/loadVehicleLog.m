@@ -10,7 +10,7 @@ function [ data ] = loadVehicleLog( filename )
 
 % Open the log file
 fid = fopen(filename, 'r');
-lines = textscan(fid, '%s', 'Delimiter','\n ');
+lines = textscan(fid, '%s', 'delimiter', '\n');
 fclose(fid);
 
 % Set starting pose
@@ -20,8 +20,8 @@ pose = zeros(3);
 data = [];
 
 % Get each line from file
-for i = 1:length(lines)
-    tline = lines{i};
+for i = 1:length(lines{1})
+    tline = lines{1}{i};
     
     % Split log file into pieces
     datum = regexp(tline,'[ :\[\]\,]+','split');
