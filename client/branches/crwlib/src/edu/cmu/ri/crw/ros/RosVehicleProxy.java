@@ -15,6 +15,7 @@ import org.ros.exception.RosException;
 import org.ros.exception.RosRuntimeException;
 import org.ros.exception.ServiceNotFoundException;
 import org.ros.message.MessageListener;
+import org.ros.message.crwlib_msgs.SensorData;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.crwlib_msgs.VehicleImageCaptureFeedback;
@@ -188,6 +189,19 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 			@Override
 			public void onNewMessage(TwistWithCovarianceStamped velocity) {
 				sendVelocity(velocity);
+			}
+		});
+		
+		// Register subscriber for sensor
+		_node.newSubscriber("sensor0", "crwlib_msgs/SensorData", 
+				new MessageListener<SensorData>() {
+
+			@Override
+			public void onNewMessage(SensorData sensor) {
+				if(sensor==null){
+					logger.info("Die!");
+					return;}
+				sendSensor(0, sensor);
 			}
 		});
 		
@@ -556,8 +570,10 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		try {
 			_navClient.cancelGoal();
 		} catch (RosException e) {
-			logger.warning("Unable to cancel navigation: " + e);
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		
 	}
 
 }
