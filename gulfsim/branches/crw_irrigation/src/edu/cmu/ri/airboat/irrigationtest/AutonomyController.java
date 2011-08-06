@@ -39,7 +39,9 @@ public class AutonomyController implements IrrigationTestInterface.IrrigationTes
         this.xCount = xCount;
         this.yCount = yCount;
 
-        setExtent(ul, lr);
+        double ul_test[] = {432220.1, 4371595.0};
+        double lr_test[] = {432240.1, 4371545.0};
+        setExtent( ul_test , lr_test );
 
         /*
         // Tell autonomy about any obstacles
@@ -121,7 +123,7 @@ public class AutonomyController implements IrrigationTestInterface.IrrigationTes
                 locInfo[bx][by] = new LocationInfo();
             }
 
-            // System.out.println("Added obs to " + bx + " " + by);
+            System.out.println("Added obs to " + bx + " " + by);
 
             locInfo[bx][by].addObs(o);
 
@@ -161,8 +163,9 @@ public class AutonomyController implements IrrigationTestInterface.IrrigationTes
 
         if (algorithm.equalsIgnoreCase("Lawnmower")) {
 
-            poses = new double[(yCount * 2)][2];
+            poses = new double[(yCount * 2 - 1)][2];
 
+            /*
             double[] curr = locations.get(boatNo);
             if (curr != null) {
                 poses[0][0] = curr[0];
@@ -170,10 +173,11 @@ public class AutonomyController implements IrrigationTestInterface.IrrigationTes
             } else {
                 // Zeros
             }
-
+            */
+            
             boolean left = true, same = true;
             double y = lr[1];
-            for (int i = 1; i < poses.length; i++) {
+            for (int i = 0; i < poses.length; i++) {
                 if (!same) {
                     left = !left;
                     same = true;

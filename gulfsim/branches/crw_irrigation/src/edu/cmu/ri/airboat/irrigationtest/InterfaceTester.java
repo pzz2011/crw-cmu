@@ -51,17 +51,17 @@ public class InterfaceTester implements IrrigationTestInterface {
 
     public void setWaypoints(final int boatNo, double[][] poses) {
 
+        System.out.println("Calling set waypoints");
         if (ul == null || lr == null) {
             System.out.println("SET EXTENT FIRST!");
             return;
         }
-        //TODO This current implementation should be run as a separate thread
-        // for each boatNumber, currently is a blocking function call.
+
         Boat boat = boats.get(boatNo);
         if (boat == null) {               //i.e. if no Vehicle Server exists
             try {
                 //i.e. if no Vehicle Server exists, intialize one
-                boat = new Boat(boatNo, MASTER_URI, "vehicle" + boatNo);
+                boat = new Boat(boatNo, MASTER_URI, "vehicle" + (int) (Math.random() * 100));
 
 
                 //Add this to the list
@@ -118,19 +118,32 @@ public class InterfaceTester implements IrrigationTestInterface {
     }
 
     public static UtmPose DoubleToUtmPose(double[] pose) {
-        if (pose.length != 7) {
-            return null;
+        /* if (pose.length != 7) {
+        return null;
 
-        }
+        }*/
         UtmPose _pose = new UtmPose();
         _pose.pose.position.x = pose[0];
         _pose.pose.position.y = pose[1];
-        _pose.pose.position.z = pose[2];
 
-        _pose.pose.orientation.w = pose[3];
-        _pose.pose.orientation.x = pose[4];
-        _pose.pose.orientation.y = pose[5];
-        _pose.pose.orientation.z = pose[6];
+        if (pose.length > 2) {
+            _pose.pose.position.z = pose[2];
+
+            _pose.pose.orientation.w = pose[3];
+            _pose.pose.orientation.x = pose[4];
+            _pose.pose.orientation.y = pose[5];
+            _pose.pose.orientation.z = pose[6];
+
+        } else {
+
+            // Paul added this clause because GUI only uses x,y (at the moment)
+            _pose.pose.position.z = 0.0;
+
+            _pose.pose.orientation.w = 0.0;
+            _pose.pose.orientation.x = 0.0;
+            _pose.pose.orientation.y = 0.0;
+            _pose.pose.orientation.z = 0.0;
+        }
 
         return _pose;
 
@@ -138,20 +151,23 @@ public class InterfaceTester implements IrrigationTestInterface {
 
     public static double[] UtmPoseToDouble(Pose pose) {
 
-        double[] _pose = new double[7];
+        double[] _pose = new double[2];
         _pose[0] = pose.position.x;
         _pose[1] = pose.position.y;
+        //Since Paul's code only deals with just two members
+        /*
         _pose[2] = pose.position.z;
 
         _pose[3] = pose.orientation.w;
         _pose[4] = pose.orientation.x;
         _pose[5] = pose.orientation.y;
-        _pose[6] = pose.orientation.z;
+        _pose[6] = pose.orientation.z;*/
         return _pose;
     }
 
     protected class Boat {
 
+        private boolean _waypointsWereUpdated;
         RosVehicleProxy _server;
         VehicleStateListener _stateListener;
         VehicleSensorListener _sensorListener;
@@ -172,6 +188,8 @@ public class InterfaceTester implements IrrigationTestInterface {
                     _pose.pose = upwcs.pose.pose.pose.clone();
                     _pose.utm = upwcs.utm.clone();
 
+                    System.out.println("Pose:" + _pose.pose.position.x);
+
                     reportLoc(_boatNo, UtmPoseToDouble(_pose.pose));
                 }
             };
@@ -184,15 +202,21 @@ public class InterfaceTester implements IrrigationTestInterface {
                     //Since the sensor Update is called just after state update
                     //There shouldn't be too much error with regards to the
                     //position of the sampling point
-                    Observation o = new Observation(
-                            "Sensor" + sd.type,
-                            sd.data[0],
-                            UtmPoseToDouble(_pose.pose),
-                            _pose.utm.zone,
-                            _pose.utm.isNorth);
 
+                    try {
+                        Observation o = new Observation(
+                                "Sensor" + sd.type,
+                                sd.data[0],
+                                UtmPoseToDouble(_pose.pose),
+                                _pose.utm.zone,
+                                _pose.utm.isNorth);
 
-                    reportObs(o);
+                        System.out.println("Data:" + sd.data[0]);
+                        reportObs(o);
+
+                    } catch (NullPointerException e) {
+                        System.out.println("Problem in receivedSensor, null pointer " + sd + " " + _pose);
+                    }
                 }
             };
 
@@ -205,8 +229,6 @@ public class InterfaceTester implements IrrigationTestInterface {
 
             // Start update thread
             new Thread(new Runnable() {
-
-                private boolean _waypointsWereUpdated;
 
                 public void run() {
                     UtmPose waypoint = null;
@@ -223,35 +245,63 @@ public class InterfaceTester implements IrrigationTestInterface {
                             }
                         }
 
-                        // Tell the vehicle to start doing it
                         final AtomicBoolean waypointDone = new AtomicBoolean(false);
-                        _server.startWaypoint(waypoint, new WaypointObserver() {
-
-                            public void waypointUpdate(WaypointState state) {
-                                if (state == WaypointState.DONE || state == WaypointState.CANCELLED) {
-                                    waypointDone.set(true);
-                                    reportDone(boatNo);
-                                }
+                        // Paul added this loop
+                        if (waypoint != null) {
+                            // Tell the vehicle to start doing it
+                            if (!_server.isAutonomous()) {
+                                _server.setAutonomous(true);
                             }
-                        });
+                            System.out.println("Sending new waypoint to boat: " + waypoint.pose.position.x);
+                            _server.startWaypoint(waypoint, new WaypointObserver() {
+
+                                public void waypointUpdate(WaypointState state) {
+                                    if (state == WaypointState.DONE) {
+                                        
+                                        waypointDone.set(true);
+                                        // Paul added this if statement 
+                                        // If no more waypoints, report done to autonomy
+                                        if (_waypoints.isEmpty()) {
+                                            reportDone(boatNo);
+                                        }
+                                    }/* else if (state == WaypointState.CANCELLED) {
+                                        System.out.println("CANCELLED!!!");
+                                        _server.setAutonomous(false);
+                                        waypointDone.set(true);
+                                        reportDone(boatNo);
+                                    }*/
+                                }
+                            });
+                            System.out.println("Boat given waypoint");
+                        }
 
                         // Wait until the waypoint is done or someone changes the waypoints
                         while (!waypointDone.get() && !_waypointsWereUpdated) {
                             Thread.yield(); // TODO: this is inefficient, but should work alright.
+                            // Paul added this sleep (there are ways of rewriting this loop to avoid this, but this is OK for now.)
+                            try {
+                                Thread.sleep(200);
+                            } catch (InterruptedException e) {
+                            }
+                            System.out.println("waypoint " + (waypoint == null ? "NULL" : "" + waypoint.pose.position.x) + " waypointDone? " + waypointDone.get() + ", update? " + _waypointsWereUpdated);
+                            //System.out.println("Server says current waypoint is: " + _server.getWaypoint().pose.position.x);
                         }
                     }
                 }
             }).start();
+
 
         }
 
         public void setWaypoints(double[][] waypoints) {
             synchronized (_waypoints) {
                 _waypoints.clear();
+                //System.out.println("Setting waypoints on boat");
                 for (double[] waypoint : waypoints) {
                     UtmPose pose = DoubleToUtmPose(waypoint);
                     _waypoints.add(pose);
                 }
+                _waypointsWereUpdated = true;
             }
         }
 
