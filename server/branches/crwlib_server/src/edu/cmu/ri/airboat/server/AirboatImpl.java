@@ -3,6 +3,7 @@ package edu.cmu.ri.airboat.server;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.ros.internal.time.WallclockProvider;
@@ -29,6 +30,7 @@ import edu.cmu.ri.crw.QuaternionUtils;
 import edu.cmu.ri.crw.VehicleFilter;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.WaypointObserver;
+import edu.cmu.ri.crw.VehicleServer.SensorType;
 
 /**
  * Contains the actual implementation of vehicle functionality, accessible as a
@@ -157,7 +159,9 @@ public class AirboatImpl extends AbstractVehicleServer {
 					(float) _velocities.linear.z, 
 					(float) _velocities.angular.x,
 					(float) _velocities.angular.y, 
-					-(float) _velocities.angular.z  // TODO: fix this on Arduino!
+					(float) _velocities.angular.z  // TODO: fix this on Arduino!
+					//This is positive for boat 1, but negative for boat 2.
+					
 				});
 		// Yes, I know this looks silly, but Amarino doesn't handle doubles
 		
@@ -175,6 +179,18 @@ public class AirboatImpl extends AbstractVehicleServer {
 		vel.header.stamp = _wallclock.getCurrentTime();
 		vel.twist.twist = _velocities;
 		sendVelocity(vel);		
+		
+		//Bad bad thing. Testing Simulated code.
+		SensorData reading = new SensorData();
+		reading.data = new double[3];
+		reading.type = (byte) SensorType.TE.ordinal();
+
+		Random random = new Random();
+		reading.data[0] = (_pose.pose.pose.pose.position.x) + 10*random.nextGaussian();
+		reading.data[1] = (_pose.pose.pose.pose.position.y);
+		reading.data[2] = (_pose.pose.pose.pose.position.z);
+
+		sendSensor(0, reading);
 	}
 
 	public double[] getPID(int axis) {
@@ -317,11 +333,15 @@ public class AirboatImpl extends AbstractVehicleServer {
 				reading.type = (byte)SensorType.TE.ordinal();
 				for (int i = 0; i < 3; i++)
 					reading.data[i] = Double.parseDouble(cmd.get(i + 1));
-				sendSensor(0, reading);
+				
+				//TODO: Remove commented line after simulated field testing is completed.
+				//sendSensor(0, reading);
 				logger.info("TE: " + cmd);
 			} catch (NumberFormatException e) {
 				Log.w(logTag, "Received corrupt sensor reading: " + cmd);
 			}
+			
+			
 			break;
 		default:
 			Log.w(logTag, "Received unknown function type: " + cmd);
@@ -460,7 +480,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 		// Start a capturing thread
 		new Thread(new Runnable() {
 
-			@Override
+ 			@Override
 			public void run() {
 				int iFrame = 0;
 
@@ -510,7 +530,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	double distToGoal(Pose x, Pose y) {
 		double dx = x.position.x - y.position.x;
 		double dy = x.position.y - y.position.y;
-		double dz = x.position.z - y.position.z;
+		double dz = 0;  // The z on worldwind messes zs up. Anyway, we use UTM. x.position.z - y.position.z;
 		
 		return Math.sqrt(dx*dx + dy*dy + dz*dz);
 	}
@@ -607,7 +627,13 @@ public class AirboatImpl extends AbstractVehicleServer {
 						// Check for termination condition
 						// TODO: termination conditions tested by controller
 						double dist = distToGoal(pose, wpPose);
-						if (dist < 3.0) break;
+						logger.debug("Distance to goal is "+dist);
+						if (dist <= 6.0) 
+							{
+								_isNavigating.set(false);
+								logger.info("Should reach a waypoint now.");
+								break;
+							}
 					}
 					
 					// Pause for a while
@@ -626,12 +652,18 @@ public class AirboatImpl extends AbstractVehicleServer {
 				
 				// Upon completion, report status 
 				// (if isNavigating is still true, we completed on our own)
-				if (isNavigating.getAndSet(false)) {
+				if (isNavigating.getAndSet(false)==false) {
 					if (obs != null)
+					{
 						obs.waypointUpdate(WaypointState.DONE);
+						logger.info("Should report reaching a waypoint now.");
+						
+					}
 				} else {
-					if (obs != null)
+					if (obs != null){
 						obs.waypointUpdate(WaypointState.CANCELLED);
+						logger.info("Should report cancelling a waypoint now.");
+					}
 				}
 			}
 		}).start();
