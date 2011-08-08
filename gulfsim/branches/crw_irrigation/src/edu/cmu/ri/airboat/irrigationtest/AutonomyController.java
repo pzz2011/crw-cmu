@@ -39,10 +39,12 @@ public class AutonomyController implements IrrigationTestInterface.IrrigationTes
         this.xCount = xCount;
         this.yCount = yCount;
 
-        double ul_test[] = {432220.1, 4371595.0};
-        double lr_test[] = {432240.1, 4371545.0};
+        //Hard coded coordinates for the moon pond test site
+        double ul_test[] = {432200.0, 4371585.0};
+        double lr_test[] = {432240.0, 4371545.0};
         setExtent( ul_test , lr_test );
 
+        //TODO: Ignored for now. Do obstacles from the IP come here?
         /*
         // Tell autonomy about any obstacles
         Rectangle r = new Rectangle(25, 25, 5, 25);
@@ -110,6 +112,11 @@ public class AutonomyController implements IrrigationTestInterface.IrrigationTes
         for (Observation obs : cobs) {
             newObservation(obs);
         }
+
+        // Force replanning
+        for (Integer i : plans.keySet()) {
+            boatDone(i);
+    }
     }
 
     public void newObservation(Observation o) {
@@ -142,6 +149,13 @@ public class AutonomyController implements IrrigationTestInterface.IrrigationTes
         }*/
     }
 
+    public void shutdown() {
+        System.out.println("Shutdown being called");
+        boats.shutdown();
+        System.out.println("Shutdown complete");
+        System.exit(0);
+    }
+
     public void setAlgorithm(String algorithm) {
 
         this.algorithm = algorithm;
@@ -155,7 +169,6 @@ public class AutonomyController implements IrrigationTestInterface.IrrigationTes
 
         if (ul == null) {
             System.out.println("No extents, no plan");
-
             return;
         }
 

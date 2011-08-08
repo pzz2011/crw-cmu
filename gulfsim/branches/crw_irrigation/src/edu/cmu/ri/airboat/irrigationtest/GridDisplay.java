@@ -10,6 +10,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import javax.swing.JPanel;
 
 /**
@@ -25,6 +26,8 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
     double mean = 0.0;
     double maxExtent = 1.0;
     DecimalFormat df = new DecimalFormat("#.###");
+
+    ArrayList<double []> prev = new ArrayList<double []>();
 
     public void paint(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
@@ -96,13 +99,19 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
 
             g2.setColor(Color.black);
 
+            double left = autonomy.ul[0];
+            double bottom = autonomy.lr[1];
 
+            for (double [] p: prev) {
+                g2.fillOval((int)((p[0] - left) * dx), (int)(height - ((p[1]-bottom)*dy)), 5, 5);
+            }
+            
             // Draw boats
             for (Integer boat : autonomy.getLocations().keySet()) {
                 double[] pose = autonomy.getBoatLocation(boat);
-
-                int x = (int) (pose[0] * dx);
-                int y = (int) (pose[1] * dy);
+                
+                int x = (int) ((pose[0]  - left) * dx);
+                int y = (int) ((pose[1]  - bottom) * dy);
 
                 // System.out.println("Drawing at " + x + " " + y + " based on " + pose[1] + " " + dy + " " + height + " " + autonomy.getHeight());
 
@@ -117,14 +126,20 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
                     for (int i = 1; i < plan.length; i++) {
                         double[] ds = plan[i - 1];
                         double[] de = plan[i];
-                        g2.drawLine((int) (ds[0] * dx), (int) (height - ds[1] * dy), (int) (de[0] * dx), (int) (height - de[1] * dy));
+                        g2.drawLine((int) ((ds[0] - left) * dx), (int) (height - (ds[1] - bottom) * dy), (int) ((de[0] - left) * dx), (int) (height - (de[1] - bottom) * dy));
                     }
                 }
+
+                prev.add(pose);
+                if (prev.size() > 200) prev.remove(0);
+
             }
+
+
 
             // Draw obstacles
             for (AutonomyController.Obstacle o : autonomy.getObstacles()) {
-                g2.fillRect((int) (o.r.x * dx), (int) (height - (o.r.y * dy) - (o.r.height * dy)), (int) (o.r.width * dx), (int) (o.r.height * dy));
+                g2.fillRect((int) ((o.r.x-left) * dx), (int) (height - (o.r.y * dy) - (o.r.height * dy)), (int) (o.r.width * dx), (int) (o.r.height * dy));
             }
         }
     }
