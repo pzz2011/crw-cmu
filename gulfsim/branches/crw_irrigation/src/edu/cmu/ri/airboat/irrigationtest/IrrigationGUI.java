@@ -11,6 +11,10 @@
 package edu.cmu.ri.airboat.irrigationtest;
 
 import java.awt.BorderLayout;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowStateListener;
+import javax.swing.JFrame;
 
 /**
  *
@@ -29,8 +33,33 @@ public class IrrigationGUI extends javax.swing.JFrame {
         modelContainerP.setLayout(new BorderLayout());
         modelContainerP.add(gridDisplay, BorderLayout.CENTER);
 
+        //HardCoded data to avoid entering it repeatedly on the GUI
+        minLonF.setText("432220.0");
+        minLatF.setText("4371545.0");
+        maxLonF.setText("432240.0");
+        maxLatF.setText("4371595.0");
+
         autonomy = new AutonomyController(getUL(), getLR(), ((Integer)lonCountS.getValue()).intValue(), ((Integer)latCountS.getValue()).intValue());
         gridDisplay.setAutonomy(autonomy);
+        
+        addWindowListener(new WindowAdapter() {
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+                super.windowClosing(e);
+                // @todo This doesn't feel right, but appears to work, make it work properly.
+                // System.out.println("WINDOW SHUTTING DOWN: " + e.getNewState() + " " + e.getOldState() + " " + WindowEvent.WINDOW_CLOSING + " " + WindowEvent.WINDOW_CLOSED);
+                // if (e.getNewState() == WindowEvent.WINDOW_CLOSING|| e.getNewState() == WindowEvent.WINDOW_CLOSED ) {
+                    System.out.println("Autonomy shutting down");
+                    autonomy.shutdown();
+                    // System.exit(0);
+                // }
+    }
+
+        }
+        );
+
+        //setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     }
 
     double[] getUL() {

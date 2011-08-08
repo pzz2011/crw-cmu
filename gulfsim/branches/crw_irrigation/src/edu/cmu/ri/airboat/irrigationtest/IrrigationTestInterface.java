@@ -16,6 +16,8 @@ public interface IrrigationTestInterface  {
     
     public void setExtent(double [] ul, double [] lr);
     
+    public void shutdown();
+    
     public interface IrrigationTestInterfaceListener {
         
         public void newObservation (Observation o);

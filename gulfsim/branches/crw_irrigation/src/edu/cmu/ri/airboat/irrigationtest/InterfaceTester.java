@@ -60,8 +60,8 @@ public class InterfaceTester implements IrrigationTestInterface {
         Boat boat = boats.get(boatNo);
         if (boat == null) {               //i.e. if no Vehicle Server exists
             try {
-                //i.e. if no Vehicle Server exists, intialize one
-                boat = new Boat(boatNo, MASTER_URI, "vehicle" + (int) (Math.random() * 100));
+                //i.e. if no Vehicle Server exists, intialize one, change the nodeName to avoid restarting each time
+                boat = new Boat(boatNo, MASTER_URI, "vehicle" + (int) (new Random().nextInt(1000000)));
 
 
                 //Add this to the list
@@ -71,7 +71,9 @@ public class InterfaceTester implements IrrigationTestInterface {
             }
         } else //Cancel all current waypoints
         {
-            boat.stopAllWaypoints();
+            //TODO Investigate why this had to be commented out.
+
+            // boat.stopAllWaypoints();
         }
 
         //Send the boat the waypoints
@@ -81,6 +83,12 @@ public class InterfaceTester implements IrrigationTestInterface {
 
     public void addListener(IrrigationTestInterfaceListener l) {
         listeners.add(l);
+    }
+
+    public void shutdown() {
+        for (Boat boat : boats.values()) {
+            boat.shutdown();
+        }
     }
 
     private void reportLoc(int no, double[] pose) {
@@ -188,7 +196,7 @@ public class InterfaceTester implements IrrigationTestInterface {
                     _pose.pose = upwcs.pose.pose.pose.clone();
                     _pose.utm = upwcs.utm.clone();
 
-                    System.out.println("Pose:" + _pose.pose.position.x);
+                    System.out.println("Pose: [" + _pose.pose.position.x+", "+_pose.pose.position.y);
 
                     reportLoc(_boatNo, UtmPoseToDouble(_pose.pose));
                 }
@@ -235,24 +243,29 @@ public class InterfaceTester implements IrrigationTestInterface {
 
                     while (!_isShutdown) {
                         _waypointsWereUpdated = false;
-
+                        waypoint = null;
                         // Get the next waypoint that needs doing
                         synchronized (_waypoints) {
                             if (_waypoints.isEmpty()) {
                                 Thread.yield();
                             } else {
-                                waypoint = _waypoints.poll();
+                                if (_server.getWaypointStatus() != WaypointState.GOING) {
+                                    waypoint = _waypoints.poll();
+                                    System.out.println("Polling next waypoint");
+                                } else {
+                                    System.out.println("Not getting new waypoint, old one not complete: " + _server.getWaypointStatus());
+                                }
                             }
                         }
 
                         final AtomicBoolean waypointDone = new AtomicBoolean(false);
-                        // Paul added this loop
+                        // Paul added this if statement
                         if (waypoint != null) {
                             // Tell the vehicle to start doing it
                             if (!_server.isAutonomous()) {
                                 _server.setAutonomous(true);
                             }
-                            System.out.println("Sending new waypoint to boat: " + waypoint.pose.position.x);
+                            System.out.println("Sending new waypoint to boat: " + waypoint.pose.position.x + " " + waypoint.pose.position.y);
                             _server.startWaypoint(waypoint, new WaypointObserver() {
 
                                 public void waypointUpdate(WaypointState state) {
@@ -264,7 +277,9 @@ public class InterfaceTester implements IrrigationTestInterface {
                                         if (_waypoints.isEmpty()) {
                                             reportDone(boatNo);
                                         }
-                                    }/* else if (state == WaypointState.CANCELLED) {
+                                    }
+                                    //TODO: Investigate the reason why WaypointState was being reported as cancelled
+                                    /* else if (state == WaypointState.CANCELLED) {
                                         System.out.println("CANCELLED!!!");
                                         _server.setAutonomous(false);
                                         waypointDone.set(true);
@@ -272,22 +287,25 @@ public class InterfaceTester implements IrrigationTestInterface {
                                     }*/
                                 }
                             });
-                            System.out.println("Boat given waypoint");
+                            System.out.println("Boat given waypoint, status: " + _server.getWaypointStatus());
                         }
 
                         // Wait until the waypoint is done or someone changes the waypoints
-                        while (!waypointDone.get() && !_waypointsWereUpdated) {
+                        do {
                             Thread.yield(); // TODO: this is inefficient, but should work alright.
                             // Paul added this sleep (there are ways of rewriting this loop to avoid this, but this is OK for now.)
                             try {
                                 Thread.sleep(200);
                             } catch (InterruptedException e) {
                             }
-                            System.out.println("waypoint " + (waypoint == null ? "NULL" : "" + waypoint.pose.position.x) + " waypointDone? " + waypointDone.get() + ", update? " + _waypointsWereUpdated);
+
+                            System.out.println("waypoint " + (waypoint == null ? "NULL" : "x=" + waypoint.pose.position.x + " y=" + waypoint.pose.position.y) + " waypointDone? " + waypointDone.get() + ", update? " + _waypointsWereUpdated);
                             //System.out.println("Server says current waypoint is: " + _server.getWaypoint().pose.position.x);
-                        }
+                        } while (!waypointDone.get() && !_waypointsWereUpdated);
                     }
+                    System.out.println ("Ending while loop due to shutdown.");
                 }
+
             }).start();
 
 
@@ -307,12 +325,21 @@ public class InterfaceTester implements IrrigationTestInterface {
 
         public void shutdown() {
             _isShutdown = true;
+            stopAllWaypoints();
+
+            _server.removeSensorListener(0, _sensorListener);
+            _server.removeStateListener(_stateListener);
+
+
             _server.shutdown();
         }
 
         public void stopAllWaypoints() {
             _waypoints.clear();
-
+            _server.stopWaypoint();
+            
         }
     }
+
+
 }
