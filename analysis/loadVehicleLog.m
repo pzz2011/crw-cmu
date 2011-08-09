@@ -34,7 +34,7 @@ for i = 1:length(lines{1})
 
         % Handle pose messages by updating location
         if (result(1))
-            pose = [str2double(datum(8)), str2double(datum(7)), str2double(datum(12))];
+            pose = [str2double(datum(7)), str2double(datum(8)), str2double(datum(12))];
         end
 
         % Handle sensor messages by adding a new data entry
