@@ -3,7 +3,6 @@ package edu.cmu.ri.airboat.server;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.ros.internal.time.WallclockProvider;
@@ -30,7 +29,6 @@ import edu.cmu.ri.crw.QuaternionUtils;
 import edu.cmu.ri.crw.VehicleFilter;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.WaypointObserver;
-import edu.cmu.ri.crw.VehicleServer.SensorType;
 
 /**
  * Contains the actual implementation of vehicle functionality, accessible as a
@@ -179,18 +177,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 		vel.header.stamp = _wallclock.getCurrentTime();
 		vel.twist.twist = _velocities;
 		sendVelocity(vel);		
-		
-		//Bad bad thing. Testing Simulated code.
-		SensorData reading = new SensorData();
-		reading.data = new double[3];
-		reading.type = (byte) SensorType.TE.ordinal();
-
-		Random random = new Random();
-		reading.data[0] = (_pose.pose.pose.pose.position.x) + 10*random.nextGaussian();
-		reading.data[1] = (_pose.pose.pose.pose.position.y);
-		reading.data[2] = (_pose.pose.pose.pose.position.z);
-
-		sendSensor(0, reading);
 	}
 
 	public double[] getPID(int axis) {
@@ -333,14 +319,11 @@ public class AirboatImpl extends AbstractVehicleServer {
 				reading.type = (byte)SensorType.TE.ordinal();
 				for (int i = 0; i < 3; i++)
 					reading.data[i] = Double.parseDouble(cmd.get(i + 1));
-				
-				//TODO: Remove commented line after simulated field testing is completed.
-				//sendSensor(0, reading);
+				sendSensor(0, reading);
 				logger.info("TE: " + cmd);
 			} catch (NumberFormatException e) {
 				Log.w(logTag, "Received corrupt sensor reading: " + cmd);
 			}
-			
 			
 			break;
 		default:
@@ -630,7 +613,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 						logger.debug("Distance to goal is "+dist);
 						if (dist <= 6.0) 
 							{
-								_isNavigating.set(false);
 								logger.info("Should reach a waypoint now.");
 								break;
 							}
@@ -652,7 +634,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 				
 				// Upon completion, report status 
 				// (if isNavigating is still true, we completed on our own)
-				if (isNavigating.getAndSet(false)==false) {
+				if (isNavigating.getAndSet(false)) {
 					if (obs != null)
 					{
 						obs.waypointUpdate(WaypointState.DONE);
