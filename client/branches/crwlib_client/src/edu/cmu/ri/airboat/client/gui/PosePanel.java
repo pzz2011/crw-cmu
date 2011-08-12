@@ -229,7 +229,7 @@ public class PosePanel extends AbstractAirboatPanel {
                         String wwHemi = (upwcs.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
                         UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, pose.position.x, pose.position.y);
                         _worldPanel.boat.getAttributes().setOpacity(1.0);
-                        _worldPanel.boat.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), rpy[2]));
+                        _worldPanel.boat.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), pose.position.z));
                         _worldPanel.boat.setHeading(Angle.fromRadians(Math.PI/2.0-rpy[2]));
                     } catch (Exception e) {
                         _worldPanel.boat.getAttributes().setOpacity(0.0);
