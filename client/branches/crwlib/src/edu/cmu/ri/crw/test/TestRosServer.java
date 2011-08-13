@@ -3,18 +3,10 @@ package edu.cmu.ri.crw.test;
 import java.net.URI;
 import java.util.Scanner;
 
-import org.ros.RosCore;
 import org.ros.exception.RosRuntimeException;
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.node.NodeConfiguration;
-import org.ros.node.NodeRunner;
 
-import edu.cmu.ri.crw.ImagingObserver;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.WaypointObserver;
-import edu.cmu.ri.crw.VehicleServer.CameraState;
-import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.ros.RosVehicleProxy;
 import edu.cmu.ri.crw.ros.RosVehicleServer;
 
@@ -22,13 +14,13 @@ public class TestRosServer {
 	public static void main(String args[]) throws Exception {
 		
 		// Start a local ros core
-		RosCore core = RosCore.newPublic(11411);
+		/*RosCore core = RosCore.newPublic(11411);
 		NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
-		core.awaitStart();
+		core.awaitStart();*/
 		
 		// Select if we want to use the local ros core or a remote one
-		URI masterUri = core.getUri();
-		//URI masterUri = new URI("http://localhost:11311");
+		//URI masterUri = core.getUri();
+		URI masterUri = new URI("http://localhost:11311");
 		System.out.println("Master URI: " + masterUri);
 		
 		// Create a simulated boat and run a ROS server around it
@@ -44,7 +36,7 @@ public class TestRosServer {
 			Scanner sc = new Scanner(System.in);
 			sc.nextLine();
 		}
-		
+		/*
 		// TODO: put some system tests in here
 		proxyServer.setAutonomous(true);
 		
@@ -58,13 +50,42 @@ public class TestRosServer {
 			}
 		});
 		
+		p.pose.position.x = 22.0;
+		proxyServer.startWaypoint(p, new WaypointObserver() {
+			@Override
+			public void waypointUpdate(WaypointState status) {
+				System.out.println("STATUS: " + status);
+			}
+		});
+		p.pose.position.x = 33.0;
+		proxyServer.startWaypoint(p, new WaypointObserver() {
+			@Override
+			public void waypointUpdate(WaypointState status) {
+				System.out.println("STATUS: " + status);
+			}
+		});
+		
+		p.pose.position.x = 11.0;
+		proxyServer.startWaypoint(p, new WaypointObserver() {
+			@Override
+			public void waypointUpdate(WaypointState status) {
+				System.out.println("STATUS: " + status);
+			}
+		});
+		Thread.sleep(10000000);
+		
+		
+		proxyServer.stopWaypoint();
+		
+		
+		
 		proxyServer.startCamera(0, 1.0, 640, 480, new ImagingObserver() {
 			@Override
 			public void imagingUpdate(CameraState status) {
 				System.err.println("IMAGES: " + status);
 			}
 		});
-		
+		*/
 		// Wait for someone to hit Enter
 		{
 			System.out.println("Press [ENTER] to continue.");
@@ -86,11 +107,11 @@ public class TestRosServer {
 			System.err.println("Ros VehicleServer was uncleanly shutdown.");
 		}
 		
-		try {
+		/*try {
 			core.shutdown();
 		} catch (RosRuntimeException ex) {
 			System.err.println("Core was uncleanly shutdown.");
-		}
+		}*/
 		System.exit(0);
 	}
 }

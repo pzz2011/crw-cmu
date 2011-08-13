@@ -1,6 +1,5 @@
 package edu.cmu.ri.crw.ros;
 
-import java.net.InetAddress;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -9,7 +8,6 @@ import java.util.logging.Logger;
 
 import org.ros.actionlib.client.SimpleActionClientCallbacks;
 import org.ros.actionlib.state.SimpleClientGoalState;
-import org.ros.address.InetAddressFactory;
 import org.ros.exception.RemoteException;
 import org.ros.exception.RosException;
 import org.ros.exception.RosRuntimeException;
@@ -27,6 +25,7 @@ import org.ros.message.crwlib_msgs.VehicleNavigationResult;
 import org.ros.message.geometry_msgs.Twist;
 import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CompressedImage;
+import org.ros.message.std_msgs.Empty;
 import org.ros.namespace.NameResolver;
 import org.ros.node.DefaultNodeFactory;
 import org.ros.node.Node;
@@ -45,6 +44,7 @@ import org.ros.service.crwlib_msgs.GetVelocity;
 import org.ros.service.crwlib_msgs.GetWaypoint;
 import org.ros.service.crwlib_msgs.GetWaypointStatus;
 import org.ros.service.crwlib_msgs.IsAutonomous;
+import org.ros.service.crwlib_msgs.ResetLog;
 import org.ros.service.crwlib_msgs.SetAutonomous;
 import org.ros.service.crwlib_msgs.SetPid;
 import org.ros.service.crwlib_msgs.SetSensorType;
@@ -77,10 +77,13 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	protected final String _nodeName;
 	
 	protected Node _node;
-	protected Publisher<Twist> _velocityPublisher;
+	
 	protected RosVehicleNavigation.Client _navClient; 
 	protected RosVehicleImaging.Client _imgClient;
 	
+	protected Publisher<Twist> _velocityPublisher;
+	
+	protected ServiceClient<ResetLog.Request, ResetLog.Response> _resetLog;	
 	protected ServiceClient<SetState.Request, SetState.Response> _setStateClient;
 	protected ServiceClient<GetState.Request, GetState.Response> _getStateClient;
 	protected ServiceClient<CaptureImage.Request, CaptureImage.Response> _captureImageClient;
@@ -250,6 +253,9 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		
 		_getPidClient = registerService("/get_pid", "crwlib_msgs/GetPid");
 		if (_getPidClient == null) return false;
+		
+		_resetLog = registerService("/reset_log", "std_msgs/Empty");
+		if (_resetLog == null) return false;
 		
 		logger.info("Proxy initialized successfully.");
 		return true;
@@ -522,11 +528,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		safeCall(_setStateClient, request);
 	}
 
-	@Override
-	public void setVelocity(Twist velocity) {
-		if (_velocityPublisher.hasSubscribers())
-			_velocityPublisher.publish(velocity);
-	}
+	
 
 	@Override
 	public void startCamera(long numFrames, double interval, int width,
@@ -574,6 +576,18 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 			e.printStackTrace();
 		}
 		
+	}
+
+	@Override
+	public void setVelocity(Twist velocity) {
+		if (_velocityPublisher.hasSubscribers())
+			_velocityPublisher.publish(velocity);
+	}
+	@Override
+	public void resetLog() {
+		ResetLog.Request request = new ResetLog.Request();
+		request.reset = null;
+		safeCall(_resetLog, request);
 	}
 
 }

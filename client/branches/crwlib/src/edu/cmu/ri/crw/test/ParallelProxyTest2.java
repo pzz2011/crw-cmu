@@ -12,13 +12,10 @@ import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeRunner;
 
 import edu.cmu.ri.crw.ImagingObserver;
-import edu.cmu.ri.crw.SimpleBoatSimulator;
-import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.WaypointObserver;
 import edu.cmu.ri.crw.VehicleServer.CameraState;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
+import edu.cmu.ri.crw.WaypointObserver;
 import edu.cmu.ri.crw.ros.RosVehicleProxy;
-import edu.cmu.ri.crw.ros.RosVehicleServer;
 
 public class ParallelProxyTest2 {
 	public static void main(String args[]) throws Exception {

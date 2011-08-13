@@ -45,4 +45,6 @@ public interface VehicleServer {
 	
 	public void setPID(int axis, double[] gains);
 	public double[] getPID(int axis);
+	
+	public void resetLog();
 }
