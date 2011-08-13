@@ -29,6 +29,7 @@ import org.ros.message.geometry_msgs.Twist;
 import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CameraInfo;
 import org.ros.message.sensor_msgs.CompressedImage;
+import org.ros.message.std_msgs.Empty;
 import org.ros.namespace.NameResolver;
 import org.ros.node.DefaultNodeFactory;
 import org.ros.node.Node;
@@ -45,6 +46,7 @@ import org.ros.service.crwlib_msgs.GetVelocity;
 import org.ros.service.crwlib_msgs.GetWaypoint;
 import org.ros.service.crwlib_msgs.GetWaypointStatus;
 import org.ros.service.crwlib_msgs.IsAutonomous;
+import org.ros.service.crwlib_msgs.ResetLog;
 import org.ros.service.crwlib_msgs.SetAutonomous;
 import org.ros.service.crwlib_msgs.SetPid;
 import org.ros.service.crwlib_msgs.SetSensorType;
@@ -82,82 +84,94 @@ public class RosVehicleServer {
 	protected VehicleStateListener _stateListener;
 	protected VehicleImageListener _imageListener;
 	protected VehicleVelocityListener _velocityListener;
-	protected VehicleSensorListener _sensorListeners[]; 
+	protected VehicleSensorListener _sensorListeners[];
 
 	protected Node _node;
 	protected RosVehicleNavigation.Server _navServer;
 	protected RosVehicleImaging.Server _imgServer;
-	
+
 	public RosVehicleServer(VehicleServer server) throws RosException {
 		this(NodeConfiguration.DEFAULT_MASTER_URI, DEFAULT_NODE_NAME, server);
 	}
 
 	public RosVehicleServer(URI masterUri, String nodeName, VehicleServer server) {
-		
-		// TODO: Remove this logging setting -- it is a stopgap for a rosjava bug
+
+		// TODO: Remove this logging setting -- it is a stopgap for a rosjava
+		// bug
 		Logger.getLogger("org.ros.internal.node.client").setLevel(Level.SEVERE);
 
-		// Get a localhost address 
+		// Get a localhost address
 		String host = CrwNetworkUtils.getLocalhost(masterUri.getHost());
-		if (host == null || host.isEmpty()) return;
-		
+		if (host == null || host.isEmpty())
+			return;
+
 		// Store the reference to VehicleServer implementation
 		_server = server;
-		
+
 		// Create a node configuration and start the main node
 		NodeConfiguration config = NodeConfiguration.newPublic(host, masterUri);
-	    _node = new DefaultNodeFactory().newNode(nodeName, config);
+		_node = new DefaultNodeFactory().newNode(nodeName, config);
 
 		// Create publisher for state data
-	    Publisher<UtmPoseWithCovarianceStamped> statePublisher = _node.newPublisher("state", "crwlib_msgs/UtmPoseWithCovarianceStamped");
-	    _stateListener = new StateHandler(statePublisher);
+		Publisher<UtmPoseWithCovarianceStamped> statePublisher = _node
+				.newPublisher("state",
+						"crwlib_msgs/UtmPoseWithCovarianceStamped");
+		_stateListener = new StateHandler(statePublisher);
 		_server.addStateListener(_stateListener);
 
 		// Create publisher for image data and camera info
-		Publisher<CompressedImage> imagePublisher = _node.newPublisher("image/compressed", "sensor_msgs/CompressedImage");
-		Publisher<CameraInfo> cameraInfoPublisher = _node.newPublisher("camera_info", "sensor_msgs/CameraInfo");
+		Publisher<CompressedImage> imagePublisher = _node.newPublisher(
+				"image/compressed", "sensor_msgs/CompressedImage");
+		Publisher<CameraInfo> cameraInfoPublisher = _node.newPublisher(
+				"camera_info", "sensor_msgs/CameraInfo");
 		_imageListener = new ImageHandler(imagePublisher, cameraInfoPublisher);
 		_server.addImageListener(_imageListener);
-		
+
 		// Create publisher for velocity data
-		Publisher<TwistWithCovarianceStamped> velocityPublisher = _node.newPublisher("velocity", "geometry_msgs/TwistWithCovarianceStamped");
+		Publisher<TwistWithCovarianceStamped> velocityPublisher = _node
+				.newPublisher("velocity",
+						"geometry_msgs/TwistWithCovarianceStamped");
 		_velocityListener = new VelocityHandler(velocityPublisher);
 		_server.addVelocityListener(_velocityListener);
 
 		// Query for vehicle sensors and create corresponding publishers
 		int nSensors = server.getNumSensors();
 		_sensorListeners = new VehicleSensorListener[nSensors];
-		
+
 		for (int iSensor = 0; iSensor < nSensors && iSensor < nSensors; ++iSensor) {
 			Publisher<SensorData> sensorPublisher = _node.newPublisher(
 					RosVehicleConfig.SENSOR_TOPIC_PREFIX + iSensor,
 					"crwlib_msgs/SensorData");
-			_sensorListeners[iSensor] = new SensorHandler((Publisher<SensorData>) sensorPublisher);
+			_sensorListeners[iSensor] = new SensorHandler(
+					(Publisher<SensorData>) sensorPublisher);
 			_server.addSensorListener(iSensor, _sensorListeners[iSensor]);
 		}
 
-	    // Create a runner to start actionlib services
+		// Create a runner to start actionlib services
 		NodeRunner runner = NodeRunner.newDefault();
-		
+
 		// Create an action server for vehicle navigation
-		NodeConfiguration navConfig = NodeConfiguration.newPublic(host, masterUri);
+		NodeConfiguration navConfig = NodeConfiguration.newPublic(host,
+				masterUri);
 		NameResolver navResolver = NameResolver.create("/nav");
 		navConfig.setParentResolver(navResolver);
-		
+
 		// TODO: do we need to re-instantiate spec each time here?
 		try {
-			_navServer = new RosVehicleNavigation.Spec().buildSimpleActionServer(
-					_node, nodeName + "_nav", navigationHandler, false);
+			_navServer = new RosVehicleNavigation.Spec()
+					.buildSimpleActionServer(_node, nodeName + "_nav",
+							navigationHandler, false);
 			runner.run(_navServer, navConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
 		}
 
 		// Create an action server for image capturing
-		NodeConfiguration imgConfig = NodeConfiguration.newPublic(host, masterUri);
+		NodeConfiguration imgConfig = NodeConfiguration.newPublic(host,
+				masterUri);
 		NameResolver imgResolver = NameResolver.create("/img");
 		imgConfig.setParentResolver(imgResolver);
-		
+
 		// TODO: do we need to re-instantiate spec each time here?
 		try {
 			_imgServer = new RosVehicleImaging.Spec().buildSimpleActionServer(
@@ -168,173 +182,221 @@ public class RosVehicleServer {
 		}
 
 		// Create ROS subscriber for one-way velocity setter function
-		_node.newSubscriber("cmd_vel", "geometry_msgs/Twist", new MessageListener<Twist>() {
+		_node.newSubscriber("cmd_vel", "geometry_msgs/Twist",
+				new MessageListener<Twist>() {
 
+					@Override
+					public void onNewMessage(Twist velocity) {
+						_server.setVelocity(velocity);
+					}
+				});
+		// Create ROS service for resetting the log
+		_node.newServiceServer("/cmd_reset_log", "crwlib_msgs/ResetLog", new ServiceResponseBuilder<ResetLog.Request, ResetLog.Response>() {
 			@Override
-			public void onNewMessage(Twist velocity) {
-				_server.setVelocity(velocity);
+			public ResetLog.Response build(ResetLog.Request request) {
+				_server.resetLog();
+				return new ResetLog.Response();
 			}
 		});
-		
+
 		// Create ROS services for accessor and setter functions
 		// TODO: remove leading slash once rosjava is a little more stable
-		_node.newServiceServer("/set_state", "crwlib_msgs/SetState",
+		_node.newServiceServer(
+				"/set_state",
+				"crwlib_msgs/SetState",
 				new ServiceResponseBuilder<SetState.Request, SetState.Response>() {
-			@Override
-			public SetState.Response build(SetState.Request request) {
-				_server.setState(request.pose);
-				return new SetState.Response();
-			}
-		});
-		
-		_node.newServiceServer("/get_state", "crwlib_msgs/GetState",
+					@Override
+					public SetState.Response build(SetState.Request request) {
+						_server.setState(request.pose);
+						return new SetState.Response();
+					}
+				});
+
+		_node.newServiceServer(
+				"/get_state",
+				"crwlib_msgs/GetState",
 				new ServiceResponseBuilder<GetState.Request, GetState.Response>() {
-			@Override
-			public GetState.Response build(GetState.Request request) {
-				GetState.Response response = new GetState.Response();
-				response.pose = _server.getState();
-				return response;
-			}
-		});
-		
-		_node.newServiceServer("/capture_image", "crwlib_msgs/CaptureImage",
+					@Override
+					public GetState.Response build(GetState.Request request) {
+						GetState.Response response = new GetState.Response();
+						response.pose = _server.getState();
+						return response;
+					}
+				});
+
+		_node.newServiceServer(
+				"/capture_image",
+				"crwlib_msgs/CaptureImage",
 				new ServiceResponseBuilder<CaptureImage.Request, CaptureImage.Response>() {
-			@Override
-			public CaptureImage.Response build(CaptureImage.Request request) {
-				CaptureImage.Response response = new CaptureImage.Response();
-				_server.captureImage(request.width, request.height);
-				// TODO: put the capture image result in the service response
-				return response;
-			}
-		});
-		
-		_node.newServiceServer("/get_camera_status", "crwlib_msgs/GetCameraStatus",
+					@Override
+					public CaptureImage.Response build(
+							CaptureImage.Request request) {
+						CaptureImage.Response response = new CaptureImage.Response();
+						_server.captureImage(request.width, request.height);
+						// TODO: put the capture image result in the service
+						// response
+						return response;
+					}
+				});
+
+		_node.newServiceServer(
+				"/get_camera_status",
+				"crwlib_msgs/GetCameraStatus",
 				new ServiceResponseBuilder<GetCameraStatus.Request, GetCameraStatus.Response>() {
-			@Override
-			public GetCameraStatus.Response build(GetCameraStatus.Request request) {
-				GetCameraStatus.Response response = new GetCameraStatus.Response();
-				response.status = (byte)_server.getCameraStatus().ordinal();
-				return response;
-			}
-		});
-		
-		_node.newServiceServer("/set_sensor_type", "crwlib_msgs/SetSensorType",
+					@Override
+					public GetCameraStatus.Response build(
+							GetCameraStatus.Request request) {
+						GetCameraStatus.Response response = new GetCameraStatus.Response();
+						response.status = (byte) _server.getCameraStatus()
+								.ordinal();
+						return response;
+					}
+				});
+
+		_node.newServiceServer(
+				"/set_sensor_type",
+				"crwlib_msgs/SetSensorType",
 				new ServiceResponseBuilder<SetSensorType.Request, SetSensorType.Response>() {
-			@Override
-			public SetSensorType.Response build(SetSensorType.Request request) {
-				_server.setSensorType(request.channel, SensorType.values()[request.type]);
-				return new SetSensorType.Response();
-			}
-		});
-		
-		_node.newServiceServer("/get_sensor_type", "crwlib_msgs/GetSensorType",
+					@Override
+					public SetSensorType.Response build(
+							SetSensorType.Request request) {
+						_server.setSensorType(request.channel,
+								SensorType.values()[request.type]);
+						return new SetSensorType.Response();
+					}
+				});
+
+		_node.newServiceServer(
+				"/get_sensor_type",
+				"crwlib_msgs/GetSensorType",
 				new ServiceResponseBuilder<GetSensorType.Request, GetSensorType.Response>() {
-			@Override
-			public GetSensorType.Response build(GetSensorType.Request request) {
-				GetSensorType.Response response = new GetSensorType.Response();
-				response.type = (byte)_server.getSensorType(request.channel).ordinal();
-				// TODO: it might make sense to also return the channel
-				return response;
-			}
-		});
-		
-		_node.newServiceServer("/get_num_sensors", "crwlib_msgs/GetNumSensors",
+					@Override
+					public GetSensorType.Response build(
+							GetSensorType.Request request) {
+						GetSensorType.Response response = new GetSensorType.Response();
+						response.type = (byte) _server.getSensorType(
+								request.channel).ordinal();
+						// TODO: it might make sense to also return the channel
+						return response;
+					}
+				});
+
+		_node.newServiceServer(
+				"/get_num_sensors",
+				"crwlib_msgs/GetNumSensors",
 				new ServiceResponseBuilder<GetNumSensors.Request, GetNumSensors.Response>() {
-			@Override
-			public GetNumSensors.Response build(GetNumSensors.Request request) {
-				GetNumSensors.Response response = new GetNumSensors.Response();
-				response.numSensors = (byte)_server.getNumSensors();
-				// TODO: this could probably be an int
-				return response;
-			}
-		});
-		
-		_node.newServiceServer("/get_velocity", "crwlib_msgs/GetVelocity",
+					@Override
+					public GetNumSensors.Response build(
+							GetNumSensors.Request request) {
+						GetNumSensors.Response response = new GetNumSensors.Response();
+						response.numSensors = (byte) _server.getNumSensors();
+						// TODO: this could probably be an int
+						return response;
+					}
+				});
+
+		_node.newServiceServer(
+				"/get_velocity",
+				"crwlib_msgs/GetVelocity",
 				new ServiceResponseBuilder<GetVelocity.Request, GetVelocity.Response>() {
-			@Override
-			public GetVelocity.Response build(GetVelocity.Request request) {
-				GetVelocity.Response response = new GetVelocity.Response();
-				response.velocity = _server.getVelocity();
-				return response;
-			}
-		});
-		
-		_node.newServiceServer("/is_autonomous", "crwlib_msgs/IsAutonomous",
+					@Override
+					public GetVelocity.Response build(
+							GetVelocity.Request request) {
+						GetVelocity.Response response = new GetVelocity.Response();
+						response.velocity = _server.getVelocity();
+						return response;
+					}
+				});
+
+		_node.newServiceServer(
+				"/is_autonomous",
+				"crwlib_msgs/IsAutonomous",
 				new ServiceResponseBuilder<IsAutonomous.Request, IsAutonomous.Response>() {
-			@Override
-			public IsAutonomous.Response build(IsAutonomous.Request request) {
-				IsAutonomous.Response response = new IsAutonomous.Response();
-				response.isAutonomous = _server.isAutonomous();
-				return response;
-			}
-		});
-	    
-		_node.newServiceServer("/set_autonomous", "crwlib_msgs/SetAutonomous",
+					@Override
+					public IsAutonomous.Response build(
+							IsAutonomous.Request request) {
+						IsAutonomous.Response response = new IsAutonomous.Response();
+						response.isAutonomous = _server.isAutonomous();
+						return response;
+					}
+				});
+
+		_node.newServiceServer(
+				"/set_autonomous",
+				"crwlib_msgs/SetAutonomous",
 				new ServiceResponseBuilder<SetAutonomous.Request, SetAutonomous.Response>() {
-			@Override
-			public SetAutonomous.Response build(SetAutonomous.Request request) {
-				_server.setAutonomous(request.isAutonomous);
-				return new SetAutonomous.Response();
-			}
-		});
-		
-		_node.newServiceServer("/get_waypoint", "crwlib_msgs/GetWaypoint",
+					@Override
+					public SetAutonomous.Response build(
+							SetAutonomous.Request request) {
+						_server.setAutonomous(request.isAutonomous);
+						return new SetAutonomous.Response();
+					}
+				});
+
+		_node.newServiceServer(
+				"/get_waypoint",
+				"crwlib_msgs/GetWaypoint",
 				new ServiceResponseBuilder<GetWaypoint.Request, GetWaypoint.Response>() {
-			@Override
-			public GetWaypoint.Response build(GetWaypoint.Request request) {
-				GetWaypoint.Response response = new GetWaypoint.Response();
-				UtmPose waypoint = _server.getWaypoint();
-				if (waypoint != null) 
-					response.waypoint = waypoint; 
-				return response;
-			}
-		});
-		
-		_node.newServiceServer("/get_waypoint_status", "crwlib_msgs/GetWaypointStatus",
+					@Override
+					public GetWaypoint.Response build(
+							GetWaypoint.Request request) {
+						GetWaypoint.Response response = new GetWaypoint.Response();
+						UtmPose waypoint = _server.getWaypoint();
+						if (waypoint != null)
+							response.waypoint = waypoint;
+						return response;
+					}
+				});
+
+		_node.newServiceServer(
+				"/get_waypoint_status",
+				"crwlib_msgs/GetWaypointStatus",
 				new ServiceResponseBuilder<GetWaypointStatus.Request, GetWaypointStatus.Response>() {
-			@Override
-			public GetWaypointStatus.Response build(GetWaypointStatus.Request request) {
-				GetWaypointStatus.Response response = new GetWaypointStatus.Response();
-				response.status = (byte)_server.getWaypointStatus().ordinal();
-				return response;
-			}
-		});
-		
+					@Override
+					public GetWaypointStatus.Response build(
+							GetWaypointStatus.Request request) {
+						GetWaypointStatus.Response response = new GetWaypointStatus.Response();
+						response.status = (byte) _server.getWaypointStatus()
+								.ordinal();
+						return response;
+					}
+				});
+
 		_node.newServiceServer("/set_pid", "crwlib_msgs/SetPid",
 				new ServiceResponseBuilder<SetPid.Request, SetPid.Response>() {
-			@Override
-			public SetPid.Response build(SetPid.Request request) {
-				_server.setPID(request.axis, request.gains);
-				return new SetPid.Response();
-			}
-		});
-		
+					@Override
+					public SetPid.Response build(SetPid.Request request) {
+						_server.setPID(request.axis, request.gains);
+						return new SetPid.Response();
+					}
+				});
+
 		_node.newServiceServer("/get_pid", "crwlib_msgs/GetPid",
 				new ServiceResponseBuilder<GetPid.Request, GetPid.Response>() {
-			@Override
-			public GetPid.Response build(GetPid.Request request) {
-				GetPid.Response response = new GetPid.Response();
-				response.gains = _server.getPID(request.axis);
-				return response;
-			}
-		});
-		
-	    // TODO: we should probably use awaitPublisher here
+					@Override
+					public GetPid.Response build(GetPid.Request request) {
+						GetPid.Response response = new GetPid.Response();
+						response.gains = _server.getPID(request.axis);
+						return response;
+					}
+				});
+
+		// TODO: we should probably use awaitPublisher here
 		logger.info("Server initialized successfully.");
 	}
-	
+
 	/**
 	 * Terminates the ROS processes wrapping a VehicleServer.
 	 */
 	public void shutdown() {
-		
+
 		// Remove sensor handlers from wrapped vehicle server
 		_server.removeStateListener(_stateListener);
 		_server.removeImageListener(_imageListener);
 		_server.removeVelocityListener(_velocityListener);
 		for (int iSensor = 0; iSensor < _sensorListeners.length; ++iSensor)
 			_server.removeSensorListener(iSensor, _sensorListeners[iSensor]);
-		
+
 		// Shutdown ROS objects
 		_navServer.shutdown();
 		_imgServer.shutdown();
@@ -348,10 +410,11 @@ public class RosVehicleServer {
 
 		private final Publisher<UtmPoseWithCovarianceStamped> _publisher;
 
-		public StateHandler(final Publisher<UtmPoseWithCovarianceStamped> publisher) {
+		public StateHandler(
+				final Publisher<UtmPoseWithCovarianceStamped> publisher) {
 			_publisher = publisher;
 		}
-		
+
 		@Override
 		public void receivedState(UtmPoseWithCovarianceStamped pose) {
 			if (_publisher.hasSubscribers())
@@ -366,17 +429,18 @@ public class RosVehicleServer {
 
 		private final Publisher<TwistWithCovarianceStamped> _publisher;
 
-		public VelocityHandler(final Publisher<TwistWithCovarianceStamped> publisher) {
+		public VelocityHandler(
+				final Publisher<TwistWithCovarianceStamped> publisher) {
 			_publisher = publisher;
 		}
-		
+
 		@Override
 		public void receivedVelocity(TwistWithCovarianceStamped velocity) {
 			if (_publisher.hasSubscribers())
 				_publisher.publish(velocity);
 		}
 	};
-	
+
 	/**
 	 * This child class publishes new captured images on the image topic.
 	 */
@@ -385,7 +449,7 @@ public class RosVehicleServer {
 		private final Publisher<CompressedImage> _imgPublisher;
 		private final Publisher<CameraInfo> _infoPublisher;
 
-		public ImageHandler(final Publisher<CompressedImage> imgPublisher, 
+		public ImageHandler(final Publisher<CompressedImage> imgPublisher,
 				final Publisher<CameraInfo> infoPublisher) {
 			_imgPublisher = imgPublisher;
 			_infoPublisher = infoPublisher;
@@ -429,28 +493,39 @@ public class RosVehicleServer {
 		@Override
 		public void goalCallback(
 				SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> actionServer) {
-			
+
 			try {
 				final VehicleNavigationGoal goal = _navServer.acceptNewGoal();
 				logger.info("Starting navigation to: " + print(goal.targetPose));
-				
-				_server.stopWaypoint();			
+
+				_server.stopWaypoint();
 				_server.startWaypoint(goal.targetPose, new WaypointObserver() {
-					
+
 					@Override
 					public void waypointUpdate(WaypointState status) {
-						if (!_navServer.isActive()) return;
-						
+						if (!_navServer.isActive())
+							return;
+
 						if (status == WaypointState.DONE) {
 							VehicleNavigationResult result = new VehicleNavigationResult();
-							result.header.stamp = new WallclockProvider().getCurrentTime();
+							result.header.stamp = new WallclockProvider()
+									.getCurrentTime();
 							result.status = (byte) status.ordinal();
-							result.finalPose.pose.pose = goal.targetPose.pose; // TODO: Should this be vehicle pose or waypoint pose?
+							result.finalPose.pose.pose = goal.targetPose.pose; // TODO:
+																				// Should
+																				// this
+																				// be
+																				// vehicle
+																				// pose
+																				// or
+																				// waypoint
+																				// pose?
 							result.finalPose.utm = goal.targetPose.utm;
 							_navServer.setSucceeded(result, "DONE");
 						} else {
 							VehicleNavigationFeedback feedback = new VehicleNavigationFeedback();
-							feedback.header.stamp = new WallclockProvider().getCurrentTime();
+							feedback.header.stamp = new WallclockProvider()
+									.getCurrentTime();
 							feedback.status = (byte) status.ordinal();
 							_navServer.publishFeedback(feedback);
 						}
@@ -485,31 +560,36 @@ public class RosVehicleServer {
 		@Override
 		public void goalCallback(
 				SimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> arg0) {
-			
+
 			try {
 				final VehicleImageCaptureGoal goal = _imgServer.acceptNewGoal();
-				logger.info("Starting image capture: " + goal.frames + "@" + goal.interval + ", " + goal.width + "x" + goal.height);
-				
+				logger.info("Starting image capture: " + goal.frames + "@"
+						+ goal.interval + ", " + goal.width + "x" + goal.height);
+
 				_server.stopCamera();
-				_server.startCamera(goal.frames, (double)goal.interval, goal.width, goal.height, new ImagingObserver() {
-					
-					@Override
-					public void imagingUpdate(CameraState status) {
-						if (!_navServer.isActive()) return;
-						
-						if (status == CameraState.DONE) {
-							VehicleImageCaptureResult result = new VehicleImageCaptureResult();
-							result.header.stamp = new WallclockProvider().getCurrentTime();
-							result.status = (byte) status.ordinal();
-							_imgServer.setSucceeded(result, "DONE");
-						} else {
-							VehicleImageCaptureFeedback feedback = new VehicleImageCaptureFeedback();
-							feedback.header.stamp = new WallclockProvider().getCurrentTime();
-							feedback.status = (byte) status.ordinal();
-							_imgServer.publishFeedback(feedback);
-						}
-					}
-				});
+				_server.startCamera(goal.frames, (double) goal.interval,
+						goal.width, goal.height, new ImagingObserver() {
+
+							@Override
+							public void imagingUpdate(CameraState status) {
+								if (!_navServer.isActive())
+									return;
+
+								if (status == CameraState.DONE) {
+									VehicleImageCaptureResult result = new VehicleImageCaptureResult();
+									result.header.stamp = new WallclockProvider()
+											.getCurrentTime();
+									result.status = (byte) status.ordinal();
+									_imgServer.setSucceeded(result, "DONE");
+								} else {
+									VehicleImageCaptureFeedback feedback = new VehicleImageCaptureFeedback();
+									feedback.header.stamp = new WallclockProvider()
+											.getCurrentTime();
+									feedback.status = (byte) status.ordinal();
+									_imgServer.publishFeedback(feedback);
+								}
+							}
+						});
 			} catch (RosException e) {
 				logger.warning("Unable to accept image capture: " + e);
 			}
@@ -531,6 +611,9 @@ public class RosVehicleServer {
 	};
 
 	protected String print(UtmPose targetPose) {
-		return "["+targetPose.pose.position.x + "," + targetPose.pose.position.y + "," + targetPose.pose.position.z + "] @ " + targetPose.utm.zone + (targetPose.utm.isNorth ? "North" : "South");
+		return "[" + targetPose.pose.position.x + ","
+				+ targetPose.pose.position.y + "," + targetPose.pose.position.z
+				+ "] @ " + targetPose.utm.zone
+				+ (targetPose.utm.isNorth ? "North" : "South");
 	}
 }

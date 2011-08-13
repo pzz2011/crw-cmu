@@ -20,6 +20,11 @@
           <Component id="connectedBox" alignment="0" pref="216" max="32767" attributes="0"/>
           <Component id="autonomousBox" alignment="0" pref="216" max="32767" attributes="0"/>
           <Component id="connectButton" alignment="0" pref="216" max="32767" attributes="0"/>
+          <Group type="102" alignment="0" attributes="0">
+              <EmptySpace min="-2" pref="72" max="-2" attributes="0"/>
+              <Component id="resetLogButton" min="-2" max="-2" attributes="0"/>
+              <EmptySpace pref="73" max="32767" attributes="0"/>
+          </Group>
       </Group>
     </DimensionLayout>
     <DimensionLayout dim="1">
@@ -32,7 +37,9 @@
               <Component id="connectedBox" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
               <Component id="autonomousBox" min="-2" max="-2" attributes="0"/>
-              <EmptySpace max="32767" attributes="0"/>
+              <EmptySpace max="-2" attributes="0"/>
+              <Component id="resetLogButton" min="-2" max="-2" attributes="0"/>
+              <EmptySpace pref="14" max="32767" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
@@ -78,6 +85,14 @@
       <AuxValues>
         <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new ReadOnlyCheckBox();"/>
       </AuxValues>
+    </Component>
+    <Component class="javax.swing.JToggleButton" name="resetLogButton">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="New Log"/>
+      </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="resetLogButtonActionPerformed"/>
+      </Events>
     </Component>
   </SubComponents>
 </Form>
