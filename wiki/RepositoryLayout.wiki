@@ -38,6 +38,10 @@ Contains drawings and models for various mechanical systems in the vehicle.  Mec
 
 = Infrastructure Sub-Repositories =
 
+== [http://code.google.com/p/crw-cmu/source/browse/#svn%2Fsnapshots Snapshots] ==
+
+This directory contains compiled libraries of several of the sub-repositories.  These binary snapshots are used to link dependent repositories together without requiring compilation dependencies.  This allows sub-repositories to be checked out and compiled individually.
+
 == [http://code.google.com/p/crw-cmu/source/browse/#svn%2Fchanges Changes] ==
 
 This directory is used to branch other repositories when someone wants to submit a patch or do a code review.  It is not used for active development.
