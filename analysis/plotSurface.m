@@ -16,7 +16,8 @@ data = data(validTime, :);
 
 figure;
 fo = fit( [data(:,2), data(:,3)], data(:,axis), 'linearinterp');
-plot( fo, [data(:,2), data(:,3)], data(:,axis) );
+plot( fo );
+%plot3(data(:,2), data(:,3), data(:,axis) );
 xlabel( 'Easting' );
 ylabel( 'Northing' );
 zlabel( labels{axis} );
