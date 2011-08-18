@@ -89,7 +89,6 @@ public class ConnectionPanel extends javax.swing.JPanel {
         connectButton = new javax.swing.JButton();
         connectedBox = new ReadOnlyCheckBox();
         autonomousBox = new ReadOnlyCheckBox();
-        resetLogButton = new javax.swing.JToggleButton();
 
         connectCombo.setEditable(true);
         connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "http://localhost:11411" }));
@@ -108,25 +107,14 @@ public class ConnectionPanel extends javax.swing.JPanel {
         autonomousBox.setForeground(new java.awt.Color(51, 51, 51));
         autonomousBox.setText("Autonomous Mode");
 
-        resetLogButton.setText("New Log");
-        resetLogButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                resetLogButtonActionPerformed(evt);
-            }
-        });
-
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(connectCombo, 0, 216, Short.MAX_VALUE)
-            .add(connectedBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 216, Short.MAX_VALUE)
-            .add(autonomousBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 216, Short.MAX_VALUE)
-            .add(connectButton, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 216, Short.MAX_VALUE)
-            .add(layout.createSequentialGroup()
-                .add(72, 72, 72)
-                .add(resetLogButton)
-                .addContainerGap(73, Short.MAX_VALUE))
+            .add(connectCombo, 0, 243, Short.MAX_VALUE)
+            .add(connectedBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 243, Short.MAX_VALUE)
+            .add(autonomousBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 243, Short.MAX_VALUE)
+            .add(connectButton, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 243, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
@@ -138,9 +126,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
                 .add(connectedBox)
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                 .add(autonomousBox)
-                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
-                .add(resetLogButton)
-                .addContainerGap(14, Short.MAX_VALUE))
+                .addContainerGap(org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -170,22 +156,12 @@ public class ConnectionPanel extends javax.swing.JPanel {
         }
     }//GEN-LAST:event_connectButtonActionPerformed
 
-private void resetLogButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetLogButtonActionPerformed
-synchronized(this) {
-    if(_vehicle != null)
-            System.out.println("RESETTING!");
-            _vehicle.resetLog();
-        }
-    
-}//GEN-LAST:event_resetLogButtonActionPerformed
-
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JCheckBox autonomousBox;
     private javax.swing.JButton connectButton;
     private javax.swing.JComboBox connectCombo;
     private javax.swing.JCheckBox connectedBox;
-    private javax.swing.JToggleButton resetLogButton;
     // End of variables declaration//GEN-END:variables
 
     public static interface ConnectionListener {
