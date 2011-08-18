@@ -1,10 +1,8 @@
 package edu.cmu.ri.airboat.server;
 
 import org.ros.message.Time;
-import org.ros.message.crwlib_msgs.Utm;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
-import org.ros.message.geometry_msgs.Pose;
 import org.ros.message.geometry_msgs.Twist;
 
 import edu.cmu.ri.crw.QuaternionUtils;
@@ -54,46 +52,52 @@ public class SimpleFilter implements VehicleFilter {
 	}
 	
 	@Override
-	public synchronized void compassUpdate(double heading, long time) {
+	public synchronized void compassUpdate(double yaw, long time) {
 		predict(time);
 		
 		// On the first compass update, simply take on the initial heading
 		// (invert the heading because yaw is negative heading) 
 		if (_isInitializedCompass) {
-			double yaw = QuaternionUtils.toYaw(_pose.pose.orientation);
-			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, angleAverage(ALPHA_COMPASS, yaw, Math.PI - heading));
+			double oldYaw = QuaternionUtils.toYaw(_pose.pose.orientation);
+			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, angleAverage(ALPHA_COMPASS, oldYaw, yaw));
 		} else {
-			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, Math.PI - heading);
+			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, yaw);
 			_isInitializedCompass = true;
 		}
 	}
 
 	@Override
-	public synchronized void gpsUpdate(Utm utm, long time) {
+	public synchronized void gpsUpdate(UtmPose utm, long time) {
 		predict(time);
 		
-		// If we are in the wrong zone or are unintialized, use the GPS position
-		if (utm.zone != _pose.utm.zone || utm.isNorth != _pose.utm.isNorth || !_isInitializedGps) {
-			_pose.utm = utm.clone();
-			_pose.pose = new Pose();
-			_pose.pose.position.x = utm.easting;
-			_pose.pose.position.y = utm.northing;
+		// If we are in the wrong zone or are uninitialized, use the GPS position
+		if (utm.utm.zone != _pose.utm.zone || utm.utm.isNorth != _pose.utm.isNorth || !_isInitializedGps) {
+			_pose.utm = utm.utm.clone();
+			_pose.pose = utm.pose.clone();
 			_isInitializedGps = true;
 		} else {
 			// On other update, average together the readings
-			_pose.pose.position.x = ALPHA_GPS * utm.easting + (1 - ALPHA_GPS) * _pose.pose.position.x;
-			_pose.pose.position.y = ALPHA_GPS * utm.northing + (1 - ALPHA_GPS) * _pose.pose.position.y;
+			_pose.pose.position.x = ALPHA_GPS * utm.pose.position.x + (1 - ALPHA_GPS) * _pose.pose.position.x;
+			_pose.pose.position.y = ALPHA_GPS * utm.pose.position.y + (1 - ALPHA_GPS) * _pose.pose.position.y;
 			
-			// Just copy over the UTM coordinates from pose vector
-			_pose.utm.easting = _pose.pose.position.x;
-			_pose.utm.northing = _pose.pose.position.y;
+			// If we have altitude, use it (0.0 if not filled in)
+			if (utm.pose.position.z != 0.0) {
+				_pose.pose.position.z = utm.pose.position.z;
+			}
+			
+			// If we have a bearing, use it as well (w != 0 in most valid quaternions)
+			if (utm.pose.orientation.w != 0.0) {
+				double oldYaw = QuaternionUtils.toYaw(_pose.pose.orientation);
+				double yaw = QuaternionUtils.toYaw(utm.pose.orientation);
+				_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, angleAverage(ALPHA_GPS, oldYaw, yaw));
+			}
 		}
 	}
 
 	@Override
-	public synchronized void gyroUpdate(double headingVel, long time) {
+	public synchronized void gyroUpdate(double yawVel, long time) {
 		predict(time);
-		_vels.angular.z = headingVel;
+		_vels.angular.z = yawVel;
 	}
 
 	@Override

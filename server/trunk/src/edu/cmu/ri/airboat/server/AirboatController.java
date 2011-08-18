@@ -17,7 +17,7 @@ import edu.cmu.ri.crw.VehicleServer;
  * @author pkv
  *
  */
-public enum AirboatControllerLibrary {
+public enum AirboatController {
 	
 	/**
 	 * This controller turns the boat around until it is facing the waypoint, 
@@ -91,7 +91,7 @@ public enum AirboatControllerLibrary {
 	 * Instantiates a library entry with the specified controller.
 	 * @param controller the controller to be used by this entry.
 	 */
-	private AirboatControllerLibrary(VehicleController controller) {
+	private AirboatController(VehicleController controller) {
 		this.controller = controller;
 	}
 	

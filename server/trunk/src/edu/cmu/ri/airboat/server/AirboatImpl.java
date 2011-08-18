@@ -46,15 +46,16 @@ public class AirboatImpl extends AbstractVehicleServer {
 	private static final String logTag = AirboatImpl.class.getName();
 	public static final int UPDATE_INTERVAL_MS = 100;
 	public static final int NUM_SENSORS = 3;
+	public static final AirboatController DEFAULT_CONTROLLER = AirboatController.POINT_AND_SHOOT;
 	
-	public final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
-	public UtmPose _waypoint = null;
+	protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
+	protected UtmPose _waypoint = null;
 
-	private final Object _captureLock = new Object();
-	private AtomicBoolean _isCapturing = null;
+	protected final Object _captureLock = new Object();
+	protected AtomicBoolean _isCapturing = null;
 	
-	private final Object _navigationLock = new Object();
-	private AtomicBoolean _isNavigating = null;
+	protected final Object _navigationLock = new Object();
+	protected AtomicBoolean _isNavigating = null;
 
 	/**
 	 * Defines the PID gains that will be returned if there is an error.
@@ -114,11 +115,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 	double[] _gyroReadings = new double[3];
 
 	/**
-	 * Current navigation controller
-	 */
-	AirboatControllerLibrary _controller = AirboatControllerLibrary.POINT_AND_SHOOT;
-
-	/**
 	 * Creates a new instance of the vehicle implementation. This function
 	 * should only be used internally when the corresponding vehicle service is
 	 * started and stopped.
@@ -157,9 +153,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 					(float) _velocities.linear.z, 
 					(float) _velocities.angular.x,
 					(float) _velocities.angular.y, 
-					(float) _velocities.angular.z  // TODO: fix this on Arduino!
-					//This is positive for boat 1, but negative for boat 2.
-					
+					(float) _velocities.angular.z
 				});
 		// Yes, I know this looks silly, but Amarino doesn't handle doubles
 		
@@ -178,8 +172,12 @@ public class AirboatImpl extends AbstractVehicleServer {
 		vel.twist.twist = _velocities;
 		sendVelocity(vel);		
 	}
-
-	public double[] getPID(int axis) {
+	
+	/**
+	 * @see VehicleServer#getGains(int)
+	 */
+	@Override
+	public double[] getGains(int axis) {
 
 		// Call Amarino here
 		Amarino.sendDataToArduino(_context, _arduinoAddr, GET_GAINS_FN, axis);
@@ -217,9 +215,10 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	/**
-	 * @see VehicleServer#setPID(int, double[])
+	 * @see VehicleServer#setGains(int, double[])
 	 */
-	public void setPID(int axis, double[] k) {
+	@Override
+	public void setGains(int axis, double[] k) {
 		
 		// Call Amarino here
 		Amarino.sendDataToArduino(
@@ -257,7 +256,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 		switch (cmd.get(0).charAt(0)) {
 		case GET_GAINS_FN:
 			// Check size of function
-			if (cmd.size() != 6) {
+			if (cmd.size() != 5) {
 				Log.w(logTag, "Received corrupt gain function: " + cmd);
 				return;
 			}
@@ -281,7 +280,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			break;
 		case GET_GYRO_FN:
 			// Check size of function
-			if (cmd.size() != 5) {
+			if (cmd.size() != 4) {
 				Log.w(logTag, "Received corrupt gyro function: " + cmd);
 				return;
 			}
@@ -307,7 +306,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			break;
 		case GET_TE_FN:
 			// Check size of function
-			if (cmd.size() != 5) {
+			if (cmd.size() != 4) {
 				Log.w(logTag, "Received corrupt sensor function: " + cmd);
 				return;
 			}
@@ -356,8 +355,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			// Read in data as string and add to queue for processing
 			if (dataType == AmarinoIntent.STRING_EXTRA) {
 				String newCmd = intent.getStringExtra(AmarinoIntent.EXTRA_DATA);
-				_partialCommand.add(newCmd);
-
+				
 				// If a command is completed, attempt to execute it
 				if (newCmd.indexOf('\r') >= 0 || newCmd.indexOf('\n') >= 0) {
 					try {
@@ -366,6 +364,9 @@ public class AirboatImpl extends AbstractVehicleServer {
 						Log.e(logTag, "Command failed:", t);
 					}
 					_partialCommand.clear();
+				} else {
+					// Otherwise, just add this command to the list
+					_partialCommand.add(newCmd);
 				}
 			}
 		}
@@ -561,7 +562,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 	
 	@Override
-	public void startWaypoint(final UtmPose waypoint, final WaypointObserver obs ) {
+	public void startWaypoint(final UtmPose waypoint, final String controller, final WaypointObserver obs) {
 		
 		// Precompute timing interval in ms
 		// TODO: use actual time to compute timesteps on the fly for navigation
@@ -583,6 +584,21 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 			@Override
 			public void run() {
+				
+				AirboatController vehicleController;
+				try {
+					vehicleController = AirboatController.valueOf(controller);
+				} catch(IllegalArgumentException e) {
+					vehicleController = DEFAULT_CONTROLLER;
+				}
+				
+				// Report the new waypoint in the log file
+				logger.info("NAV: " + vehicleController + "[" +
+						_pose.pose.pose.pose.position.x + "," +
+						_pose.pose.pose.pose.position.y + "," +
+						_pose.pose.pose.pose.position.z + "] " +
+						Arrays.toString(QuaternionUtils.toEulerAngles(_pose.pose.pose.pose.orientation)));
+				
 				while (isNavigating.get()) {
 					
 					// If we are not set in autonomous mode, don't try to drive!
@@ -603,7 +619,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 						// TODO: handle different UTM zones!
 	
 						// Figure out how to drive to waypoint
-						_controller.controller.update(AirboatImpl.this, dt);
+						vehicleController.controller.update(AirboatImpl.this, dt);
 						
 						// TODO: measure dt directly instead of approximating
 						
@@ -717,5 +733,10 @@ public class AirboatImpl extends AbstractVehicleServer {
 		
 		_isAutonomous.set(false);
 		_isConnected.set(false);
+	}
+
+	@Override
+	public void resetLog() {
+		// TODO: fill in logger here
 	}
 }
