@@ -1,12 +1,12 @@
 package edu.cmu.ri.crw.ros;
 
 import java.net.URI;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.ros.actionlib.server.SimpleActionServer;
 import org.ros.actionlib.server.SimpleActionServerCallbacks;
 import org.ros.exception.RosException;
+import org.ros.exception.RosRuntimeException;
 import org.ros.internal.node.service.ServiceResponseBuilder;
 import org.ros.internal.time.WallclockProvider;
 import org.ros.message.MessageListener;
@@ -45,7 +45,6 @@ import org.ros.service.crwlib_msgs.GetVelocity;
 import org.ros.service.crwlib_msgs.GetWaypoint;
 import org.ros.service.crwlib_msgs.GetWaypointStatus;
 import org.ros.service.crwlib_msgs.IsAutonomous;
-import org.ros.service.crwlib_msgs.ResetLog;
 import org.ros.service.crwlib_msgs.SetAutonomous;
 import org.ros.service.crwlib_msgs.SetGains;
 import org.ros.service.crwlib_msgs.SetSensorType;
@@ -88,16 +87,12 @@ public class RosVehicleServer {
 	protected Node _node;
 	protected RosVehicleNavigation.Server _navServer;
 	protected RosVehicleImaging.Server _imgServer;
-
+	
 	public RosVehicleServer(VehicleServer server) throws RosException {
 		this(NodeConfiguration.DEFAULT_MASTER_URI, DEFAULT_NODE_NAME, server);
 	}
 
 	public RosVehicleServer(URI masterUri, String nodeName, VehicleServer server) {
-
-		// TODO: Remove this logging setting -- it is a stopgap for a rosjava
-		// bug
-		Logger.getLogger("org.ros.internal.node.client").setLevel(Level.SEVERE);
 
 		// Get a localhost address
 		String host = CrwNetworkUtils.getLocalhost(masterUri.getHost());
@@ -150,8 +145,7 @@ public class RosVehicleServer {
 		NodeRunner runner = NodeRunner.newDefault();
 
 		// Create an action server for vehicle navigation
-		NodeConfiguration navConfig = NodeConfiguration.newPublic(host,
-				masterUri);
+		NodeConfiguration navConfig = NodeConfiguration.newPublic(host, masterUri);
 		NameResolver navResolver = NameResolver.create("/nav");
 		navConfig.setParentResolver(navResolver);
 
@@ -166,8 +160,7 @@ public class RosVehicleServer {
 		}
 
 		// Create an action server for image capturing
-		NodeConfiguration imgConfig = NodeConfiguration.newPublic(host,
-				masterUri);
+		NodeConfiguration imgConfig = NodeConfiguration.newPublic(host, masterUri);
 		NameResolver imgResolver = NameResolver.create("/img");
 		imgConfig.setParentResolver(imgResolver);
 
@@ -183,20 +176,11 @@ public class RosVehicleServer {
 		// Create ROS subscriber for one-way velocity setter function
 		_node.newSubscriber("cmd_vel", "geometry_msgs/Twist",
 				new MessageListener<Twist>() {
-
 					@Override
 					public void onNewMessage(Twist velocity) {
 						_server.setVelocity(velocity);
 					}
 				});
-		// Create ROS service for resetting the log
-		_node.newServiceServer("/cmd_reset_log", "crwlib_msgs/ResetLog", new ServiceResponseBuilder<ResetLog.Request, ResetLog.Response>() {
-			@Override
-			public ResetLog.Response build(ResetLog.Request request) {
-				_server.resetLog();
-				return new ResetLog.Response();
-			}
-		});
 
 		// Create ROS services for accessor and setter functions
 		// TODO: remove leading slash once rosjava is a little more stable
@@ -397,9 +381,24 @@ public class RosVehicleServer {
 			_server.removeSensorListener(iSensor, _sensorListeners[iSensor]);
 
 		// Shutdown ROS objects
-		_navServer.shutdown();
-		_imgServer.shutdown();
-		_node.shutdown();
+		try {
+			_navServer.shutdown();
+		} catch (RosRuntimeException e) {
+			logger.warning("Navigation shutdown uncleanly: " + e);
+		}
+		
+		try {
+			_imgServer.shutdown();
+		} catch (RosRuntimeException e) {
+			logger.warning("Imaging shutdown uncleanly: " + e);
+		}
+		
+		try {
+			_node.shutdown();
+		} catch (RosRuntimeException e) {
+			logger.warning("Node shutdown uncleanly: " + e);
+			e.printStackTrace();
+		}
 	}
 
 	/**

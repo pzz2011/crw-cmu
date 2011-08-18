@@ -3,7 +3,6 @@ package edu.cmu.ri.crw.ros;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.ros.actionlib.client.SimpleActionClientCallbacks;
@@ -43,7 +42,6 @@ import org.ros.service.crwlib_msgs.GetVelocity;
 import org.ros.service.crwlib_msgs.GetWaypoint;
 import org.ros.service.crwlib_msgs.GetWaypointStatus;
 import org.ros.service.crwlib_msgs.IsAutonomous;
-import org.ros.service.crwlib_msgs.ResetLog;
 import org.ros.service.crwlib_msgs.SetAutonomous;
 import org.ros.service.crwlib_msgs.SetGains;
 import org.ros.service.crwlib_msgs.SetSensorType;
@@ -86,7 +84,6 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	
 	protected Publisher<Twist> _velocityPublisher;
 	
-	protected ServiceClient<ResetLog.Request, ResetLog.Response> _resetLog;	
 	protected ServiceClient<SetState.Request, SetState.Response> _setStateClient;
 	protected ServiceClient<GetState.Request, GetState.Response> _getStateClient;
 	protected ServiceClient<CaptureImage.Request, CaptureImage.Response> _captureImageClient;
@@ -111,9 +108,6 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	public RosVehicleProxy(URI masterUri, String nodeName) {
-		
-		// TODO: Remove this logging setting -- it is a stopgap for a rosjava bug
-		Logger.getLogger("org.ros.internal.node.client").setLevel(Level.SEVERE);
 		
 		_masterUri = masterUri;
 		_nodeName = nodeName;
@@ -147,7 +141,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		
 		try {
 			_navClient = new RosVehicleNavigation.Spec()
-					.buildSimpleActionClient(_nodeName + "_nav");
+					.buildSimpleActionClient(_node, _nodeName + "_nav");
 			runner.run(_navClient, navConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start navigation action client: " + ex);
@@ -161,7 +155,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		
 		try {
 			_imgClient = new RosVehicleImaging.Spec()
-					.buildSimpleActionClient(_nodeName + "_img");
+					.buildSimpleActionClient(_node, _nodeName + "_img");
 			runner.run(_imgClient, imgConfig);
 		} catch (RosException ex) {
 			logger.severe("Unable to start image action client: " + ex);
@@ -256,9 +250,6 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		
 		_getGainsClient = registerService("/get_gains", "crwlib_msgs/GetGains");
 		if (_getGainsClient == null) return false;
-		
-		_resetLog = registerService("/reset_log", "std_msgs/Empty");
-		if (_resetLog == null) return false;
 		
 		logger.info("Proxy initialized successfully.");
 		return true;
@@ -588,11 +579,4 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		if (_velocityPublisher.hasSubscribers())
 			_velocityPublisher.publish(velocity);
 	}
-	@Override
-	public void resetLog() {
-		ResetLog.Request request = new ResetLog.Request();
-		request.reset = null;
-		safeCall(_resetLog, request);
-	}
-
 }

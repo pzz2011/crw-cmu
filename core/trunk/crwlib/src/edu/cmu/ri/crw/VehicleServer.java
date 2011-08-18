@@ -45,6 +45,4 @@ public interface VehicleServer {
 	
 	public void setGains(int axis, double[] gains);
 	public double[] getGains(int axis);
-	
-	public void resetLog();
 }
