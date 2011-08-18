@@ -49,7 +49,7 @@ public class ParallelProxyTest {
 		UtmPose p = new UtmPose();
 		p.pose.position.x = 10.0;
 		p.pose.position.y = 10.0;
-		proxyServer.startWaypoint(p, new WaypointObserver() {
+		proxyServer.startWaypoint(p, null, new WaypointObserver() {
 			@Override
 			public void waypointUpdate(WaypointState status) {
 				System.out.println("STATUS: " + status);

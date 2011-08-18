@@ -1,4 +1,4 @@
-package edu.cmu.ri.crw.test;
+package edu.cmu.ri.crw;
 
 
 
@@ -7,9 +7,6 @@ import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.Pose;
 import org.ros.message.geometry_msgs.Twist;
 
-import edu.cmu.ri.crw.QuaternionUtils;
-import edu.cmu.ri.crw.VehicleController;
-import edu.cmu.ri.crw.VehicleServer;
 
 /**
  * A library of available navigation controllers that are accessible through the
@@ -18,7 +15,7 @@ import edu.cmu.ri.crw.VehicleServer;
  * @author pkv
  * 
  */
-public enum SimpleBoatControllerLibrary {
+public enum SimpleBoatController {
 
 	/**
 	 * This controller turns the boat around until it is facing the waypoint,
@@ -149,7 +146,7 @@ public enum SimpleBoatControllerLibrary {
 	 * @param controller
 	 *            the controller to be used by this entry.
 	 */
-	private SimpleBoatControllerLibrary(VehicleController controller) {
+	private SimpleBoatController(VehicleController controller) {
 		this.controller = controller;
 	}
 
@@ -169,7 +166,7 @@ public enum SimpleBoatControllerLibrary {
 	}
 
 	public enum PlanningMethod {
-		SIMPLE, GEOMETRICAL
+		SIMPLE, GEOMETRIC
 	};
 	/**
 	 * Takes a pose and determines whether the image to be taken is novel or not
@@ -216,7 +213,7 @@ public enum SimpleBoatControllerLibrary {
 				
 				
 				break;
-			case GEOMETRICAL:
+			case GEOMETRIC:
 				throw new UnsupportedOperationException("Not implemented Yet!");
 		
 		}

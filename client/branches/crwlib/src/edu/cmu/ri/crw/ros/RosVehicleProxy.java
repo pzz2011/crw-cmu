@@ -25,7 +25,6 @@ import org.ros.message.crwlib_msgs.VehicleNavigationResult;
 import org.ros.message.geometry_msgs.Twist;
 import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CompressedImage;
-import org.ros.message.std_msgs.Empty;
 import org.ros.namespace.NameResolver;
 import org.ros.node.DefaultNodeFactory;
 import org.ros.node.Node;
@@ -37,7 +36,7 @@ import org.ros.node.topic.Publisher;
 import org.ros.service.crwlib_msgs.CaptureImage;
 import org.ros.service.crwlib_msgs.GetCameraStatus;
 import org.ros.service.crwlib_msgs.GetNumSensors;
-import org.ros.service.crwlib_msgs.GetPid;
+import org.ros.service.crwlib_msgs.GetGains;
 import org.ros.service.crwlib_msgs.GetSensorType;
 import org.ros.service.crwlib_msgs.GetState;
 import org.ros.service.crwlib_msgs.GetVelocity;
@@ -46,7 +45,7 @@ import org.ros.service.crwlib_msgs.GetWaypointStatus;
 import org.ros.service.crwlib_msgs.IsAutonomous;
 import org.ros.service.crwlib_msgs.ResetLog;
 import org.ros.service.crwlib_msgs.SetAutonomous;
-import org.ros.service.crwlib_msgs.SetPid;
+import org.ros.service.crwlib_msgs.SetGains;
 import org.ros.service.crwlib_msgs.SetSensorType;
 import org.ros.service.crwlib_msgs.SetState;
 
@@ -60,6 +59,10 @@ import edu.cmu.ri.crw.WaypointObserver;
  * wrapping the functionality of a VehicleServer transparently. Once connected,
  * this object can be used as a vehicle server, but all commands will be
  * forwarded to the underlying ROS node.
+ * 
+ * Note: To deal with ROS's occasional intolerance of null values, functions
+ * that receive object references may sanitize null references into empty 
+ * objects.  For example, a null String may be replaced by "". 
  * 
  * @author pkv
  * @author kss
@@ -96,8 +99,8 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	protected ServiceClient<SetAutonomous.Request, SetAutonomous.Response> _setAutonomousClient;    
 	protected ServiceClient<GetWaypoint.Request, GetWaypoint.Response> _getWaypointClient; 
 	protected ServiceClient<GetWaypointStatus.Request, GetWaypointStatus.Response> _getWaypointStatusClient;    
-	protected ServiceClient<SetPid.Request, SetPid.Response> _setPidClient;    
-	protected ServiceClient<GetPid.Request, GetPid.Response> _getPidClient;  
+	protected ServiceClient<SetGains.Request, SetGains.Response> _setGainsClient;    
+	protected ServiceClient<GetGains.Request, GetGains.Response> _getGainsClient;  
 	
 	public RosVehicleProxy() {
 		this(NodeConfiguration.DEFAULT_MASTER_URI, DEFAULT_NODE_NAME);
@@ -248,11 +251,11 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		_getWaypointStatusClient = registerService("/get_waypoint_status", "crwlib_msgs/GetWaypointStatus");
 		if (_getWaypointStatusClient == null) return false;
 		
-		_setPidClient = registerService("/set_pid", "crwlib_msgs/SetPid");
-		if (_setPidClient == null) return false;
+		_setGainsClient = registerService("/set_gains", "crwlib_msgs/SetGains");
+		if (_setGainsClient == null) return false;
 		
-		_getPidClient = registerService("/get_pid", "crwlib_msgs/GetPid");
-		if (_getPidClient == null) return false;
+		_getGainsClient = registerService("/get_gains", "crwlib_msgs/GetGains");
+		if (_getGainsClient == null) return false;
 		
 		_resetLog = registerService("/reset_log", "std_msgs/Empty");
 		if (_resetLog == null) return false;
@@ -447,11 +450,11 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public double[] getPID(int axis) {
-		GetPid.Request request = new GetPid.Request();
+	public double[] getGains(int axis) {
+		GetGains.Request request = new GetGains.Request();
 		request.axis = (byte)axis;
 		
-		GetPid.Response response = safeCall(_getPidClient, request); 
+		GetGains.Response response = safeCall(_getGainsClient, request); 
 		return (response != null) ? response.gains : new double[0];
 	}
 	
@@ -503,12 +506,12 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void setPID(int axis, double[] gains) {
-		SetPid.Request request = new SetPid.Request();
+	public void setGains(int axis, double[] gains) {
+		SetGains.Request request = new SetGains.Request();
 		request.axis = (byte)axis;
 		request.gains = gains;
 				
-		safeCall(_setPidClient, request);
+		safeCall(_setGainsClient, request);
 	}
 	
 	@Override
@@ -547,9 +550,11 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startWaypoint(UtmPose waypoint, WaypointObserver obs) {
+	public void startWaypoint(UtmPose waypoint, String controller, WaypointObserver obs) {
 		VehicleNavigationGoal goal = new VehicleNavigationGoal();
-		goal.targetPose = waypoint;
+		
+		goal.targetPose = (waypoint != null) ? waypoint : new UtmPose();
+		goal.controller = (controller != null) ? controller : "";
 	
 		try {
 			_navClient.sendGoal(goal, new NavigationHandler(obs));

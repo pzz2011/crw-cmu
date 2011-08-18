@@ -14,9 +14,6 @@ import org.ros.message.geometry_msgs.Twist;
 import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CompressedImage;
 
-import edu.cmu.ri.crw.test.SimpleBoatControllerLibrary;
-import edu.cmu.ri.crw.VehicleServer.WaypointState;
-
 /**
  * A simple simulation of an unmanned boat.
  * 
@@ -40,19 +37,18 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	public Twist _velocity = new Twist();
 	public UtmPose _waypoint = null;
 
-	private final Object _captureLock = new Object();
-	private AtomicBoolean _isCapturing = new AtomicBoolean(false);
+	protected final Object _captureLock = new Object();
+	protected AtomicBoolean _isCapturing = new AtomicBoolean(false);
 
-	private final Object _navigationLock = new Object();
-	private AtomicBoolean _isNavigating = null;
+	protected final Object _navigationLock = new Object();
+	protected AtomicBoolean _isNavigating = null;
 
-	private final AtomicBoolean _isAutonomous = new AtomicBoolean(true);
+	protected final AtomicBoolean _isAutonomous = new AtomicBoolean(true);
 	
 	/**
 	 * Current navigation controller
 	 */
-	SimpleBoatControllerLibrary _controller = SimpleBoatControllerLibrary.SHOOT_ON_MOVE;
-	
+	SimpleBoatController _controller = SimpleBoatController.SHOOT_ON_MOVE;
 	
 	public SimpleBoatSimulator() {
 		final double dt = UPDATE_INTERVAL_MS / 1000.0;
@@ -142,7 +138,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startWaypoint(final UtmPose waypoint, final WaypointObserver obs) {
+	public void startWaypoint(final UtmPose waypoint, final String controller, final WaypointObserver obs) {
 
 		final double dt = (double)UPDATE_INTERVAL_MS / 1000.0;
 		
@@ -244,7 +240,9 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 	public WaypointState getWaypointStatus() {
 		synchronized (_navigationLock) {
-			if (_isNavigating.get()) {
+			if (_isNavigating == null) {
+				return WaypointState.OFF;
+			} else if (_isNavigating.get()) {
 				return WaypointState.GOING;
 			} else {
 				return WaypointState.DONE;

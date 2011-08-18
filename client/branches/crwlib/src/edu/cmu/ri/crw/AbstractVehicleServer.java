@@ -25,7 +25,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 	protected List<VehicleVelocityListener> _velocityListeners = new ArrayList<VehicleVelocityListener>();
 	protected List<VehicleStateListener> _stateListeners = new ArrayList<VehicleStateListener>();
 	
-	public double[] getPID(int axis) {
+	public double[] getGains(int axis) {
 		if (axis < 0 || axis >= _gains.length) 
 			return new double[0];
 		
@@ -35,7 +35,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 		return gains;
 	}
 	
-	public void setPID(int axis, double[] gains) {
+	public void setGains(int axis, double[] gains) {
 		if (axis < 0 || axis >= _gains.length) 
 			return;
 		
