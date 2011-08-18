@@ -734,9 +734,4 @@ public class AirboatImpl extends AbstractVehicleServer {
 		_isAutonomous.set(false);
 		_isConnected.set(false);
 	}
-
-	@Override
-	public void resetLog() {
-		// TODO: fill in logger here
-	}
 }
