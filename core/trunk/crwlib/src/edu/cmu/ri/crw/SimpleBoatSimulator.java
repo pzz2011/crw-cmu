@@ -381,9 +381,4 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		_velocity = new Twist(); // Reset velocity when changing modes
 	}
 
-	@Override
-	public void resetLog() {
-		// Do nothing :P
-		
-	}
 }

@@ -276,10 +276,4 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 	public void setAutonomous(boolean auto) {
 		// This implementation does not support non-autonomy!
 	}
-
-	@Override
-	public void resetLog() {
-		// No Sensor data required...yet.
-		
-	}
 }

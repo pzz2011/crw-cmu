@@ -1,6 +1,5 @@
 package edu.cmu.ri.crw;
 
-import org.ros.message.crwlib_msgs.Utm;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 
