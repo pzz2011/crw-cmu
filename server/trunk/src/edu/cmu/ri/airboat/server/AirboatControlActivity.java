@@ -105,7 +105,7 @@ public class AirboatControlActivity extends Activity {
 				double kp = Double.parseDouble(_pText.getText().toString());
 				double ki = Double.parseDouble(_iText.getText().toString());
 				double kd = Double.parseDouble(_dText.getText().toString());
-				_airboatService.getServer().setPID(_axis, new double[] {kp, ki, kd});
+				_airboatService.getServer().setGains(_axis, new double[] {kp, ki, kd});
 			} catch (NumberFormatException ex) {
 				Log.w(logTag, "Failed to parse gain.", ex);
 			}
@@ -255,8 +255,8 @@ public class AirboatControlActivity extends Activity {
 							return new double[][] { {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} };
 		
 						// Update the PID gains
-						double[] pidThrust = _airboatService.getServer().getPID(0);
-						double[] pidRudder = _airboatService.getServer().getPID(5);
+						double[] pidThrust = _airboatService.getServer().getGains(0);
+						double[] pidRudder = _airboatService.getServer().getGains(5);
 						
 						return new double[][] { pidThrust, pidRudder };
 					}

@@ -153,12 +153,12 @@ public class AirboatActivity extends Activity {
 						// Try to open the URI in the text box, if it succeeds, make 
 						// the box change color accordingly
 				        URL url = new URL(masterAddress.getText().toString());
-				        if (InetAddress.getByName(url.getHost()).isReachable(300)) {
+				        if (InetAddress.getByName(url.getHost()).isReachable(500)) {
 				        
 					        HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
 					        if (urlConn != null) {
-					        	urlConn.setConnectTimeout(300);
-					        	urlConn.setReadTimeout(300);
+					        	urlConn.setConnectTimeout(500);
+					        	urlConn.setReadTimeout(500);
 						        urlConn.connect();
 						        if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NOT_IMPLEMENTED)
 						        	textBkgnd = 0xFFCCFFCC;

@@ -17,7 +17,7 @@ import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import org.ros.RosCore;
-import org.ros.message.crwlib_msgs.Utm;
+import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeRunner;
 
@@ -46,6 +46,7 @@ import com.google.code.microlog4android.config.PropertyConfigurator;
 import com.google.code.microlog4android.format.PatternFormatter;
 
 import edu.cmu.ri.crw.CrwSecurityManager;
+import edu.cmu.ri.crw.QuaternionUtils;
 import edu.cmu.ri.crw.ros.RosVehicleServer;
 
 /**
@@ -116,16 +117,25 @@ public class AirboatService extends Service {
         			);
 
         	// Convert to UTM data structure
-        	Utm utm = new Utm();
-        	utm.northing = utmLoc.northingValue(SI.METER);
-        	utm.easting = utmLoc.eastingValue(SI.METER);
-        	utm.zone = (byte)utmLoc.longitudeZone();
-        	utm.isNorth = (utmLoc.latitudeZone() < 'n');
+        	UtmPose utm = new UtmPose();
+        	utm.pose.position.x = utmLoc.eastingValue(SI.METER);
+        	utm.pose.position.y = utmLoc.northingValue(SI.METER);
+        	
+        	utm.utm.zone = (byte)utmLoc.longitudeZone();
+        	utm.utm.isNorth = (utmLoc.latitudeZone() < 'n');
+        	
+        	if (location.hasAltitude())
+        		utm.pose.position.z = location.getAltitude();
+        	
+        	if (location.hasBearing())
+        		utm.pose.orientation = QuaternionUtils.fromEulerAngles(0.0, 0.0, (90.0 - location.getBearing()) * Math.PI / 180.0);
         	
         	// Apply update using filter object
         	if (_airboatImpl != null) {
         		_airboatImpl.filter.gpsUpdate(utm, location.getTime());
-        		logger.info("GPS: " + utmLoc);
+        		logger.info("GPS: " + utmLoc + ", " 
+        				+ utmLoc.longitudeZone() + utmLoc.latitudeZone() + ", " 
+        				+ location.getAltitude() + ", " + location.getBearing());
         	}
         }
       };
@@ -164,10 +174,10 @@ public class AirboatService extends Service {
 			SensorManager.getOrientation(R, values);
 			logger.info("ORIENTATION: " + Arrays.toString(values));
 
-			// Extract heading from orientation and use in filter
+			// Extract heading from orientation (in radians) and use in filter
 			if (_airboatImpl != null) {
 				double heading = values[0];
-				_airboatImpl.filter.compassUpdate(heading, System.currentTimeMillis());
+				_airboatImpl.filter.compassUpdate(Math.PI - heading, System.currentTimeMillis());
 				logger.info("COMPASS: " +  heading);
 			}
 		}
@@ -374,12 +384,12 @@ public class AirboatService extends Service {
 				
 				double[] velGains;
 				if (_airboatImpl != null) {
-					velGains = _airboatImpl.getPID(0);
+					velGains = _airboatImpl.getGains(0);
 					logger.info("PIDGAINS: " + "0 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
 				}
 				
 				if (_airboatImpl != null) {
-					velGains = _airboatImpl.getPID(5);
+					velGains = _airboatImpl.getGains(5);
 					logger.info("PIDGAINS: " + "5 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
 				}
 			}
