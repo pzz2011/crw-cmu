@@ -3,7 +3,7 @@ package edu.cmu.ri.crw;
 import org.ros.message.geometry_msgs.Quaternion;
 
 /**
- * Immutable quaternion representing 3D rotation.
+ * Transformation methods for ROS quaternions representing 3D rotation.
  * @author Prasanna Velagapudi <pkv@cs.cmu.edu>
  */
 public class QuaternionUtils {

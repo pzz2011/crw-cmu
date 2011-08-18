@@ -16,12 +16,9 @@ import edu.cmu.ri.crw.vbs.ImageServerLink.ImageEvent;
 import edu.cmu.ri.crw.vbs.ImageServerLink.ImageEventListener;
 
 /**
- * Porto, setPose to set base
- * WGS84
- * 
- * Implements a simulated airboat in a VBS2 server.
+ * Implements a simulated vehicle in a VBS2 server.
  *
- * @see AirboatServer
+ * @see VehicleServer
  *
  * @author pkv
  */
@@ -57,8 +54,8 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 
         // Load up the map origin immediately after spawning
         Vbs2Unit.Origin origin = _vbsServer.origin();
-        _offset.utm.northing = origin.northing;
-        _offset.utm.easting = origin.easting;
+        _offset.pose.position.y = origin.northing;
+        _offset.pose.position.x = origin.easting;
         _offset.utm.zone = (byte)origin.zone;
         _offset.utm.isNorth = (origin.hemisphere == 'N' || origin.hemisphere == 'n');
 
@@ -167,7 +164,7 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 	}
 	
 	@Override
-	public void startWaypoint(final UtmPose waypoint, final WaypointObserver obs) {
+	public void startWaypoint(final UtmPose waypoint, final String controller, final WaypointObserver obs) {
 		
 		// Tell VBS boat to go to specified waypoint
 		double[] dest = new double[3];

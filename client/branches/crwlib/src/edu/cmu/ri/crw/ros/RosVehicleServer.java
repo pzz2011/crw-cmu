@@ -29,7 +29,6 @@ import org.ros.message.geometry_msgs.Twist;
 import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 import org.ros.message.sensor_msgs.CameraInfo;
 import org.ros.message.sensor_msgs.CompressedImage;
-import org.ros.message.std_msgs.Empty;
 import org.ros.namespace.NameResolver;
 import org.ros.node.DefaultNodeFactory;
 import org.ros.node.Node;
@@ -39,7 +38,7 @@ import org.ros.node.topic.Publisher;
 import org.ros.service.crwlib_msgs.CaptureImage;
 import org.ros.service.crwlib_msgs.GetCameraStatus;
 import org.ros.service.crwlib_msgs.GetNumSensors;
-import org.ros.service.crwlib_msgs.GetPid;
+import org.ros.service.crwlib_msgs.GetGains;
 import org.ros.service.crwlib_msgs.GetSensorType;
 import org.ros.service.crwlib_msgs.GetState;
 import org.ros.service.crwlib_msgs.GetVelocity;
@@ -48,7 +47,7 @@ import org.ros.service.crwlib_msgs.GetWaypointStatus;
 import org.ros.service.crwlib_msgs.IsAutonomous;
 import org.ros.service.crwlib_msgs.ResetLog;
 import org.ros.service.crwlib_msgs.SetAutonomous;
-import org.ros.service.crwlib_msgs.SetPid;
+import org.ros.service.crwlib_msgs.SetGains;
 import org.ros.service.crwlib_msgs.SetSensorType;
 import org.ros.service.crwlib_msgs.SetState;
 
@@ -362,21 +361,21 @@ public class RosVehicleServer {
 					}
 				});
 
-		_node.newServiceServer("/set_pid", "crwlib_msgs/SetPid",
-				new ServiceResponseBuilder<SetPid.Request, SetPid.Response>() {
+		_node.newServiceServer("/set_gains", "crwlib_msgs/SetGains",
+				new ServiceResponseBuilder<SetGains.Request, SetGains.Response>() {
 					@Override
-					public SetPid.Response build(SetPid.Request request) {
-						_server.setPID(request.axis, request.gains);
-						return new SetPid.Response();
+					public SetGains.Response build(SetGains.Request request) {
+						_server.setGains(request.axis, request.gains);
+						return new SetGains.Response();
 					}
 				});
 
-		_node.newServiceServer("/get_pid", "crwlib_msgs/GetPid",
-				new ServiceResponseBuilder<GetPid.Request, GetPid.Response>() {
+		_node.newServiceServer("/get_gains", "crwlib_msgs/GetGains",
+				new ServiceResponseBuilder<GetGains.Request, GetGains.Response>() {
 					@Override
-					public GetPid.Response build(GetPid.Request request) {
-						GetPid.Response response = new GetPid.Response();
-						response.gains = _server.getPID(request.axis);
+					public GetGains.Response build(GetGains.Request request) {
+						GetGains.Response response = new GetGains.Response();
+						response.gains = _server.getGains(request.axis);
 						return response;
 					}
 				});
@@ -499,7 +498,7 @@ public class RosVehicleServer {
 				logger.info("Starting navigation to: " + print(goal.targetPose));
 
 				_server.stopWaypoint();
-				_server.startWaypoint(goal.targetPose, new WaypointObserver() {
+				_server.startWaypoint(goal.targetPose, goal.controller, new WaypointObserver() {
 
 					@Override
 					public void waypointUpdate(WaypointState status) {
@@ -511,22 +510,14 @@ public class RosVehicleServer {
 							result.header.stamp = new WallclockProvider()
 									.getCurrentTime();
 							result.status = (byte) status.ordinal();
-							result.finalPose.pose.pose = goal.targetPose.pose; // TODO:
-																				// Should
-																				// this
-																				// be
-																				// vehicle
-																				// pose
-																				// or
-																				// waypoint
-																				// pose?
-							result.finalPose.utm = goal.targetPose.utm;
+							result.targetPose = goal.targetPose;
 							_navServer.setSucceeded(result, "DONE");
 						} else {
 							VehicleNavigationFeedback feedback = new VehicleNavigationFeedback();
 							feedback.header.stamp = new WallclockProvider()
 									.getCurrentTime();
 							feedback.status = (byte) status.ordinal();
+							feedback.targetPose = goal.targetPose;
 							_navServer.publishFeedback(feedback);
 						}
 					}

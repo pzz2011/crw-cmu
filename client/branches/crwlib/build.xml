@@ -16,7 +16,7 @@
   <target name="default" depends="init, compile" />
 
   <target name="init">
-    <fail unless="ros.classpath" message="ros.properties is missing.  Please type 'rosmake' first "/>
+    <fail unless="ros.compile.classpath" message="ros.properties is missing.  Please type 'rosmake' first "/>
     <mkdir dir="${build}" />
     <mkdir dir="${dist}" />
   </target>

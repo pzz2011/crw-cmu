@@ -38,13 +38,13 @@ public interface VehicleServer {
 	public boolean isAutonomous();
 	public void setAutonomous(boolean auto);
 	
-	public void startWaypoint(UtmPose waypoint, WaypointObserver obs);
+	public void startWaypoint(UtmPose waypoint, String controller, WaypointObserver obs);
 	public void stopWaypoint();
 	public UtmPose getWaypoint();
 	public WaypointState getWaypointStatus();
 	
-	public void setPID(int axis, double[] gains);
-	public double[] getPID(int axis);
+	public void setGains(int axis, double[] gains);
+	public double[] getGains(int axis);
 	
 	public void resetLog();
 }

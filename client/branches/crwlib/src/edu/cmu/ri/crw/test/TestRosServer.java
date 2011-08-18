@@ -51,14 +51,14 @@ public class TestRosServer {
 		});
 		
 		p.pose.position.x = 22.0;
-		proxyServer.startWaypoint(p, new WaypointObserver() {
+		proxyServer.startWaypoint(p, null, new WaypointObserver() {
 			@Override
 			public void waypointUpdate(WaypointState status) {
 				System.out.println("STATUS: " + status);
 			}
 		});
 		p.pose.position.x = 33.0;
-		proxyServer.startWaypoint(p, new WaypointObserver() {
+		proxyServer.startWaypoint(p, null, new WaypointObserver() {
 			@Override
 			public void waypointUpdate(WaypointState status) {
 				System.out.println("STATUS: " + status);
@@ -66,7 +66,7 @@ public class TestRosServer {
 		});
 		
 		p.pose.position.x = 11.0;
-		proxyServer.startWaypoint(p, new WaypointObserver() {
+		proxyServer.startWaypoint(p, null, new WaypointObserver() {
 			@Override
 			public void waypointUpdate(WaypointState status) {
 				System.out.println("STATUS: " + status);
