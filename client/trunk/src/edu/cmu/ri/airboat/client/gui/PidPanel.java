@@ -162,7 +162,7 @@ public class PidPanel extends AbstractAirboatPanel {
 
     private void setButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_setButtonActionPerformed
         if (_vehicle != null) {
-            _vehicle.setPID(_axis, new double[]{
+            _vehicle.setGains(_axis, new double[]{
                 (Double)pSpinner.getValue(),
                 (Double)iSpinner.getValue(),
                 (Double)dSpinner.getValue()
@@ -200,7 +200,7 @@ public class PidPanel extends AbstractAirboatPanel {
     public void update() {
         if (_vehicle != null) {
 
-            double[] pids = _vehicle.getPID(_axis);
+            double[] pids = _vehicle.getGains(_axis);
             if (pids.length < 3) {
                 return;
             }

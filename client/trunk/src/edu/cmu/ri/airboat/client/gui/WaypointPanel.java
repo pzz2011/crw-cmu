@@ -125,7 +125,7 @@ public class WaypointPanel extends AbstractAirboatPanel {
 
     private void sendButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendButtonActionPerformed
         completedBox.setSelected(false);
-        _vehicle.startWaypoint(waypoint, new WaypointObserver() {
+        _vehicle.startWaypoint(waypoint, null, new WaypointObserver() {
 
             public void waypointUpdate(WaypointState ws) {
                 if (ws == WaypointState.DONE) {
