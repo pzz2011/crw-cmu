@@ -48,8 +48,8 @@ public class AirboatControlActivity extends Activity {
 	// Ranges for thrust and rudder signals
 	public static final double THRUST_MIN = 0.0;
 	public static final double THRUST_MAX = 10.0;
-	public static final double RUDDER_MIN = -10.0;
-	public static final double RUDDER_MAX = 10.0;
+	public static final double RUDDER_MIN = 10.0; // Reversed to match yaw
+	public static final double RUDDER_MAX = -10.0;
 	
 	// Contains a reference to the airboat service, or null if service is not running 
 	private AirboatService _airboatService = null;
