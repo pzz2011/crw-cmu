@@ -17,10 +17,14 @@ import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import org.ros.RosCore;
+import org.ros.exception.RosRuntimeException;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeRunner;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -35,6 +39,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
@@ -58,6 +63,7 @@ import edu.cmu.ri.crw.ros.RosVehicleServer;
  *
  */
 public class AirboatService extends Service {
+	private static final int AIRBOAT_SERVICE_ID = 1;
 	private static final String TAG = AirboatService.class.getName();
 	private static final com.google.code.microlog4android.Logger logger = LoggerFactory.getLogger();
 	
@@ -288,18 +294,18 @@ public class AirboatService extends Service {
 		formatter.setPattern("%r %d %m %T");
 		
 		// Set up and register data logger to a date-stamped file
-		String logFilename = defaultLogFilename();
+		String logFilename = Environment.getExternalStorageDirectory() + "/" + defaultLogFilename();
 		_fileAppender = new FileAppender();
-		_fileAppender.setFileName (logFilename);
+		_fileAppender.setFileName(logFilename);
 		_fileAppender.setAppend(true);
-		_fileAppender.setFormatter (formatter);
+		_fileAppender.setFormatter(formatter);
 		try {
 			_fileAppender.open();
 		} catch (IOException e) {
 			Log.w(TAG, "Failed to open data log file: " + logFilename, e);
 		}
-	    logger.addAppender (_fileAppender);
-		
+	    logger.addAppender(_fileAppender);
+
 		// Hook up to necessary Android sensors
         SensorManager sm; 
         sm = (SensorManager)getSystemService(SENSOR_SERVICE);
@@ -337,7 +343,7 @@ public class AirboatService extends Service {
 		} catch (URISyntaxException e) {
 			logger.warn("Unable to parse " + rosMasterStr + " into URI");
 		}
-		
+
 		// Set default values if necessary
 		if (_rosNodeName == null) 
 			_rosNodeName = DEFAULT_ROS_NODE_NAME;
@@ -354,23 +360,37 @@ public class AirboatService extends Service {
 		registerReceiver(_airboatImpl.dataCallback, new IntentFilter(AmarinoIntent.ACTION_RECEIVED));
 		registerReceiver(_airboatImpl.connectionCallback, amarinoFilter);
 		
-        // Start a local ROS core if no ROS master URI was provided
-		if (_rosMasterUri == null) {
-	        _rosCore = RosCore.newPublic(11411);
-	        NodeRunner.newDefault().run(_rosCore, NodeConfiguration.newPrivate());
-	        _rosCore.awaitStart();
-	        _rosMasterUri = _rosCore.getUri();
-	        Log.i(TAG, "Local ROS core started");
-		}
+		// Start up ROS processes in the background
+		new Thread(new Runnable() {
+			
+			public void run() {
+				// Start a local ROS core if no ROS master URI was provided
+				if (_rosMasterUri == null) {
+					try {
+						_rosCore = RosCore.newPublic(11411);
+				        NodeRunner.newDefault().run(_rosCore, NodeConfiguration.newPrivate());
+				        _rosCore.awaitStart();
+				        _rosMasterUri = _rosCore.getUri();
+					} catch (RosRuntimeException e) {
+						sendNotification("ROS Core failed: " + e.getMessage());
+				        stopSelf();
+						return;
+					}
+			        Log.i(TAG, "Local ROS core started");
+				}
+				
+				// Create a RosVehicleServer to expose the data object
+				try {
+					_rosServer = new RosVehicleServer(_rosMasterUri, _rosNodeName, _airboatImpl);
+				} catch (Exception e) {
+					Log.e(TAG, "RosVehicleServer failed to launch", e);
+					sendNotification("RosVehicleServer failed: " + e.getMessage());
+					stopSelf();
+					return;
+				}
+			}
+		}).start();
 		
-		
-		// Create a RosVehicleServer to expose the data object
-		try {
-			_rosServer = new RosVehicleServer(_rosMasterUri, _rosNodeName, _airboatImpl);
-		} catch (Exception e) {
-			Log.e(TAG, "RosVehicleServer failed to launch", e);
-		}
-
 		// Start a regular update function
 		_timer.scheduleAtFixedRate(_updateTask, 0, _updateRate);
 		Log.i(TAG,"AirboatService started.");
@@ -394,9 +414,9 @@ public class AirboatService extends Service {
 				}
 			}
 		}).start();
-		
+
 		// Indicate that the service should not be stopped arbitrarily
-        return Service.START_STICKY;
+		return Service.START_STICKY;
 	}
 	
 	/**
@@ -467,5 +487,28 @@ public class AirboatService extends Service {
 		Log.i(TAG, "AirboatService stopped.");
 		isRunning = false;
 		super.onDestroy();
+	}
+	
+	public void sendNotification(CharSequence text) {
+		String ns = Context.NOTIFICATION_SERVICE;
+		NotificationManager mNotificationManager = (NotificationManager)getSystemService(ns);
+
+		// Set up the icon and ticker text
+		int icon = R.drawable.icon; // TODO: change this to notification icon
+		CharSequence tickerText = text;
+		long when = System.currentTimeMillis();
+	
+		// Set up the actual title and text
+		Context context = getApplicationContext();
+		CharSequence contentTitle = "Airboat Server";
+		CharSequence contentText = text;
+		Intent notificationIntent = new Intent(this, AirboatService.class);
+		PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+	
+		Notification notification = new Notification(icon, tickerText, when);
+		notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
+		notification.flags |= Notification.FLAG_AUTO_CANCEL;
+		
+		mNotificationManager.notify(AIRBOAT_SERVICE_ID, notification);
 	}
 }

@@ -160,8 +160,11 @@ public class AirboatActivity extends Activity {
 					        	urlConn.setConnectTimeout(500);
 					        	urlConn.setReadTimeout(500);
 						        urlConn.connect();
-						        if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NOT_IMPLEMENTED)
+						        if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NOT_IMPLEMENTED) {
 						        	textBkgnd = 0xFFCCFFCC;
+						        } else  { // not sure, maybe still good?
+						        	textBkgnd = 0xFFFFEECC;
+						        }
 						        urlConn.disconnect();
 					        }
 				        }
@@ -236,6 +239,16 @@ public class AirboatActivity extends Activity {
     			}
     		}
     	});
+        
+        // Periodically update status of toggle button
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+			@Override
+			public void run() {
+				connectToggle.setChecked(AirboatService.isRunning);
+				handler.postDelayed(this, 300);
+			}
+		}, 300);
         
         // Register handler for debug button
         final Button debugToggle = (Button)findViewById(R.id.DebugButton);
