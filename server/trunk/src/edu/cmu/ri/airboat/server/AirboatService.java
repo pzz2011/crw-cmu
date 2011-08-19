@@ -303,6 +303,7 @@ public class AirboatService extends Service {
 			_fileAppender.open();
 		} catch (IOException e) {
 			Log.w(TAG, "Failed to open data log file: " + logFilename, e);
+			sendNotification("Failed to open log: " + e.getMessage());
 		}
 	    logger.addAppender(_fileAppender);
 
@@ -342,6 +343,8 @@ public class AirboatService extends Service {
 			}
 		} catch (URISyntaxException e) {
 			logger.warn("Unable to parse " + rosMasterStr + " into URI");
+			sendNotification("ROS Master URI was invalid: " + rosMasterStr);
+			stopSelf();
 		}
 
 		// Set default values if necessary
