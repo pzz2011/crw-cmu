@@ -10,46 +10,11 @@
  * sents the water
  */
 
-#include <ros/ros.h>
-#include <image_transport/image_transport.h>
-#include "std_msgs/String.h"
-#include "std_msgs/Float32.h"
+#include <my_subscriber.h>
 
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
-#include <opencv/ml.h>
-
-#include <cv_bridge/CvBridge.h>
-
-#define PI 3.14159265
-
-//access the elements of a picture
-template<class T> class Image
-{
-  private:
-      IplImage* imgp;
-  public:
-      Image(IplImage* img=0) {imgp=img;}
-      ~Image(){imgp=0;}
-      void operator=(IplImage* img) {imgp=img;}
-      inline T* operator[](const int rowIndx) 
-      {
-          return ((T *)(imgp->imageData + rowIndx*imgp->widthStep));
-      }
-};
-typedef struct
-{
-  unsigned char h,s,v;
-} HsvPixel;
-typedef struct
-{
-  float h,s,v;
-} HsvPixelFloat;
-typedef Image<HsvPixel>       HsvImage;
-typedef Image<HsvPixelFloat>  HsvImageFloat;
-typedef Image<unsigned char>  BwImage;
-typedef Image<float>          BwImageFloat;
-
+/******************************************************************************
+ *
+ *****************************************************************************/
 int bwareaopen_(IplImage *image, int size)
 {
     /* OpenCV equivalent of Matlab's bwareaopen.
@@ -98,9 +63,61 @@ int bwareaopen_(IplImage *image, int size)
     return(foundCountours);
 }
 
+/************************************************************************************
+ * sendVelCmd(): sends linear and angular velocity commands
+ ************************************************************************************/
+int setVelCmd(float linearVel, float angularVel){
+  //if(USINGROS) connectoRosServer();
+  static float lastlinearVelSent=0.0;
+  static float lastangularVelSent=0.0;
+  if(((linearVel - lastlinearVelSent) !=0) || ((angularVel - lastangularVelSent) !=0)){
+    geometry_msgs::Twist velMsg;
+    twist.linear.x = linearVel;
+    twist.angular.z =  angularVel;
+    if(USINGROS)
+      if(ross:ok())
+	subVel.publish(velMsg);
+      else ROS_INFO("\n ROScore not OK\n");
+    lastlinearVel = linearVel;
+    lastangularVel = angularVel;
+  }
+  else ROS_INFO("Sending same command again, will wait for a sec\n");
+  
+  return (1);
+}
+
+/*************************************************************************************
+ * avoidObstacle: purely reactive algorithm, sees image sends adjusted instruction,
+ * and looks at next image, and sends the next one and so on. No need to subscribe to
+ * waypoints or state information
+ ************************************************************************************/
+int avoidObstacle(float area, float obstacleDistance, float obstacleHeading){
+  if(obstacleDistance > CLOSE_ENOUGH){
+    /* Note: double check to see whats the distance Luis is calculating, it might be flipped **/
+    /** If close enough, look at the orientation of the obstacle and flip boat by 90 deg to the right
+	of that. Why right -- arbitrary ****/
+    /*** I should have another variable called avoidanceHeading, but dont want to increase stack variables,
+	 will rename obstacleHeading to desiredHeading */
+    /** Only deals with 180 deg arc, assuming a LHS system with 0 being straiht ahead: -ve turns boat left and vice verca **/
+    if(obstacleHeading <= PI/2) obstacleHeading = obstacleHeading - PI/2;
+    else if(obstacleHeading >= 3*PI/2) obstacleHeading = (obstacleHeading + PI/2) - 2*PI;
+    
+    setVelCmd((MIN(MAXVEL,(MAXVEL/(ALPHA+((int)obstacleDistance%10))))), obstacleHeading); /** ALPHA - miniscule constant to ensure no
+										       division by 0 occurs ***/
+    
+  }
+  else {
+    fprintf(stdout,"\n Obstacle too far to worry just yet \n");
+    return 1;
+  }
+}
+
+/****************************************************************************************
+ * imageCallback():
+ ***************************************************************************************/
 void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
-	//bridge that will transform the message (image) from ROS code back to "image" code
+  //bridge that will transform the message (image) from ROS code back to "image" code
   sensor_msgs::CvBridge bridge;
   fprintf(stderr, "\n call Back funtion \n");
   
@@ -116,331 +133,334 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
   ros::Publisher ObstacleArea_info_pub = n.advertise<std_msgs::Float32>("obstacleArea_info", 0.01);
   
   /***********************************************************************/
-    //live image coming streamed straight from the boat's camera
-    IplImage* boatFront = bridge.imgMsgToCv(msg, "bgr8");
-    //The boat takes flipped images, so you need to flip them back to normal
-    cvFlip(boatFront, boatFront, 0);
-    IplImage* backUpImage = cvCloneImage(boatFront);
-    boatFront->origin = IPL_ORIGIN_TL;   //sets image origin to top left corner
-    int X = boatFront->height;
-    int Y = boatFront->width;
-    //cout << "height " << X << endl;
-    //cout << "width " << Y << endl;    
+  //live image coming streamed straight from the boat's camera
+  IplImage* boatFront = bridge.imgMsgToCv(msg, "bgr8");
+  //The boat takes flipped images, so you need to flip them back to normal
+  cvFlip(boatFront, boatFront, 0);
+  IplImage* backUpImage = cvCloneImage(boatFront);
+  boatFront->origin = IPL_ORIGIN_TL;   //sets image origin to top left corner
+  int X = boatFront->height;
+  int Y = boatFront->width;
+  //cout << "height " << X << endl;
+  //cout << "width " << Y << endl;    
+  
+  /*********************Image Filtering variables****************************/
+  //these images are used for segmenting objects from the overall background 
+  //create a one channel image to convert from RGB to GRAY
+  IplImage* grayImage = cvCreateImage(cvGetSize(boatFront),IPL_DEPTH_8U,1);
+  //convert grayImage to binary (final step after converting from GRAY)
+  IplImage* bwImage = cvCreateImage(cvGetSize(grayImage),IPL_DEPTH_8U,1);
+  //variables used for the flood fill segmentation
+  CvPoint seed_point = cvPoint(boatFront->height/2 + 70,0);       //not sure how this variable works
+  CvScalar color = CV_RGB(250,0,0);
+  CvMemStorage* grayStorage = NULL;     //memory storage for contour sequence
+  CvSeq* contours = 0;
+  // get blobs and filter them using their area
+  //IplConvKernel* morphKernel = cvCreateStructuringElementEx(5, 5, 1, 1, CV_SHAPE_RECT, NULL);
+  //IplImage* original, *originalThr;
+  //IplImage* segmentated = cvCreateImage(cvGetSize(boatFront), 8, 1);
+  //unsigned int blobNumber = 0;
+  //IplImage* labelImg = cvCreateImage(cvGetSize(boatFront), IPL_DEPTH_LABEL, 1);
+  CvMoments moment;
+  
+  /***********************************************************************/
+  //boat's edge distance from the camera. This is used for visual calibration
+  //to know the distance from the boat to the nearest obstacles.
+  //With respect to the mounted camera, distance is 21 inches (0.5334 m) side to side
+  //and 15 inches (0.381 m).
+  //float boatFrontDistance = 0.381;    //distance in meters
+  //float boatSideDistance = 0.5334;    //distance in meters
+  // These variables tell the distance from the center bottom of the image
+  // (the camera) to the square surrounding a the obstacle
+  float obstacleDistance = 0.0;            //Euclidean distance to object
+  float obstacleHeading = 0.0;
+  //distance variables from the camera calibration matrix
+  int xPixel = 0;       //pixels from left to right
+  int yPixel = 0;       //pixels from bottom to top
+  float zObstacleDistance = 0;    //object distance from the camera
+  float xObstacleDistance = 0;
+  float yObstacleDistance = 0.1143;  //distance in meters from water to camera.
+  //its gonna be constant assuming boat barely moves up and down in the water
     
-    /*********************Image Filtering variables****************************/
-    //these images are used for segmenting objects from the overall background 
-    //create a one channel image to convert from RGB to GRAY
-    IplImage* grayImage = cvCreateImage(cvGetSize(boatFront),IPL_DEPTH_8U,1);
-    //convert grayImage to binary (final step after converting from GRAY)
-    IplImage* bwImage = cvCreateImage(cvGetSize(grayImage),IPL_DEPTH_8U,1);
-    //variables used for the flood fill segmentation
-    CvPoint seed_point = cvPoint(boatFront->height/2 + 70,0);       //not sure how this variable works
-    CvScalar color = CV_RGB(250,0,0);
-    CvMemStorage* grayStorage = NULL;     //memory storage for contour sequence
-    CvSeq* contours = 0;
-    // get blobs and filter them using their area
-    //IplConvKernel* morphKernel = cvCreateStructuringElementEx(5, 5, 1, 1, CV_SHAPE_RECT, NULL);
-    //IplImage* original, *originalThr;
-    //IplImage* segmentated = cvCreateImage(cvGetSize(boatFront), 8, 1);
-    //unsigned int blobNumber = 0;
-    //IplImage* labelImg = cvCreateImage(cvGetSize(boatFront), IPL_DEPTH_LABEL, 1);
-    CvMoments moment;
-    
-    /***********************************************************************/
-    //boat's edge distance from the camera. This is used for visual calibration
-    //to know the distance from the boat to the nearest obstacles.
-    //With respect to the mounted camera, distance is 21 inches (0.5334 m) side to side
-    //and 15 inches (0.381 m).
-    //float boatFrontDistance = 0.381;    //distance in meters
-    //float boatSideDistance = 0.5334;    //distance in meters
-    // These variables tell the distance from the center bottom of the image
-    // (the camera) to the square surrounding a the obstacle
-    float obstacleDistance = 0.0;            //Euclidean distance to object
-    float obstacleHeading = 0.0;
-    //distance variables from the camera calibration matrix
-    int xPixel = 0;       //pixels from left to right
-    int yPixel = 0;       //pixels from bottom to top
-    float zObstacleDistance = 0;    //object distance from the camera
-    float xObstacleDistance = 0;
-    float yObstacleDistance = 0.1143;  //distance in meters from water to camera.
-                          //its gonna be constant assuming boat barely moves up and down in the water
-    
-    int pixelsNumber = 50;  //number of pixels for an n x n matrix and # of neighbors
-    const int arraySize = pixelsNumber;
-    const int threeArraySize = pixelsNumber;
-    const int currentSampleSize = 20;                       //number of pixels to take from the sample taken on the fly
-    //if n gets changed, then the algorithm might have to be
-    //recalibrated. Try to keep it constant
-    //these variables are used for the k nearest neighbors
-    //int accuracy;
-    //reponses for each of the classifications
-    float responseWaterH, responseWaterS, responseWaterV; 
-    float responseGroundH, responseGroundS, responseGroundV;
-    float responseSkyH, responseSkyS, responseSkyV;
-    float averageHue = 0.0;
-    float averageSat = 0.0;
-    float averageVal = 0.0;
-    CvMat* trainClasses = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
-    CvMat* trainClasses2 = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
-    //CvMat sample = cvMat( 1, 2, CV_32FC1, _sample );
-    //used with the classifier 
-    CvMat* trainClassesH = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
-    CvMat* trainClassesS = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
-    CvMat* trainClassesV = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
-    //CvMat* trainClasses2 = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
-    //CvMat sample = cvMat( 1, 2, CV_32FC1, _sample );
-    //used with the classifier 
-    /*CvMat* nearestWaterH = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* nearestWaterS = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* nearestWaterV = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* nearestGroundH = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* nearestGroundS = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* nearestGroundV = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* nearestSkyH = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* nearestSkyS = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* nearestSkyV = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    //Distance
-    CvMat* distanceWaterH = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* distanceWaterS = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* distanceWaterV = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* distanceGroundH = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* distanceGroundS = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* distanceGroundV = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* distanceSkyH = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* distanceSkyS = cvCreateMat(1, pixelsNumber, CV_32FC1);
-    CvMat* distanceSkyV = cvCreateMat(1, pixelsNumber, CV_32FC1); */
-    //these variables are use to traverse the picture by blocks of n x n pixels at
-    //a time. 
-    //Index(0,0) does not exist, so make sure kj and ki start from 1 (in the
-    //right way, of course)
-    //x and y are the dimensions of the local patch of pixels
-    int x = (boatFront->height)/2 + 70;//(boatFront->height)/2.5 + 105; 
-    int y = 0;  
-    int skyX = 0; 
-    int skyY = 0;
-    int row1 = 0;
-    int column1 = 0;
-    //these two variables are used in order to divide the grid in the
-    //resample segmentation part
-    int xDivisor = 50;
-    int yDivisor = 50;
-    //ground sample
-    //CvMat* groundTrainingHue = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
-    //CvMat* groundTrainingSat = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
-    //CvMat* groundTrainingVal = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
-    //water sample
-    CvMat* waterTrainingHue = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
-    CvMat* waterTrainingSat = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
-    CvMat* waterTrainingVal = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
-    //n x n sample patch taken from the picture
-    CvMat* sampleHue = cvCreateMat(1,arraySize,CV_32FC1);
-    CvMat* sampleSat = cvCreateMat(1,arraySize,CV_32FC1);
-    CvMat* sampleVal = cvCreateMat(1,arraySize,CV_32FC1);
-    CvMat* resampleHue0 = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
-    CvMat* resampleSat0 = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
-    CvMat* resampleVal0 = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
-    CvMat* resampleHue = cvCreateMat(boatFront->height/xDivisor,boatFront->width/yDivisor,CV_32FC1);
-    CvMat* resampleSat = cvCreateMat(boatFront->height/xDivisor,boatFront->width/yDivisor,CV_32FC1);
-    CvMat* resampleVal = cvCreateMat(boatFront->height/xDivisor,boatFront->width/yDivisor,CV_32FC1);
-    int xDiv = 20;
-    int yDiv = 20;
-    CvMat* resampleHue2 = cvCreateMat(boatFront->height/xDiv,boatFront->width/yDiv,CV_32FC1);
-    CvMat* resampleSat2 = cvCreateMat(boatFront->height/xDiv,boatFront->width/yDiv,CV_32FC1);
-    CvMat* resampleVal2 = cvCreateMat(boatFront->height/xDiv,boatFront->width/yDiv,CV_32FC1);
-    //sky training sample
-    CvMat* skyTrainingHue = cvCreateMat(arraySize,arraySize,CV_32FC1);
-    CvMat* skyTrainingSat = cvCreateMat(arraySize,arraySize,CV_32FC1);
-    CvMat* skyTrainingVal = cvCreateMat(arraySize,arraySize,CV_32FC1);
-    //initialize each matrix element to zero for ease of use
-    //cvZero(groundTrainingHue);
-    //cvZero(groundTrainingSat);
-    //cvZero(groundTrainingVal);
-    cvZero(waterTrainingHue);
-    cvZero(waterTrainingSat);
-    cvZero(waterTrainingVal);
-    cvZero(sampleHue);
-    cvZero(sampleSat);
-    cvZero(sampleVal);
-    cvZero(resampleHue0);
-    cvZero(resampleSat0);
-    cvZero(resampleVal0);
-    cvZero(resampleHue);
-    cvZero(resampleSat);
-    cvZero(resampleVal);
-    cvZero(skyTrainingHue);
-    cvZero(skyTrainingSat);
-    cvZero(skyTrainingVal);    
-    //Stores the votes for each channel (whether it belongs to water or not
-    //1 is part of water, 0 not part of water
-    //if sum of votes is bigger than 1/2 the number of elements, then it belongs to water
-    int votesSum = 0;
-    int comparator[3];        //used when only three votes are needed
-    //int comparatorTwo [3][3];    //used when six votes are needed
-    //initial sum of votes is zero
-    //Error if initialize both matrices inside a single for loop. Dont know why
-    for(int i = 0; i < 3; i++)
+  int pixelsNumber = 50;  //number of pixels for an n x n matrix and # of neighbors
+  const int arraySize = pixelsNumber;
+  const int threeArraySize = pixelsNumber;
+  const int currentSampleSize = 20;                       //number of pixels to take from the sample taken on the fly
+  //if n gets changed, then the algorithm might have to be
+  //recalibrated. Try to keep it constant
+  //these variables are used for the k nearest neighbors
+  //int accuracy;
+  //reponses for each of the classifications
+  float responseWaterH, responseWaterS, responseWaterV; 
+  float responseGroundH, responseGroundS, responseGroundV;
+  float responseSkyH, responseSkyS, responseSkyV;
+  float averageHue = 0.0;
+  float averageSat = 0.0;
+  float averageVal = 0.0;
+  CvMat* trainClasses = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
+  CvMat* trainClasses2 = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
+  //CvMat sample = cvMat( 1, 2, CV_32FC1, _sample );
+  //used with the classifier 
+  CvMat* trainClassesH = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
+  CvMat* trainClassesS = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
+  CvMat* trainClassesV = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
+  //CvMat* trainClasses2 = cvCreateMat( pixelsNumber, 1, CV_32FC1 );
+  //CvMat sample = cvMat( 1, 2, CV_32FC1, _sample );
+  //used with the classifier 
+  /**** This was commented out, but I am not sure why as you need to use the Matrix -- KB **/
+  CvMat* nearestWaterH = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* nearestWaterS = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* nearestWaterV = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* nearestGroundH = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* nearestGroundS = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* nearestGroundV = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* nearestSkyH = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* nearestSkyS = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* nearestSkyV = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  //Distance
+  CvMat* distanceWaterH = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* distanceWaterS = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* distanceWaterV = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* distanceGroundH = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* distanceGroundS = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* distanceGroundV = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* distanceSkyH = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* distanceSkyS = cvCreateMat(1, pixelsNumber, CV_32FC1);
+  CvMat* distanceSkyV = cvCreateMat(1, pixelsNumber, CV_32FC1); 
+  /*** Here is where the commenting ended -- KB  **/
+  
+  //these variables are use to traverse the picture by blocks of n x n pixels at
+  //a time. 
+  //Index(0,0) does not exist, so make sure kj and ki start from 1 (in the
+  //right way, of course)
+  //x and y are the dimensions of the local patch of pixels
+  int x = (boatFront->height)/2 + 70;//(boatFront->height)/2.5 + 105; 
+  int y = 0;  
+  int skyX = 0; 
+  int skyY = 0;
+  int row1 = 0;
+  int column1 = 0;
+  //these two variables are used in order to divide the grid in the
+  //resample segmentation part
+  int xDivisor = 50;
+  int yDivisor = 50;
+  //ground sample
+  //CvMat* groundTrainingHue = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
+  //CvMat* groundTrainingSat = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
+  //CvMat* groundTrainingVal = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
+  //water sample
+  CvMat* waterTrainingHue = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
+  CvMat* waterTrainingSat = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
+  CvMat* waterTrainingVal = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
+  //n x n sample patch taken from the picture
+  CvMat* sampleHue = cvCreateMat(1,arraySize,CV_32FC1);
+  CvMat* sampleSat = cvCreateMat(1,arraySize,CV_32FC1);
+  CvMat* sampleVal = cvCreateMat(1,arraySize,CV_32FC1);
+  CvMat* resampleHue0 = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
+  CvMat* resampleSat0 = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
+  CvMat* resampleVal0 = cvCreateMat(threeArraySize,arraySize,CV_32FC1);
+  CvMat* resampleHue = cvCreateMat(boatFront->height/xDivisor,boatFront->width/yDivisor,CV_32FC1);
+  CvMat* resampleSat = cvCreateMat(boatFront->height/xDivisor,boatFront->width/yDivisor,CV_32FC1);
+  CvMat* resampleVal = cvCreateMat(boatFront->height/xDivisor,boatFront->width/yDivisor,CV_32FC1);
+  int xDiv = 20;
+  int yDiv = 20;
+  CvMat* resampleHue2 = cvCreateMat(boatFront->height/xDiv,boatFront->width/yDiv,CV_32FC1);
+  CvMat* resampleSat2 = cvCreateMat(boatFront->height/xDiv,boatFront->width/yDiv,CV_32FC1);
+  CvMat* resampleVal2 = cvCreateMat(boatFront->height/xDiv,boatFront->width/yDiv,CV_32FC1);
+  //sky training sample
+  CvMat* skyTrainingHue = cvCreateMat(arraySize,arraySize,CV_32FC1);
+  CvMat* skyTrainingSat = cvCreateMat(arraySize,arraySize,CV_32FC1);
+  CvMat* skyTrainingVal = cvCreateMat(arraySize,arraySize,CV_32FC1);
+  //initialize each matrix element to zero for ease of use
+  //cvZero(groundTrainingHue);
+  //cvZero(groundTrainingSat);
+  //cvZero(groundTrainingVal);
+  cvZero(waterTrainingHue);
+  cvZero(waterTrainingSat);
+  cvZero(waterTrainingVal);
+  cvZero(sampleHue);
+  cvZero(sampleSat);
+  cvZero(sampleVal);
+  cvZero(resampleHue0);
+  cvZero(resampleSat0);
+  cvZero(resampleVal0);
+  cvZero(resampleHue);
+  cvZero(resampleSat);
+  cvZero(resampleVal);
+  cvZero(skyTrainingHue);
+  cvZero(skyTrainingSat);
+  cvZero(skyTrainingVal);    
+  //Stores the votes for each channel (whether it belongs to water or not
+  //1 is part of water, 0 not part of water
+  //if sum of votes is bigger than 1/2 the number of elements, then it belongs to water
+  int votesSum = 0;
+  int comparator[3];        //used when only three votes are needed
+  //int comparatorTwo [3][3];    //used when six votes are needed
+  //initial sum of votes is zero
+  //Error if initialize both matrices inside a single for loop. Dont know why
+  for(int i = 0; i < 3; i++)
     {   
-        comparator[i] = 0;
+      comparator[i] = 0;
     }
- 
-    /***********************************************************************/
-    //Convert from RGB to HSV to control the brightness of the objects.
-    //work with reflexion
-    /*Sky recognition. Might be useful for detecting reflexion on the water. If
-      the sky is detected, and the reflection has the same characteristics of
-      something below the horizon, that "something" might be water. Assume sky
-      wont go below the horizon
-    */
-    //convert from RGB to HSV
-    cvCvtColor(boatFront, boatFront, CV_BGR2HSV);
-    cvCvtColor(backUpImage, backUpImage, CV_BGR2HSV);
-    HsvImage I(boatFront);
-    HsvImage IBackUp(backUpImage);
-    //Sky detection
-    /*
+  
+  /***********************************************************************/
+  //Convert from RGB to HSV to control the brightness of the objects.
+  //work with reflexion
+  /*Sky recognition. Might be useful for detecting reflexion on the water. If
+    the sky is detected, and the reflection has the same characteristics of
+    something below the horizon, that "something" might be water. Assume sky
+    wont go below the horizon
+  */
+  //convert from RGB to HSV
+  cvCvtColor(boatFront, boatFront, CV_BGR2HSV);
+  cvCvtColor(backUpImage, backUpImage, CV_BGR2HSV);
+  HsvImage I(boatFront);
+  HsvImage IBackUp(backUpImage);
+  //Sky detection
+  /*
     for (int i=0; i<boatFront->height;i++)
     {
-        for (int j=0; j<boatFront->width;j++)
-        {
-        //if something is bright enough, consider it sky and store the
-        //value. HSV values go from 0 to 180 ... RGB goes from 0 to 255
-            if (((I[i][j].v >= 180) && (I[i][j].s <= 16)))
-                // && ((I[i][j].h >=10)))) //&& (I[i][j].h <= 144))))
-            {
-                //The HSV values vary between 0 and 1
-                cvmSet(skyTrainingHue,skyX,skyY,I[i][j].h);
-                cvmSet(skyTrainingSat,skyX,skyY,I[i][j].s);
-                cvmSet(skyTrainingVal,skyX,skyY,I[i][j].v);
-                //I[i][j].h = 0.3*180;       //H (color)
-                //I[i][j].s = 0.3*180;          //S (color intensity)
-                //I[i][j].v = 0.6*180;          //V (brightness)
-                if (skyY == pixelsNumber-1)
-                {
-                   if (skyX == pixelsNumber-1)
-                     skyX = 1;
-                   else
-                     skyX = skyX + 1;
-                   skyY = 1;
-                }
-                else
-                  skyY = skyY + 1;
-           }   
-        }
-    }
-    
-    /***********************************************************************/
-    //offline input pictures. Samples of water properties are taken from these 
-    //pictures to get a range of values for H, S, V that will be stored into a 
-    //pre-defined classifier
-    IplImage* imageSample1 = cvLoadImage("20110805_032255.jpg");
-    cvSetImageROI(imageSample1, cvRect(0,0,imageSample1->height/0.5,imageSample1->width/1.83));
-    cvCvtColor(imageSample1, imageSample1, CV_BGR2HSV);
-    HsvImage I1(imageSample1);
-    IplImage* imageSample2 = cvLoadImage("20110805_032257.jpg");
-    cvCvtColor(imageSample2, imageSample2, CV_BGR2HSV);
-    HsvImage I2(imageSample2);
-    IplImage* imageSample3 = cvLoadImage("20110805_032259.jpg");
-    cvCvtColor(imageSample3, imageSample3, CV_BGR2HSV);
-    HsvImage I3(imageSample3);
-    IplImage* imageSample4 = cvLoadImage("20110805_032301.jpg");
-    cvCvtColor(imageSample4, imageSample4, CV_BGR2HSV);
-    HsvImage I4(imageSample4);
-    IplImage* imageSample5 = cvLoadImage("20110805_032303.jpg");
-    cvCvtColor(imageSample5, imageSample5, CV_BGR2HSV);
-    HsvImage I5(imageSample5);
-    IplImage* imageSample6 = cvLoadImage("20110805_032953.jpg");
-    cvCvtColor(imageSample6, imageSample6, CV_BGR2HSV);
-    HsvImage I6(imageSample6);
-    IplImage* imageSample7 = cvLoadImage("20110805_032955.jpg");
-    cvCvtColor(imageSample7, imageSample7, CV_BGR2HSV);
-    HsvImage I7(imageSample7);
-    IplImage* imageSample8 = cvLoadImage("20110805_032957.jpg");
-    cvCvtColor(imageSample8, imageSample8, CV_BGR2HSV);
-    HsvImage I8(imageSample8);
-    IplImage* imageSample9 = cvLoadImage("20110805_032959.jpg");
-    cvCvtColor(imageSample9, imageSample9, CV_BGR2HSV);
-    HsvImage I9(imageSample9);
-    IplImage* imageSample10 = cvLoadImage("20110805_033001.jpg");
-    cvCvtColor(imageSample10, imageSample10, CV_BGR2HSV);
-    HsvImage I10(imageSample10);
-    IplImage* imageSample11 = cvLoadImage("20110805_033009.jpg");
-    cvCvtColor(imageSample11, imageSample11, CV_BGR2HSV);
-    HsvImage I11(imageSample11);
-    IplImage* imageSample12 = cvLoadImage("20110805_033011.jpg");
-    cvCvtColor(imageSample12, imageSample12, CV_BGR2HSV);
-    HsvImage I12(imageSample12);
-    //IplImage* imageSample13 = cvLoadImage("20110812_110924.jpg");
-    //cvCvtColor(imageSample13, imageSample13, CV_BGR2HSV);
-    //HsvImage I13(imageSample13);
-    
-    for (int i=0; i < threeArraySize; i++)
+    for (int j=0; j<boatFront->width;j++)
     {
-        for (int j=0; j < arraySize; j++)
-        {
-            row1 = ceil(X/1.2866)+ceil(X/5.237)+i+ceil(-X/3.534545455) + ceil(X/4.8);
-            column1 = ceil(Y/7.0755)+ceil(Y/21.01622)+j+ceil(X/1.495384615);
-            averageHue = (I1[row1][column1].h + I2[row1][column1].h + I3[row1][column1].h + I4[row1][column1].h + I5[row1][column1].h + 	
-            I6[row1][column1].h + I7[row1][column1].h + I8[row1][column1].h + I9[row1][column1].h + I10[row1][column1].h + I11[row1][column1].h + I12[row1][column1].h) / 12;
-            averageSat = (I1[row1][column1].s + I2[row1][column1].s + I3[row1][column1].s + I4[row1][column1].s + I5[row1][column1].s + 
-            I6[row1][column1].s + I7[row1][column1].s + I8[row1][column1].s + I9[row1][column1].s + I10[row1][column1].s + I11[row1][column1].s + I12[row1][column1].s) / 12;
-            averageVal = (I1[row1][column1].v + I2[row1][column1].v + I3[row1][column1].v + I4[row1][column1].v + I5[row1][column1].v + 
-            I6[row1][column1].v + I7[row1][column1].v + I8[row1][column1].v + I9[row1][column1].v + I10[row1][column1].v + I11[row1][column1].v + I12[row1][column1].v) / 12;
-            //water patch sample (n X n matrix)
-            cvmSet(waterTrainingHue,i,j,averageHue);
-            cvmSet(waterTrainingSat,i,j,averageSat);
-            cvmSet(waterTrainingVal,i,j,averageVal);  
-             //patch is red (this is for me to know where the ground patch sample is)
-            //I[row1][column1].h = 0;
-            //I[row1][column1].s = 255;
-            //I[row1][column1].v = 255;
-        }
-    }
-    //creating a training sample from the an image taken on the fly
-    row1 = 0;
-    column1 = 0;
-    for (int i=0; i<pixelsNumber; i++)
+    //if something is bright enough, consider it sky and store the
+    //value. HSV values go from 0 to 180 ... RGB goes from 0 to 255
+    if (((I[i][j].v >= 180) && (I[i][j].s <= 16)))
+    // && ((I[i][j].h >=10)))) //&& (I[i][j].h <= 144))))
     {
-        for (int j=0; j<pixelsNumber; j++)
-        {
-           row1 = ceil(X/1.2866)+ceil(X/5.237)+i+ceil(-X/3.534545455) + ceil(X/4.8);
-           column1 = ceil(Y/7.0755)+ceil(Y/21.01622)+j+ceil(X/1.495384615);
-           cvmSet(trainClassesH,i,0,I[row1][column1].h);
-           cvmSet(trainClassesS,i,0,I[row1][column1].s);
-           cvmSet(trainClassesV,i,0,I[row1][column1].v);
-           
-        }
-    }
-    //order the water samples in ascending order on order to know a range
-    cvSort(waterTrainingHue, waterTrainingHue, CV_SORT_ASCENDING);
-    cvSort(waterTrainingSat, waterTrainingSat, CV_SORT_ASCENDING);
-    cvSort(waterTrainingVal, waterTrainingVal, CV_SORT_ASCENDING);
-    // find the maximum and minimum values in the array to create a range
-    int maxH = cvmGet(waterTrainingHue,0,0);
-    int maxS = cvmGet(waterTrainingSat,0,0);
-    int maxV = cvmGet(waterTrainingVal,0,0);
-    int minH = cvmGet(waterTrainingHue,0,0);
-    int minS = cvmGet(waterTrainingSat,0,0);
-    int minV = cvmGet(waterTrainingVal,0,0);
-    for (int i=0; i < threeArraySize; i++)
+    //The HSV values vary between 0 and 1
+    cvmSet(skyTrainingHue,skyX,skyY,I[i][j].h);
+    cvmSet(skyTrainingSat,skyX,skyY,I[i][j].s);
+    cvmSet(skyTrainingVal,skyX,skyY,I[i][j].v);
+    //I[i][j].h = 0.3*180;       //H (color)
+    //I[i][j].s = 0.3*180;          //S (color intensity)
+    //I[i][j].v = 0.6*180;          //V (brightness)
+    if (skyY == pixelsNumber-1)
     {
-        for (int j=0; j < arraySize; j++)
+    if (skyX == pixelsNumber-1)
+    skyX = 1;
+    else
+    skyX = skyX + 1;
+    skyY = 1;
+    }
+    else
+    skyY = skyY + 1;
+    }   
+    }
+    }
+  */
+  /***********************************************************************/
+  //offline input pictures. Samples of water properties are taken from these 
+  //pictures to get a range of values for H, S, V that will be stored into a 
+  //pre-defined classifier
+  IplImage* imageSample1 = cvLoadImage("20110805_032255.jpg");
+  cvSetImageROI(imageSample1, cvRect(0,0,imageSample1->height/0.5,imageSample1->width/1.83));
+  cvCvtColor(imageSample1, imageSample1, CV_BGR2HSV);
+  HsvImage I1(imageSample1);
+  IplImage* imageSample2 = cvLoadImage("20110805_032257.jpg");
+  cvCvtColor(imageSample2, imageSample2, CV_BGR2HSV);
+  HsvImage I2(imageSample2);
+  IplImage* imageSample3 = cvLoadImage("20110805_032259.jpg");
+  cvCvtColor(imageSample3, imageSample3, CV_BGR2HSV);
+  HsvImage I3(imageSample3);
+  IplImage* imageSample4 = cvLoadImage("20110805_032301.jpg");
+  cvCvtColor(imageSample4, imageSample4, CV_BGR2HSV);
+  HsvImage I4(imageSample4);
+  IplImage* imageSample5 = cvLoadImage("20110805_032303.jpg");
+  cvCvtColor(imageSample5, imageSample5, CV_BGR2HSV);
+  HsvImage I5(imageSample5);
+  IplImage* imageSample6 = cvLoadImage("20110805_032953.jpg");
+  cvCvtColor(imageSample6, imageSample6, CV_BGR2HSV);
+  HsvImage I6(imageSample6);
+  IplImage* imageSample7 = cvLoadImage("20110805_032955.jpg");
+  cvCvtColor(imageSample7, imageSample7, CV_BGR2HSV);
+  HsvImage I7(imageSample7);
+  IplImage* imageSample8 = cvLoadImage("20110805_032957.jpg");
+  cvCvtColor(imageSample8, imageSample8, CV_BGR2HSV);
+  HsvImage I8(imageSample8);
+  IplImage* imageSample9 = cvLoadImage("20110805_032959.jpg");
+  cvCvtColor(imageSample9, imageSample9, CV_BGR2HSV);
+  HsvImage I9(imageSample9);
+  IplImage* imageSample10 = cvLoadImage("20110805_033001.jpg");
+  cvCvtColor(imageSample10, imageSample10, CV_BGR2HSV);
+  HsvImage I10(imageSample10);
+  IplImage* imageSample11 = cvLoadImage("20110805_033009.jpg");
+  cvCvtColor(imageSample11, imageSample11, CV_BGR2HSV);
+  HsvImage I11(imageSample11);
+  IplImage* imageSample12 = cvLoadImage("20110805_033011.jpg");
+  cvCvtColor(imageSample12, imageSample12, CV_BGR2HSV);
+  HsvImage I12(imageSample12);
+  //IplImage* imageSample13 = cvLoadImage("20110812_110924.jpg");
+  //cvCvtColor(imageSample13, imageSample13, CV_BGR2HSV);
+  //HsvImage I13(imageSample13);
+  
+  for (int i=0; i < threeArraySize; i++)
+    {
+      for (int j=0; j < arraySize; j++)
         {
-            if (cvmGet(waterTrainingHue,i,j) > maxH)
-                maxH = cvmGet(waterTrainingHue,i,j);
-            if (cvmGet(waterTrainingSat,i,j) > maxS)
-                maxS = cvmGet(waterTrainingSat,i,j);
-            if (cvmGet(waterTrainingVal,i,j) > maxV)
-                maxV = cvmGet(waterTrainingVal,i,j);
-            if (cvmGet(waterTrainingHue,i,j) < minH)
-                minH = cvmGet(waterTrainingHue,i,j);
-            if (cvmGet(waterTrainingSat,i,j) < minS)
-                minS = cvmGet(waterTrainingSat,i,j);
-            if (cvmGet(waterTrainingVal,i,j) < minV)
-                minV = cvmGet(waterTrainingVal,i,j);
+	  row1 = ceil(X/1.2866)+ceil(X/5.237)+i+ceil(-X/3.534545455) + ceil(X/4.8);
+	  column1 = ceil(Y/7.0755)+ceil(Y/21.01622)+j+ceil(X/1.495384615);
+	  averageHue = (I1[row1][column1].h + I2[row1][column1].h + I3[row1][column1].h + I4[row1][column1].h + I5[row1][column1].h + 	
+			I6[row1][column1].h + I7[row1][column1].h + I8[row1][column1].h + I9[row1][column1].h + I10[row1][column1].h + I11[row1][column1].h + I12[row1][column1].h) / 12;
+	  averageSat = (I1[row1][column1].s + I2[row1][column1].s + I3[row1][column1].s + I4[row1][column1].s + I5[row1][column1].s + 
+			I6[row1][column1].s + I7[row1][column1].s + I8[row1][column1].s + I9[row1][column1].s + I10[row1][column1].s + I11[row1][column1].s + I12[row1][column1].s) / 12;
+	  averageVal = (I1[row1][column1].v + I2[row1][column1].v + I3[row1][column1].v + I4[row1][column1].v + I5[row1][column1].v + 
+			I6[row1][column1].v + I7[row1][column1].v + I8[row1][column1].v + I9[row1][column1].v + I10[row1][column1].v + I11[row1][column1].v + I12[row1][column1].v) / 12;
+	  //water patch sample (n X n matrix)
+	  cvmSet(waterTrainingHue,i,j,averageHue);
+	  cvmSet(waterTrainingSat,i,j,averageSat);
+	  cvmSet(waterTrainingVal,i,j,averageVal);  
+	  //patch is red (this is for me to know where the ground patch sample is)
+	  //I[row1][column1].h = 0;
+	  //I[row1][column1].s = 255;
+	  //I[row1][column1].v = 255;
         }
     }
-
-    /*********** Main loop. It traverses through the picture**********/
+  //creating a training sample from the an image taken on the fly
+  row1 = 0;
+  column1 = 0;
+  for (int i=0; i<pixelsNumber; i++)
+    {
+      for (int j=0; j<pixelsNumber; j++)
+        {
+	  row1 = ceil(X/1.2866)+ceil(X/5.237)+i+ceil(-X/3.534545455) + ceil(X/4.8);
+	  column1 = ceil(Y/7.0755)+ceil(Y/21.01622)+j+ceil(X/1.495384615);
+	  cvmSet(trainClassesH,i,0,I[row1][column1].h);
+	  cvmSet(trainClassesS,i,0,I[row1][column1].s);
+	  cvmSet(trainClassesV,i,0,I[row1][column1].v);
+          
+        }
+    }
+  //order the water samples in ascending order on order to know a range
+  cvSort(waterTrainingHue, waterTrainingHue, CV_SORT_ASCENDING);
+  cvSort(waterTrainingSat, waterTrainingSat, CV_SORT_ASCENDING);
+  cvSort(waterTrainingVal, waterTrainingVal, CV_SORT_ASCENDING);
+  // find the maximum and minimum values in the array to create a range
+  int maxH = cvmGet(waterTrainingHue,0,0);
+  int maxS = cvmGet(waterTrainingSat,0,0);
+  int maxV = cvmGet(waterTrainingVal,0,0);
+  int minH = cvmGet(waterTrainingHue,0,0);
+  int minS = cvmGet(waterTrainingSat,0,0);
+  int minV = cvmGet(waterTrainingVal,0,0);
+  for (int i=0; i < threeArraySize; i++)
+    {
+      for (int j=0; j < arraySize; j++)
+        {
+	  if (cvmGet(waterTrainingHue,i,j) > maxH)
+	    maxH = cvmGet(waterTrainingHue,i,j);
+	  if (cvmGet(waterTrainingSat,i,j) > maxS)
+	    maxS = cvmGet(waterTrainingSat,i,j);
+	  if (cvmGet(waterTrainingVal,i,j) > maxV)
+	    maxV = cvmGet(waterTrainingVal,i,j);
+	  if (cvmGet(waterTrainingHue,i,j) < minH)
+	    minH = cvmGet(waterTrainingHue,i,j);
+	  if (cvmGet(waterTrainingSat,i,j) < minS)
+	    minS = cvmGet(waterTrainingSat,i,j);
+	  if (cvmGet(waterTrainingVal,i,j) < minV)
+	    minV = cvmGet(waterTrainingVal,i,j);
+        }
+    }
+  
+  /*********** Main loop. It traverses through the picture**********/
     
     /******************** Live water samples *******************************/
     //learn how "current water" looks like on the fly
@@ -500,71 +520,73 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     row1 = 0;
     x = boatFront->height/2 + 60;
     y = 0;
-    /*while (x < X-1)
-    {
-        //get a random sample taken from the picture. Must be determined whether
-        //it is water or ground
-        for (int i = 0; i<6;i++)
-        {
-            column1 = y+i;
-            if (column1 > Y-1)
-                column1 = Y-1;
-            cvmSet(sampleHue,0,i,I[x][column1].h);
-            cvmSet(sampleSat,0,i,I[x][column1].s);
-            cvmSet(sampleVal,0,i,I[x][column1].v);
-        }
-        for (int i=0;i<6;i++)
-        {
-            for (int j=0;j<6;j++)
-            {
-                if ((minH0 < cvmGet(sampleHue,0,j)) && (maxH0 > cvmGet(sampleHue,0,j)))
-                    //mark water samples as green
-                    comparator[0] = 1;
-                else
-                    comparator[0] = 0;
-                if ((minS0 < cvmGet(sampleSat,0,j)) && (maxS0 > cvmGet(sampleSat,0,j)))
-                //mark water samples as green
-                    comparator[1] = 1;
-                else
-                    comparator[1] = 0;
-                if ((minV0 < cvmGet(sampleVal,0,j)) && (maxV0 > cvmGet(sampleVal,0,j)))
-                //mark water samples as red
-                    comparator[2] = 1;
-                else
-                    comparator[2] = 0;
-                //count votes
-                for (int i3=0; i3 < 3; i3++)
-                    votesSum = votesSum + comparator[i3];
-                if (votesSum > 1)
-                {
-                    //use the known water samples as new training data
-                    //if((i<boatFront->height/xDivisor) && (j<boatFront->width/yDivisor))
-                    //{
-                     //   cvmSet(resampleHue,i,j,cvmGet(sampleHue,0,j));
-                      //  cvmSet(resampleSat,i,j,cvmGet(sampleSat,0,j));
-                       // cvmSet(resampleVal,i,j,cvmGet(sampleVal,0,j));
-                    //}
-                    //6 use to be equal to pixelsNumber. 
-                    I[x][y-6+j].h = 0;
-                    I[x][y-6+j].s = 255;
-                    I[x][y-6+j].v = 255;   
-                }
-                votesSum = 0;
-            }
-        }
-        if (y < Y-1)
-            //5 use to be equal to pixelsNumber-1.
-            y = y + 5;
-        if (y > Y-1)
-            y = Y-1;
-        else if (y == Y-1)
-        {
-            //5 use to be equal to pixelsNumber-1
-            x = x + 1;
-            y = 0;
-        }
-    }
-    
+
+    /*
+      while (x < X-1)
+      {
+      //get a random sample taken from the picture. Must be determined whether
+      //it is water or ground
+      for (int i = 0; i<6;i++)
+      {
+      column1 = y+i;
+      if (column1 > Y-1)
+      column1 = Y-1;
+      cvmSet(sampleHue,0,i,I[x][column1].h);
+      cvmSet(sampleSat,0,i,I[x][column1].s);
+      cvmSet(sampleVal,0,i,I[x][column1].v);
+      }
+      for (int i=0;i<6;i++)
+      {
+      for (int j=0;j<6;j++)
+      {
+      if ((minH0 < cvmGet(sampleHue,0,j)) && (maxH0 > cvmGet(sampleHue,0,j)))
+      //mark water samples as green
+      comparator[0] = 1;
+      else
+      comparator[0] = 0;
+      if ((minS0 < cvmGet(sampleSat,0,j)) && (maxS0 > cvmGet(sampleSat,0,j)))
+      //mark water samples as green
+      comparator[1] = 1;
+      else
+      comparator[1] = 0;
+      if ((minV0 < cvmGet(sampleVal,0,j)) && (maxV0 > cvmGet(sampleVal,0,j)))
+      //mark water samples as red
+      comparator[2] = 1;
+      else
+      comparator[2] = 0;
+      //count votes
+      for (int i3=0; i3 < 3; i3++)
+      votesSum = votesSum + comparator[i3];
+      if (votesSum > 1)
+      {
+      //use the known water samples as new training data
+      //if((i<boatFront->height/xDivisor) && (j<boatFront->width/yDivisor))
+      //{
+      //   cvmSet(resampleHue,i,j,cvmGet(sampleHue,0,j));
+      //  cvmSet(resampleSat,i,j,cvmGet(sampleSat,0,j));
+      // cvmSet(resampleVal,i,j,cvmGet(sampleVal,0,j));
+      //}
+      //6 use to be equal to pixelsNumber. 
+      I[x][y-6+j].h = 0;
+      I[x][y-6+j].s = 255;
+      I[x][y-6+j].v = 255;   
+      }
+      votesSum = 0;
+      }
+      }
+      if (y < Y-1)
+      //5 use to be equal to pixelsNumber-1.
+      y = y + 5;
+      if (y > Y-1)
+      y = Y-1;
+      else if (y == Y-1)
+      {
+      //5 use to be equal to pixelsNumber-1
+      x = x + 1;
+      y = 0;
+      }
+      }
+    */
     /*********************************************************************/
     // Use nearest neighbors to increase accuracy
     skyX = 0; 
@@ -611,48 +633,48 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
         //responseGroundV = knnGroundVal.find_nearest(sampleVal,pixelsNumber,0,0,nearestGroundV,0);
         //for (int i=0;i<pixelsNumber;i++)
         //{
-            for (int j=0;j<pixelsNumber;j++)
-            {
-                if ((nearestWaterH->data.fl[j] == responseWaterH) )//&& (nearestWaterH->data.fl[j] == responseWaterH + 5))
-                        // mark water samples as green
-                    comparator[0] = 1;
-                else
-                    comparator[0] = 0;
-                if ((nearestWaterS->data.fl[j] == responseWaterS) )//&& (nearestWaterS->data.fl[j] < responseWaterS + 5))
-                    //mark water samples as green
-                    comparator[1] = 1;
-                else
-                    comparator[1] = 0;
-                if ((nearestWaterV->data.fl[j] == responseWaterV) )//&& (nearestWaterV->data.fl[j] < responseWaterV + 5))
-                //mark water samples as green
-                    comparator[2] = 1;
-                else
-                    comparator[2] = 0;
-                // similar sky pixels on the water
-                //count votes
-                for (int i3=0; i3 < 3; i3++)
-                    votesSum = votesSum + comparator[i3]; 
-                if (votesSum > 1)
-                {
-                    I[x][y-6+j].h = 0;
-                    I[x][y-6+j].s = 255;
-                    I[x][y-6+j].v = 255;
-                }
-                votesSum = 0;
-            }
-        }
-        if (y < Y-1)
-            //5 use to be equal to pixelsNumber-1.
-            y = y + 5;
+	for (int j=0;j<pixelsNumber;j++)
+	  {
+	    if ((nearestWaterH->data.fl[j] == responseWaterH) )//&& (nearestWaterH->data.fl[j] == responseWaterH + 5))
+	      // mark water samples as green
+	      comparator[0] = 1;
+	    else
+	      comparator[0] = 0;
+	    if ((nearestWaterS->data.fl[j] == responseWaterS) )//&& (nearestWaterS->data.fl[j] < responseWaterS + 5))
+	      //mark water samples as green
+	      comparator[1] = 1;
+	    else
+	      comparator[1] = 0;
+	    if ((nearestWaterV->data.fl[j] == responseWaterV) )//&& (nearestWaterV->data.fl[j] < responseWaterV + 5))
+	      //mark water samples as green
+	      comparator[2] = 1;
+	    else
+	      comparator[2] = 0;
+	    // similar sky pixels on the water
+	    //count votes
+	    for (int i3=0; i3 < 3; i3++)
+	      votesSum = votesSum + comparator[i3]; 
+	    if (votesSum > 1)
+	      {
+		I[x][y-6+j].h = 0;
+		I[x][y-6+j].s = 255;
+		I[x][y-6+j].v = 255;
+	      }
+	    votesSum = 0;
+	  }
+	//}
+	if (y < Y-1)
+	  //5 use to be equal to pixelsNumber-1.
+	  y = y + 5;
         if (y > Y-1)
-            y = Y-1;
+	  y = Y-1;
         else if (y == Y-1)
-        {
+	  {
             //5 use to be equal to pixelsNumber-1
             x = x + 1;
             y = 0;
-        }
-       // ix = 0;
+	  }
+	// ix = 0;
     }
     
     /*********************************************************************/
@@ -1049,7 +1071,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
         }
         votesSum = 0;
     }
-    
+   */
     /****************Find Obstacles boundaries*********************************/
     if( grayStorage == NULL )
     {
@@ -1098,21 +1120,18 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     int area = 0;
     int maxX = 0;
     int maxY = 0;
+    double maxObstacleDistance =100.0; //default value of 100 meters
+    double maxObstacleHeading =PI;    //default heading of 180 deg or pi rads
+
     for( CvSeq* c=contours; c!=NULL; c=c->h_next)
-    {
+      {
         //ignore obstacles/contours with are less than 100 pixels or bigger than 100000 pixels
-        if ((cvContourArea(c, CV_WHOLE_SEQ) >= 250) && (cvContourArea(c, CV_WHOLE_SEQ) <= 100000))
-        {
-        		cvDrawContours(bwImage, c, cvScalarAll(255), cvScalarAll(255), 8);
-        		//find the x,y coordinate of the center of a contour
+	if ((cvContourArea(c, CV_WHOLE_SEQ) >= 250) && (cvContourArea(c, CV_WHOLE_SEQ) <= 100000))
+	  {
+	    cvDrawContours(bwImage, c, cvScalarAll(255), cvScalarAll(255), 8);
+	    //find the x,y coordinate of the center of a contour
             cvMoments(c, &moment, 0);
-            if (area < cvContourArea(c, CV_WHOLE_SEQ))
-            {
-                area = cvContourArea(c, CV_WHOLE_SEQ);
-                maxX = moment.m10/moment.m00;
-                maxY = moment.m01/moment.m00;
-            }
-            cout << "Contour area: " << cvContourArea(c, CV_WHOLE_SEQ) << endl;     //area in pixels                        
+	    cout << "Contour area: " << cvContourArea(c, CV_WHOLE_SEQ) << endl;     //area in pixels                        
             obstacleArea_msg.data = cvContourArea(c, CV_WHOLE_SEQ);
             //find the x,y coordinate of the center of a contour
             cvMoments(c, &moment, 0);
@@ -1126,7 +1145,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
             // x,y coordinates of the obstacle from the bottom center of the image
             //Ignore everything less than 0.3 meters apart (anything too close to the boat)
             if (moment.m10/moment.m00 > 500)
-            {
+	      {
                 zObstacleDistance = 0.5*(yObstacleDistance*619.33108)/(X - (moment.m10/moment.m00));
                 xObstacleDistance = 0.5*zObstacleDistance*(Y/2 - (moment.m01/moment.m00)-324.36738)/618.62586;
             }
@@ -1141,65 +1160,104 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
             //publish data
             //fprintf(stderr, "\n publishing \n");
             Xwaypoint_info_pub.publish(xWaypoint_msg);
-  					Zwaypoint_info_pub.publish(zWaypoint_msg);
-  					ObstacleArea_info_pub.publish(obstacleArea_msg);
-            //try to ignore obstacle that are too close. Robot shall tell operator if there is
-            //a problem with a close by obstacle
-            //obstacle distance
-            obstacleDistance = sqrt(pow(xObstacleDistance,2) + pow(yObstacleDistance,2) + pow(zObstacleDistance,2));
-            //Just use the 2D angle
-            obstacleHeading = tan((zObstacleDistance/xObstacleDistance)*PI/180);
-            cout << "Obstacle polar coordinates: " << endl;
-            cout << "z: " << zObstacleDistance << " x: " << xObstacleDistance << endl;
-            cout << "Distance (meters) " << obstacleDistance << endl;
-            cout << "Direction (degrees): " << obstacleHeading << endl << endl;
-        }
-    }
+	    Zwaypoint_info_pub.publish(zWaypoint_msg);
+	    ObstacleArea_info_pub.publish(obstacleArea_msg);
+	    //try to ignore obstacle that are too close. Robot shall tell operator if there is
+	    //a problem with a close by obstacle
+	    //obstacle distance
+	    obstacleDistance = sqrt(pow(xObstacleDistance,2) + pow(yObstacleDistance,2) + pow(zObstacleDistance,2));
+	    //Just use the 2D angle
+	    obstacleHeading = tan((zObstacleDistance/xObstacleDistance)*PI/180);
+	    /* Note: obstacleHeading is in radians */
+	    cout << "Obstacle polar coordinates: " << endl;
+	    cout << "z: " << zObstacleDistance << " x: " << xObstacleDistance << endl;
+	    cout << "Distance (meters) " << obstacleDistance << endl;
+	    cout << "Direction (degrees): " << obstacleHeading << endl << endl;
+	    if (area < cvContourArea(c, CV_WHOLE_SEQ))
+	      {
+                area = cvContourArea(c, CV_WHOLE_SEQ);
+                maxX = moment.m10/moment.m00;
+                maxY = moment.m01/moment.m00;
+		maxObstacleDistance = obstacleDistance;
+		maxObstacleHeading = obstacleHeading;
+	      }
+	  }
+      }
     cout << "biggest Area: " << area << endl;
     cout << "maxX: " << maxX << endl;
     cout << "maxY: " << maxY << endl;
+    if(avoidObstacle(area, maxObstacleDistance, maxObstacleHeading))
+      fprintf(stdout,"\n Successefully negotiated obstacle \n");
+    else fprintf(stdout,"\n oops into the obstacle ...\n");
+
     cvCircle(bwImage, cvPoint(maxX,maxY),5,cvScalar(255,255,255),2);
     /**************************************************************************/
     //deal with memory management. How do I get read of the arrays and pointers I am not using inside the callback function??????
-	  try
-    {
-  	  //fprintf(stderr,"\n boatFront\n");
-      cvShowImage("Boat Front", boatFront);
-      //cvShowImage("Color Segment", backUpImage);
-      //cvShowImage("Obstacles", bwImage);
-    }
+    try
+      {
+	//fprintf(stderr,"\n boatFront\n");
+	cvShowImage("Boat Front", boatFront);
+	//cvShowImage("Color Segment", backUpImage);
+	//cvShowImage("Obstacles", bwImage);
+      }
     catch (sensor_msgs::CvBridgeException& e)
-    {
-      ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
-    }
+      {
+	ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
+      }
 }
 
+/*****************************************************************************
+ *
+ ****************************************************************************/
+int initRos(int argc, char **argv){
+  ros::init(argc, argv, "obstacle_listener");
+  ros::Rate loop_rate(0.001);
+  image_transport::ImageTransport it(nh);
+  //image     //use this one for compressed images
+  //camera/image
+  ROS_INFO("getting image");
+  image_transport::Subscriber sub = it.subscribe("image", 1, imageCallback);
+  /*** Subscribing to velocity ****/
+  subVel=nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+  return 1;
+}
+
+/*****************************************************************************
+ *
+ ****************************************************************************/
+int initOpenCV(){
+
+  cvNamedWindow("Boat Front",0);            //0 to maintains sizes regardless of image size
+  cvResizeWindow("Boat Front",700,550);     // new width/heigh in pixels
+  //   cvNamedWindow("Color Segment",0);            //0 to maintains sizes regardless of image size
+  //cvResizeWindow("Color Segment",700,550);     // new width/heigh in pixels
+  //     cvNamedWindow("Obstacle",0);            //0 to maintains sizes regardless of image size
+  //cvResizeWindow("Obstacle",700,550);     // new width/heigh in pixels
+  //cvWaitKey(0);
+  cvStartWindowThread();
+  return 1;
+}
+
+/******************************************************************************
+ * main():
+ *****************************************************************************/
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "pototo_image_listener");
-  ros::NodeHandle nh;
-  ros::Rate loop_rate(0.001);
-	cvNamedWindow("Boat Front",0);            //0 to maintains sizes regardless of image size
-	cvResizeWindow("Boat Front",700,550);     // new width/heigh in pixels
-    //   cvNamedWindow("Color Segment",0);            //0 to maintains sizes regardless of image size
-	//cvResizeWindow("Color Segment",700,550);     // new width/heigh in pixels
-   //     cvNamedWindow("Obstacle",0);            //0 to maintains sizes regardless of image size
-	//cvResizeWindow("Obstacle",700,550);     // new width/heigh in pixels
-        //cvWaitKey(0);
+  if(USINGROS) {
+    if(initROS(argc, argv)) fprintf(stderr,"\n Ros Initialized Successefully\n");
+    else fprintf(stderr,"\n Ros Initialization Error\n");
+  }
   
-	//This is used for republishing the waypoints for the obstacles
+  if(initOpenCV()) fprintf(stderr,"\n openCV Initialized Successefully\n");
+  else fprintf(stderr,"\n openCV Initialized Successefully\n");
     
-	ROS_INFO("getting image");
-	cvStartWindowThread();
-	image_transport::ImageTransport it(nh);
-		//image     //use this one for compressed images
-		//camera/image
-	image_transport::Subscriber sub = it.subscribe("image", 1, imageCallback);
-	fprintf(stderr,"\n I am out of the call back function\n");
-	ros::spin();
-	cvDestroyWindow("Boat Front");
-	//cvDestroyWindow("Color Segment");
-	//cvDestroyWindow("Obstacles");
-	loop_rate.sleep();
- return 0;
+  //This is used for republishing the waypoints for the obstacles
+  
+  fprintf(stderr,"\n I am out of the call back function\n");
+  ros::spin();
+  cvDestroyWindow("Boat Front");
+  //cvDestroyWindow("Color Segment");
+  //cvDestroyWindow("Obstacles");
+  loop_rate.sleep();
+  return 0;
 }
