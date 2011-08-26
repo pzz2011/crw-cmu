@@ -4,6 +4,7 @@
       android:versionName="1.0" package="edu.cmu.ri.airboat.server">
 <application android:icon="@drawable/icon" android:label="@string/app_name" android:debuggable="true">
 <service android:label="Airboat Service" android:icon="@drawable/icon" android:name="AirboatService"></service>
+<service android:label="Airboat Failsafe" android:icon="@drawable/icon" android:name="AirboatFailsafeService"></service>
 <activity android:label="Airboat Setup" android:icon="@drawable/icon" android:name="AirboatActivity">
 <intent-filter>
 <action android:name="android.intent.action.MAIN"></action>

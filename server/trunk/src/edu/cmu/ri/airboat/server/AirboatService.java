@@ -56,7 +56,7 @@ import edu.cmu.ri.crw.ros.RosVehicleServer;
 
 /**
  * Android Service to register sensor and Amarino handlers for Android.
- * Contains a RosVehicleServer and a VehicleServer object
+ * Contains a RosVehicleServer and a VehicleServer object.
  * 
  * @author pkv
  * @author kshaurya

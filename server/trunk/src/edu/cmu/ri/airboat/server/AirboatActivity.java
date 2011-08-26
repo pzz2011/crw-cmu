@@ -1,5 +1,6 @@
 package edu.cmu.ri.airboat.server;
 
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -8,6 +9,14 @@ import java.net.URL;
 import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
+
+import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.UTM;
+import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+import org.ros.message.crwlib_msgs.UtmPose;
+
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -15,6 +24,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,9 +40,11 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import at.abraxas.amarino.AmarinoIntent;
+import edu.cmu.ri.airboat.server.AirboatFailsafeService.AirboatFailsafeIntent;
 
 public class AirboatActivity extends Activity {
 	private static final String logTag = AirboatActivity.class.getName();
@@ -38,8 +52,10 @@ public class AirboatActivity extends Activity {
 	public static final String PREFS_PRIVATE = "PREFS_PRIVATE";
 	public static final String KEY_MASTER_URI = "KEY_MASTER_URI";
 	public static final String KEY_BT_ADDR = "KEY_BT_ADDR";
+	public static final String KEY_FAILSAFE_ADDR = "KEY_FAILSAFE_ADDR";
 
 	private BroadcastReceiver _amarinoReceiver;
+	private UtmPose _homePosition = new UtmPose();
 	
 	/** Called when the activity is first created. */
     @Override
@@ -212,8 +228,7 @@ public class AirboatActivity extends Activity {
 			}
 		});
 		
-		
-        // Register handler for toggle button
+        // Register handler for server toggle button
         final ToggleButton connectToggle = (ToggleButton)findViewById(R.id.ConnectToggle);
         connectToggle.setChecked(AirboatService.isRunning); // Hack to determine initial service state
         connectToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
@@ -251,72 +266,197 @@ public class AirboatActivity extends Activity {
 		}, 300);
         
         // Register handler for debug button
-        final Button debugToggle = (Button)findViewById(R.id.DebugButton);
-        debugToggle.setOnClickListener(new OnClickListener() {
+        final Button debugButton = (Button)findViewById(R.id.DebugButton);
+        debugButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				// Start up the debug control activity
 				startActivity(new Intent(AirboatActivity.this, AirboatControlActivity.class));
 			}
 		});
         
-        // Register listener for log events to this entire package
-/*        final ListView logText = (ListView)findViewById(R.id.LogList);
-        final ArrayAdapter<String> logAdapter = new ArrayAdapter<String>(this, R.layout.row);
-        logText.setAdapter(logAdapter);
-        
-        // Set up java logger to send log events to the visible log list                   //remove this
-        final Logger pkgLogger = Logger.getLogger(AirboatActivity.class.getPackage().getName());
-        pkgLogger.addHandler(new Handler() {
-			
-			public void publish(LogRecord record) {
-				String className = record.getSourceClassName();
-				int lastClass = record.getSourceClassName().lastIndexOf('.');
-				final String entry = (lastClass < 0 ? className : className.substring(lastClass + 1)) + ":  " + record.getMessage() + ((record.getThrown() == null ? "" : (" : " + record.getThrown())));
-				
-				logText.post(new Runnable() {
-					
-					public void run() {
-						// TODO: replace this with a more efficient list update
-						if (logAdapter.getCount() > LOG_HISTORY_LENGTH) {
-							logAdapter.remove(logAdapter.getItem(0));
-						}
-						
-						// Print out the simple calling class name followed by the message (i.e. "LinkedList: Added element.")
-						logAdapter.add(entry);
-						logAdapter.notifyDataSetChanged();
-					}
-				});
-			}
-			
-			public void flush() {
-				logText.post(new Runnable() {
-					
-					public void run() {
-						logAdapter.notifyDataSetChanged();
-						logText.postInvalidate();
-					}
-				});
-			}
-			
-			public void close() {
-				logText.post(new Runnable() {
-					
-					public void run() {
-						logAdapter.clear();
-						logAdapter.notifyDataSetChanged();
-					}
-				});
-			}
-		});
-        */
         // Display current IP address
         final TextView addrText = (TextView)findViewById(R.id.IpAddressText);
         addrText.setText(getLocalIpAddress());
+        
+        // Register handler for failsafe address that changes color 
+		// if a valid hostname seems to be reached.
+		// TODO: Move this to its own class!
+		final AutoCompleteTextView failsafeAddress = (AutoCompleteTextView)findViewById(R.id.FailsafeAddress);
+		failsafeAddress.addTextChangedListener(new TextWatcher() {
+			
+			final Handler handler = new Handler();
+			final AtomicBoolean _isUpdating = new AtomicBoolean(false);
+			final AtomicBoolean _isUpdated = new AtomicBoolean(false);
+			
+			final class TextUpdate extends AsyncTask<Void, Void, Integer> {
+				
+				@Override
+				protected Integer doInBackground(Void... urls) {
+					int textBkgnd = 0xFFFFCCCC;
+					
+					_isUpdated.set(true);
+					_isUpdating.set(true);
+					
+					try {
+						// Try to open the host name in the text box, 
+						// if it succeeds, change color accordingly
+						String hostname = failsafeAddress.getText().toString();
+				        if (InetAddress.getByName(hostname).isReachable(500))
+				        	textBkgnd = 0xFFCCFFCC;
+				    } catch (IOException e) {}
+				    
+				    return textBkgnd;
+				}
+
+				@Override
+				protected void onPostExecute(Integer result) {
+					failsafeAddress.setBackgroundColor(result);
+
+					// Immediately reschedule if out of date, otherwise delay
+				    if (!_isUpdated.get()) {
+				    	new TextUpdate().execute((Void[])null);
+				    } else {
+				    	handler.postDelayed(new Runnable() {
+							@Override
+							public void run() {
+								new TextUpdate().execute((Void[])null);
+							}
+						}, 2000);
+				    }
+				    
+				    // In any case, we are now done updating
+				    _isUpdating.set(false);
+				}
+			};
+			
+			@Override
+			public void onTextChanged(CharSequence s, int start, int before, int count) {}
+			
+			@Override
+			public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+			
+			@Override
+			public void afterTextChanged(final Editable s) {
+				
+				_isUpdated.set(false);
+				
+				// If an update isn't already running, start one up
+				if (!_isUpdating.get()) {
+					new TextUpdate().execute((Void[])null);
+				}
+			}
+		});
+		
+		// Register handler for failsafe toggle button
+        final ToggleButton failsafeToggle = (ToggleButton)findViewById(R.id.FailsafeToggle);
+        failsafeToggle.setChecked(AirboatFailsafeService.isRunning); // Hack to determine initial service state
+        failsafeToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+        	
+    		public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+    			Intent intent = new Intent(AirboatActivity.this, AirboatFailsafeService.class);
+    			intent.putExtra(AirboatFailsafeIntent.HOSTNAME, failsafeAddress.getText().toString());
+    			intent.putExtra(AirboatFailsafeIntent.HOME_POSE, new double[] {
+    					_homePosition.pose.position.x,
+    					_homePosition.pose.position.y,
+    					_homePosition.pose.position.z});
+    			intent.putExtra(AirboatFailsafeIntent.HOME_ZONE, _homePosition.utm.zone);
+    			intent.putExtra(AirboatFailsafeIntent.HOME_NORTH, _homePosition.utm.isNorth);
+    			
+				// Save the current BD addr and master URI
+				SharedPreferences prefs = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
+				Editor prefsPrivateEditor = prefs.edit();
+				prefsPrivateEditor.putString(KEY_FAILSAFE_ADDR, failsafeAddress.getText().toString());
+				prefsPrivateEditor.commit();
+    			
+    			if (isChecked) {
+    				Log.i(logTag, "Starting failsafe service.");
+    				startService(intent);
+    			} else {
+    				Log.i(logTag, "Stopping failsafe service.");
+    				stopService(intent);
+    			}
+    		}
+    	});
+        
+        // Periodically update status of failsafe button
+        handler.postDelayed(new Runnable() {
+			@Override
+			public void run() {
+				connectToggle.setChecked(AirboatFailsafeService.isRunning);
+				handler.postDelayed(this, 300);
+			}
+		}, 300);
+        
+        // Register handler for homing button
+        final Button homeButton = (Button)findViewById(R.id.HomeButton);
+        homeButton.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				
+				// Turn on GPS, get location, set as the home position
+				final LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+				if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+					Toast.makeText(getApplicationContext(),
+							"GPS must be turned on to set home location.",
+							Toast.LENGTH_SHORT).show();
+					return;
+				}
+				
+				final AtomicBoolean gotHome = new AtomicBoolean(false); 
+				final LocationListener ll = new LocationListener() {
+					
+					public void onStatusChanged(String provider, int status, Bundle extras) {}
+					public void onProviderEnabled(String provider) {}
+					public void onProviderDisabled(String provider) {}
+					
+					@Override
+					public void onLocationChanged(Location location) {
+						
+						// Convert from lat/long to UTM coordinates
+			        	UTM utmLoc = UTM.latLongToUtm(
+			        				LatLong.valueOf(location.getLatitude(), location.getLongitude(), NonSI.DEGREE_ANGLE), 
+			        				ReferenceEllipsoid.WGS84
+			        			);
+			        	_homePosition.pose.position.x = utmLoc.eastingValue(SI.METER);
+			        	_homePosition.pose.position.y = utmLoc.northingValue(SI.METER);
+			        	_homePosition.pose.position.z = location.getAltitude();
+						
+			        	// Now that we have the GPS location, stop listening
+			        	Toast.makeText(getApplicationContext(),
+								"Home location set to: " + utmLoc,
+								Toast.LENGTH_SHORT).show();
+			        	Log.i(logTag, "Set home to " + utmLoc);
+						locationManager.removeUpdates(this);
+						gotHome.set(true);
+					}
+				};
+        		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, ll);
+        		
+        		// Cancel GPS fix after a while
+				final Handler _handler = new Handler();
+				_handler.postDelayed(new Runnable() {
+					
+					@Override
+					public void run() {
+						if (!gotHome.get()) {
+							// Cancel GPS lookup after 5 seconds
+							locationManager.removeUpdates(ll);
+							
+							// Report failure to set home
+				        	Toast.makeText(getApplicationContext(),
+									"Home location not set: no GPS fix.",
+									Toast.LENGTH_SHORT).show();
+						}
+					}
+				}, 5000);
+				
+			}
+		});
         
         // Set text boxes to previous values
         SharedPreferences prefs = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
         connectAddress.setText(prefs.getString(KEY_BT_ADDR, connectAddress.getText().toString()));
         masterAddress.setText(prefs.getString(KEY_MASTER_URI, masterAddress.getText().toString()));
+        failsafeAddress.setText(prefs.getString(KEY_FAILSAFE_ADDR, failsafeAddress.getText().toString()));
     }
     
     @Override
