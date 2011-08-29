@@ -4,13 +4,12 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
-import gov.nasa.worldwind.render.Material;
 import gov.nasa.worldwind.render.markers.Marker;
 import java.awt.Color;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Random;
 
 /**
@@ -36,7 +35,7 @@ public class ProxyManager {
 
     public BoatSimpleProxy getRandomProxy() {
 
-        if (instance.boatProxies.size() == 0) {
+        if (instance.boatProxies.isEmpty()) {
             return null;
         }
 
@@ -79,7 +78,7 @@ public class ProxyManager {
 
         public ArrayList<Marker> markers = new ArrayList<Marker>();
         ArrayList<BoatSimpleProxy> boatProxies = new ArrayList<BoatSimpleProxy>();
-        Hashtable<URI, BoatSimpleProxy> boatMap = new Hashtable<URI, BoatSimpleProxy>();
+        HashMap<URI, BoatSimpleProxy> boatMap = new HashMap<URI, BoatSimpleProxy>();
         OperatorConsole console = null;
 
         public Singleton() {
