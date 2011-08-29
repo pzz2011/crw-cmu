@@ -101,7 +101,10 @@ public class ConnectionDialog extends JDialog {
         // Register to listen to text change events
         _rosCoreField.getDocument().addDocumentListener(_docListener);
         _rosCoreField.addActionListener(_actionListener);
-        _scheduler.scheduleWithFixedDelay(new AddressChecker(), 0, 2, TimeUnit.SECONDS);        
+        _scheduler.scheduleWithFixedDelay(new AddressChecker(), 0, 2, TimeUnit.SECONDS);
+
+        // Show the dialog box
+        setVisible(true);
     }
     
     final PropertyChangeListener _propListener = new PropertyChangeListener() {
@@ -147,7 +150,8 @@ public class ConnectionDialog extends JDialog {
 
             // Hide the dialog box
             _rosCoreField.setText(null);
-            setVisible(false);
+            _scheduler.shutdownNow();
+            dispose();
         }
     };
 
@@ -248,17 +252,21 @@ public class ConnectionDialog extends JDialog {
 
         // Start a local ros core
         // (Not a big deal if this fails)
+        RosCore core = null;
         try {
-            RosCore core = RosCore.newPublic(11411);
+            core = RosCore.newPublic(11411);
             NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
             core.awaitStart();
         } catch (RosRuntimeException e) {
             System.err.println("Failed to start ROS core: " + e.getMessage());
         }
-
+        
         // Show the connection dialog
         ConnectionDialog d = new ConnectionDialog(null, true);
-        d.setVisible(true);
         System.out.println(d.getAddress());
+
+        // Terminate the sample RosCore
+        if (core != null)
+            core.shutdown();
     }
 }
