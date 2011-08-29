@@ -124,6 +124,9 @@ public class WaypointPanel extends AbstractAirboatPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void sendButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendButtonActionPerformed
+        if (_vehicle == null)
+            return;
+
         completedBox.setSelected(false);
         _vehicle.startWaypoint(waypoint, null, new WaypointObserver() {
 
@@ -137,6 +140,9 @@ public class WaypointPanel extends AbstractAirboatPanel {
     }//GEN-LAST:event_sendButtonActionPerformed
 
     private void cancelButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cancelButtonActionPerformed
+        if (_vehicle == null)
+            return;
+
         completedBox.setSelected(false);
         _vehicle.stopWaypoint();
     }//GEN-LAST:event_cancelButtonActionPerformed

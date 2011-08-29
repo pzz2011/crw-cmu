@@ -20,8 +20,8 @@
               <EmptySpace max="-2" attributes="0"/>
               <Group type="103" groupAlignment="1" attributes="0">
                   <Component id="pictureLabel" alignment="0" pref="320" max="32767" attributes="0"/>
-                  <Component id="savePictureButton" alignment="0" pref="320" max="32767" attributes="0"/>
-                  <Component id="takePictureButton" alignment="0" pref="320" max="32767" attributes="0"/>
+                  <Component id="stopCaptureButton" alignment="0" pref="320" max="32767" attributes="0"/>
+                  <Component id="startCaptureButton" alignment="0" pref="320" max="32767" attributes="0"/>
               </Group>
               <EmptySpace max="-2" attributes="0"/>
           </Group>
@@ -33,29 +33,29 @@
               <EmptySpace max="-2" attributes="0"/>
               <Component id="pictureLabel" pref="240" max="32767" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
-              <Component id="takePictureButton" min="-2" max="-2" attributes="0"/>
+              <Component id="startCaptureButton" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
-              <Component id="savePictureButton" min="-2" max="-2" attributes="0"/>
+              <Component id="stopCaptureButton" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
   </Layout>
   <SubComponents>
-    <Component class="javax.swing.JButton" name="savePictureButton">
+    <Component class="javax.swing.JButton" name="stopCaptureButton">
       <Properties>
         <Property name="text" type="java.lang.String" value="Stop Capturing"/>
       </Properties>
       <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="savePictureButtonActionPerformed"/>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="stopCaptureButtonActionPerformed"/>
       </Events>
     </Component>
-    <Component class="javax.swing.JButton" name="takePictureButton">
+    <Component class="javax.swing.JButton" name="startCaptureButton">
       <Properties>
         <Property name="text" type="java.lang.String" value="Start Capturing"/>
       </Properties>
       <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="takePictureButtonActionPerformed"/>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="startCaptureButtonActionPerformed"/>
       </Events>
     </Component>
     <Component class="javax.swing.JLabel" name="pictureLabel">
