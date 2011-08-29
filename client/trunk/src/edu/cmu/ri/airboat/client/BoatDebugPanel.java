@@ -183,21 +183,9 @@ public class BoatDebugPanel extends javax.swing.JPanel {
 
     public static void main(String args[]) {
 
-        // Disable DNS lookups
-        CrwSecurityManager.loadIfDNSIsSlow();
-
-        // Create a local loopback server for testing
-        // (Not a big deal if this fails)
-        // Start a local ros core
-        RosCore core = RosCore.newPublic(11411);
-        NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
-        core.awaitStart();
-
-        // Create a simulated boat and run a ROS server around it
+        // Create a simulated boat
         final VehicleServer server = new SimpleBoatSimulator();
-        RosVehicleServer testServer = new RosVehicleServer(core.getUri(), "testVehicle", server);
-        System.out.println("Local dummy server started: " + testServer);
-
+        
         // Start up the debugger GUI
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
