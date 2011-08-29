@@ -64,21 +64,21 @@ public class CameraPanel extends AbstractAirboatPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        savePictureButton = new javax.swing.JButton();
-        takePictureButton = new javax.swing.JButton();
+        stopCaptureButton = new javax.swing.JButton();
+        startCaptureButton = new javax.swing.JButton();
         pictureLabel = new javax.swing.JLabel();
 
-        savePictureButton.setText("Stop Capturing");
-        savePictureButton.addActionListener(new java.awt.event.ActionListener() {
+        stopCaptureButton.setText("Stop Capturing");
+        stopCaptureButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                savePictureButtonActionPerformed(evt);
+                stopCaptureButtonActionPerformed(evt);
             }
         });
 
-        takePictureButton.setText("Start Capturing");
-        takePictureButton.addActionListener(new java.awt.event.ActionListener() {
+        startCaptureButton.setText("Start Capturing");
+        startCaptureButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                takePictureButtonActionPerformed(evt);
+                startCaptureButtonActionPerformed(evt);
             }
         });
 
@@ -93,8 +93,8 @@ public class CameraPanel extends AbstractAirboatPanel {
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(pictureLabel, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 320, Short.MAX_VALUE)
-                    .addComponent(savePictureButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 320, Short.MAX_VALUE)
-                    .addComponent(takePictureButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 320, Short.MAX_VALUE))
+                    .addComponent(stopCaptureButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 320, Short.MAX_VALUE)
+                    .addComponent(startCaptureButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 320, Short.MAX_VALUE))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -103,43 +103,49 @@ public class CameraPanel extends AbstractAirboatPanel {
                 .addContainerGap()
                 .addComponent(pictureLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(takePictureButton)
+                .addComponent(startCaptureButton)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(savePictureButton)
+                .addComponent(stopCaptureButton)
                 .addContainerGap())
         );
     }// </editor-fold>//GEN-END:initComponents
 
-    private void takePictureButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_takePictureButtonActionPerformed
-        
-        takePictureButton.setEnabled(false);
-        takePictureButton.setSelected(true);
+    private void startCaptureButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_startCaptureButtonActionPerformed
+
+        if (_vehicle == null)
+            return;
+
+        startCaptureButton.setEnabled(false);
+        startCaptureButton.setSelected(true);
 
         // TODO: rename this button
         _vehicle.startCamera(10, 0.5, 640, 480, null);
 
-        takePictureButton.setEnabled(true);
-        takePictureButton.setSelected(false);
+        startCaptureButton.setEnabled(true);
+        startCaptureButton.setSelected(false);
         
-    }//GEN-LAST:event_takePictureButtonActionPerformed
+    }//GEN-LAST:event_startCaptureButtonActionPerformed
 
-    private void savePictureButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_savePictureButtonActionPerformed
+    private void stopCaptureButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stopCaptureButtonActionPerformed
 
-        savePictureButton.setEnabled(false);
-        savePictureButton.setSelected(true);
+        if (_vehicle == null)
+            return;
+
+        stopCaptureButton.setEnabled(false);
+        stopCaptureButton.setSelected(true);
 
         // TODO: rename this button
         _vehicle.stopCamera();
 
-        savePictureButton.setEnabled(true);
-        savePictureButton.setSelected(false);
-    }//GEN-LAST:event_savePictureButtonActionPerformed
+        stopCaptureButton.setEnabled(true);
+        stopCaptureButton.setSelected(false);
+    }//GEN-LAST:event_stopCaptureButtonActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel pictureLabel;
-    private javax.swing.JButton savePictureButton;
-    private javax.swing.JButton takePictureButton;
+    private javax.swing.JButton startCaptureButton;
+    private javax.swing.JButton stopCaptureButton;
     // End of variables declaration//GEN-END:variables
 
     @Override

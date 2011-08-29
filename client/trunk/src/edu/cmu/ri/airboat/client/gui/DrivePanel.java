@@ -134,6 +134,9 @@ public class DrivePanel extends AbstractAirboatPanel {
     }//GEN-LAST:event_jRudderStateChanged
 
     private void jAutonomyBoxMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jAutonomyBoxMouseClicked
+        if (_vehicle == null)
+            return;
+
         _vehicle.setAutonomous(jAutonomyBox.isSelected());
     }//GEN-LAST:event_jAutonomyBoxMouseClicked
 
