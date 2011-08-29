@@ -203,7 +203,6 @@ public class BoatDebugPanel extends javax.swing.JPanel {
             public void run() {
                 BoatDebugPanel boatPanel = new BoatDebugPanel();
                 boatPanel.setServer(server);
-                System.out.println("server:" + server);
 
                 JFrame mainFrame = new JFrame();
                 mainFrame.setTitle("Boat Debugging Panel");
