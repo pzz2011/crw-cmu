@@ -48,7 +48,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	/**
 	 * Current navigation controller
 	 */
-	SimpleBoatController _controller = SimpleBoatController.SHOOT_ON_MOVE;
+	SimpleBoatController _controller = SimpleBoatController.POINT_AND_SHOOT;
 	
 	public SimpleBoatSimulator() {
 		final double dt = UPDATE_INTERVAL_MS / 1000.0;
