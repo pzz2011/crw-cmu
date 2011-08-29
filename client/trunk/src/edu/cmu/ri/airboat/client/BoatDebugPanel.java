@@ -12,10 +12,8 @@ import edu.cmu.ri.airboat.client.gui.DrivePanel;
 import edu.cmu.ri.airboat.client.gui.PosePanel;
 import edu.cmu.ri.airboat.client.gui.SimpleWorldPanel;
 import edu.cmu.ri.airboat.client.gui.WaypointPanel;
-import edu.cmu.ri.crw.CrwSecurityManager;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.ros.RosVehicleServer;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import javax.swing.BorderFactory;
@@ -25,9 +23,6 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
-import org.ros.RosCore;
-import org.ros.node.NodeConfiguration;
-import org.ros.node.NodeRunner;
 
 /**
  * Provides a comprehensive interface for directly connecting to and interacting
