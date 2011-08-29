@@ -29,7 +29,7 @@ import org.ros.node.NodeRunner;
  * 
  * @author Prasanna Velagapudi <psigen@gmail.com>
  */
-public class ConnectionDialog extends JDialog implements DocumentListener {
+public class ConnectionDialog extends JDialog {
     public static final String LAST_URI_KEY = "edu.cmu.ri.airboat.client.gui.LastConnection";
     
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -43,7 +43,7 @@ public class ConnectionDialog extends JDialog implements DocumentListener {
 
         // Load the last URI that has been used
         Preferences p = Preferences.userRoot();
-        rosCoreAddress = new JTextField(p.get(LAST_URI_KEY, ""), 30);
+        rosCoreAddress = new JTextField(p.get(LAST_URI_KEY, "http://localhost:11411"), 30);
         
         //Create an array of the text and components to be displayed.
         String message = "Enter the URI of a ROS Master";
@@ -56,25 +56,27 @@ public class ConnectionDialog extends JDialog implements DocumentListener {
                                     null);
 
         // Register to listen to text change events
-        rosCoreAddress.getDocument().addDocumentListener(this);
+        rosCoreAddress.getDocument().addDocumentListener(_docListener);
         scheduler.scheduleWithFixedDelay(new AddressChecker(), 0, 2, TimeUnit.SECONDS);
         
         //Make this dialog display it.
         setContentPane(optionPane);
         pack();
     }
-    
-    public void insertUpdate(DocumentEvent de) {
-        scheduleAddressCheck();
-    }
 
-    public void removeUpdate(DocumentEvent de) {
-        scheduleAddressCheck();
-    }
+    final DocumentListener _docListener = new DocumentListener() {
+        public void insertUpdate(DocumentEvent de) {
+            scheduleAddressCheck();
+        }
 
-    public void changedUpdate(DocumentEvent de) {
-        scheduleAddressCheck();
-    }
+        public void removeUpdate(DocumentEvent de) {
+            scheduleAddressCheck();
+        }
+
+        public void changedUpdate(DocumentEvent de) {
+            scheduleAddressCheck();
+        }
+    };
     
     public enum Condition {
         VALID(Color.GREEN),
