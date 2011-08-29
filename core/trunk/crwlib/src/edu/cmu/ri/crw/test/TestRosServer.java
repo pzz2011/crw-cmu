@@ -27,8 +27,8 @@ public class TestRosServer {
 		core.awaitStart();
 		
 		// Select if we want to use the local ros core or a remote one
-		//URI masterUri = core.getUri();
-		URI masterUri = new URI("http://localhost:11311");
+		URI masterUri = core.getUri();
+		//URI masterUri = new URI("http://localhost:11311");
 		System.out.println("Master URI: " + masterUri);
 		
 		// Create a simulated boat and run a ROS server around it
