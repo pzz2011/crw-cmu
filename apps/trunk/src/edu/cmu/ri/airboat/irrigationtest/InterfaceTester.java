@@ -4,20 +4,15 @@
  */
 package edu.cmu.ri.airboat.irrigationtest;
 
-import edu.cmu.ri.crw.SimpleBoatSimulator;
-import edu.cmu.ri.crw.VehicleImageListener;
 import edu.cmu.ri.crw.VehicleSensorListener;
-import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.VehicleStateListener;
-import edu.cmu.ri.crw.VehicleVelocityListener;
 import edu.cmu.ri.crw.WaypointObserver;
 import edu.cmu.ri.crw.ros.RosVehicleProxy;
-import edu.cmu.ri.crw.ros.RosVehicleServer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -41,7 +36,7 @@ public class InterfaceTester implements IrrigationTestInterface {
     public static double speed = 1.0;
     public static long sleepTime = 1000;
     private Random rand = new Random();
-    Hashtable<Integer, Boat> boats = new Hashtable<Integer, Boat>();
+    HashMap<Integer, Boat> boats = new HashMap<Integer, Boat>();
     ArrayList<IrrigationTestInterfaceListener> listeners = new ArrayList<IrrigationTestInterfaceListener>();
     double[] ul = null;
     double[] lr = null;
@@ -266,7 +261,7 @@ public class InterfaceTester implements IrrigationTestInterface {
                                 _server.setAutonomous(true);
                             }
                             System.out.println("Sending new waypoint to boat: " + waypoint.pose.position.x + " " + waypoint.pose.position.y);
-                            _server.startWaypoint(waypoint, new WaypointObserver() {
+                            _server.startWaypoint(waypoint, null, new WaypointObserver() {
 
                                 public void waypointUpdate(WaypointState state) {
                                     if (state == WaypointState.DONE) {
