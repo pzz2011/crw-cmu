@@ -90,7 +90,7 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("Physical"));
 
-        physicalServer.setText("128.127.128.0");
+        physicalServer.setText("http://192.168.1.131:11411");
 
         jLabel6.setText("Server");
 
@@ -347,7 +347,7 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
         });
 
         colorB.setBackground(new java.awt.Color(0, 0, 0));
-        colorB.setFont(new java.awt.Font("Lucida Grande", 1, 13)); // NOI18N
+        colorB.setFont(new java.awt.Font("Lucida Grande", 1, 13));
         colorB.setText("Color");
         colorB.setOpaque(true);
         colorB.addActionListener(new java.awt.event.ActionListener() {
@@ -484,7 +484,7 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
             // Create a simulated boat and run a ROS server around it
             VehicleServer server = new FastSimpleBoatSimulator();
 
-            RosVehicleServer rosServer = new RosVehicleServer(masterUri, "vehicle", server);
+            RosVehicleServer rosServer = new RosVehicleServer(masterUri, "vehicle_client", server);
 
             // Create a ROS proxy server that accesses the same object
             // RosVehicleProxy proxyServer = new RosVehicleProxy(masterUri, "vehicle_client");
