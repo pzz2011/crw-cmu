@@ -2,6 +2,7 @@ package edu.cmu.ri.airboat.server;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Arrays;
 
 import org.ros.message.crwlib_msgs.UtmPose;
 
@@ -14,6 +15,7 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
+import edu.cmu.ri.crw.QuaternionUtils;
 import edu.cmu.ri.crw.VehicleServer;
 
 /**
@@ -161,7 +163,11 @@ public class AirboatFailsafeService extends Service {
 			// If the connection failed, trigger the failsafe behavior
 			_numFailures++;
 			if (_numFailures > _numAllowedFailures) {
-				Log.i(LOG_TAG, "Failsafe triggered: " + _homePosition);
+				Log.i(LOG_TAG, "Failsafe triggered: [" +
+						_homePosition.pose.position.x + "," +
+						_homePosition.pose.position.y + "," +
+						_homePosition.pose.position.z + "] " +
+						_homePosition.utm.zone + (_homePosition.utm.isNorth ? "North" : "South"));
 				server.startWaypoint(_homePosition, null, null);
 				_numFailures = 0;
 			}
