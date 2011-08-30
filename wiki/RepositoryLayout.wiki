@@ -24,7 +24,7 @@ In the current implementation of the vehicles, communication is done via a seria
 
 == [http://code.google.com/p/crw-cmu/source/browse/#svn%2Fapps%2Ftrunk Apps] ==
 
-!Apps contains sample applications that use the client library to demonstrate operating a fleet of boats in various domains.  These include, examples of pollution monitoring and flood response.
+Apps contains sample applications that use the client library to demonstrate operating a fleet of boats in various domains.  These include, examples of pollution monitoring and flood response.
 
 = Design Sub-Repositories =
 
