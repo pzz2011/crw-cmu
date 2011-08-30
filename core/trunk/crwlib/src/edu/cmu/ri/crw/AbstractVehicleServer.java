@@ -22,10 +22,10 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 
 	protected double[][] _gains = new double[6][3];
 
-	protected Map<Integer, List<VehicleSensorListener>> _sensorListeners = new TreeMap<Integer, List<VehicleSensorListener>>();
-	protected List<VehicleImageListener> _imageListeners = new ArrayList<VehicleImageListener>();
-	protected List<VehicleVelocityListener> _velocityListeners = new ArrayList<VehicleVelocityListener>();
-	protected List<VehicleStateListener> _stateListeners = new ArrayList<VehicleStateListener>();
+	protected final Map<Integer, List<VehicleSensorListener>> _sensorListeners = new TreeMap<Integer, List<VehicleSensorListener>>();
+	protected final List<VehicleImageListener> _imageListeners = new ArrayList<VehicleImageListener>();
+	protected final List<VehicleVelocityListener> _velocityListeners = new ArrayList<VehicleVelocityListener>();
+	protected final List<VehicleStateListener> _stateListeners = new ArrayList<VehicleStateListener>();
 	
 	public double[] getGains(int axis) {
 		if (axis < 0 || axis >= _gains.length) 

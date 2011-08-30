@@ -1,6 +1,7 @@
 package edu.cmu.ri.crw.ros;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -32,10 +33,11 @@ import org.ros.node.NodeRunner;
 import org.ros.node.service.ServiceClient;
 import org.ros.node.service.ServiceResponseListener;
 import org.ros.node.topic.Publisher;
+import org.ros.node.topic.Subscriber;
 import org.ros.service.crwlib_msgs.CaptureImage;
 import org.ros.service.crwlib_msgs.GetCameraStatus;
-import org.ros.service.crwlib_msgs.GetNumSensors;
 import org.ros.service.crwlib_msgs.GetGains;
+import org.ros.service.crwlib_msgs.GetNumSensors;
 import org.ros.service.crwlib_msgs.GetSensorType;
 import org.ros.service.crwlib_msgs.GetState;
 import org.ros.service.crwlib_msgs.GetVelocity;
@@ -50,6 +52,10 @@ import org.ros.service.crwlib_msgs.SetState;
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.ImagingObserver;
+import edu.cmu.ri.crw.VehicleImageListener;
+import edu.cmu.ri.crw.VehicleSensorListener;
+import edu.cmu.ri.crw.VehicleStateListener;
+import edu.cmu.ri.crw.VehicleVelocityListener;
 import edu.cmu.ri.crw.WaypointObserver;
 
 /**
@@ -81,6 +87,11 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	
 	protected RosVehicleNavigation.Client _navClient; 
 	protected RosVehicleImaging.Client _imgClient;
+	
+	protected Subscriber<UtmPoseWithCovarianceStamped> _stateSubscriber;
+	protected Subscriber<CompressedImage> _imageSubscriber;
+	protected Map<Integer, Subscriber<SensorData>> _sensorSubscriber;
+	protected Subscriber<TwistWithCovarianceStamped> _velocitySubscriber;
 	
 	protected Publisher<Twist> _velocityPublisher;
 	
@@ -161,50 +172,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 			logger.severe("Unable to start image action client: " + ex);
 			return false;
 		}
-
-		// Register subscriber for state
-		_node.newSubscriber("state", "crwlib_msgs/UtmPoseWithCovarianceStamped", 
-				new MessageListener<UtmPoseWithCovarianceStamped>() {
-
-			@Override
-			public void onNewMessage(UtmPoseWithCovarianceStamped pose) {
-				sendState(pose);
-			}
-		});
-		
-		// Register subscriber for imaging
-		_node.newSubscriber("image/compressed", "sensor_msgs/CompressedImage", 
-				new MessageListener<CompressedImage>() {
-
-			@Override
-			public void onNewMessage(CompressedImage image) {
-				sendImage(image);
-			}
-		});
-		
-		// Register subscriber for velocity
-		_node.newSubscriber("velocity", "geometry_msgs/TwistWithCovarianceStamped", 
-				new MessageListener<TwistWithCovarianceStamped>() {
-
-			@Override
-			public void onNewMessage(TwistWithCovarianceStamped velocity) {
-				sendVelocity(velocity);
-			}
-		});
-		
-		// Register subscriber for sensor
-		_node.newSubscriber("sensor0", "crwlib_msgs/SensorData", 
-				new MessageListener<SensorData>() {
-
-			@Override
-			public void onNewMessage(SensorData sensor) {
-				if(sensor==null){
-					logger.info("Die!");
-					return;}
-				sendSensor(0, sensor);
-			}
-		});
-		
+				
 		// Register publisher for one-way setters
 		_velocityPublisher = _node.newPublisher("cmd_vel", "geometry_msgs/Twist");
 		
@@ -520,9 +488,7 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 		request.pose = state;
 
 		safeCall(_setStateClient, request);
-	}
-
-	
+	}	
 
 	@Override
 	public void startCamera(long numFrames, double interval, int width,
@@ -578,5 +544,141 @@ public class RosVehicleProxy extends AbstractVehicleServer {
 	public void setVelocity(Twist velocity) {
 		if (_velocityPublisher.hasSubscribers())
 			_velocityPublisher.publish(velocity);
+	}
+
+	@Override
+	public void addImageListener(VehicleImageListener l) {
+		synchronized(_imageListeners) {
+			// If we didn't have listeners before, register subscriber for state 
+			if (_imageListeners.isEmpty() || _imageSubscriber == null) {
+				_imageSubscriber = _node.newSubscriber("image/compressed", "sensor_msgs/CompressedImage",
+						new MessageListener<CompressedImage>() {
+							@Override
+							public void onNewMessage(CompressedImage image) {
+								sendImage(image);
+							}
+						});
+			}
+			
+			// Register new listener
+			super.addImageListener(l);
+		}
+	}
+
+	@Override
+	public void addSensorListener(final int channel, VehicleSensorListener l) {
+		synchronized(_sensorListeners) {
+			// If we didn't have listeners before, register subscriber for sensor
+			if (!_sensorListeners.containsKey(channel)
+					|| !_sensorSubscriber.containsKey(channel)) {
+				_sensorSubscriber.put(channel, _node.newSubscriber(
+						"sensor" + channel, "crwlib_msgs/SensorData",
+						new MessageListener<SensorData>() {
+							@Override
+							public void onNewMessage(SensorData sensor) {
+								sendSensor(channel, sensor);
+							}
+						}));
+			}
+			
+			// Register new listener
+			super.addSensorListener(channel, l);	
+		}
+	}
+
+	@Override
+	public void addStateListener(VehicleStateListener l) {
+		synchronized(_stateListeners) {
+			// If we didn't have listeners before, register subscriber for state 
+			if (_stateListeners.isEmpty() || _stateSubscriber == null) {
+				_stateSubscriber = _node.newSubscriber("state", "crwlib_msgs/UtmPoseWithCovarianceStamped",
+						new MessageListener<UtmPoseWithCovarianceStamped>() {
+							@Override
+							public void onNewMessage(UtmPoseWithCovarianceStamped pose) {
+								sendState(pose);
+							}
+						});
+			}
+			
+			// Register new listener
+			super.addStateListener(l);
+		}
+	}
+
+	@Override
+	public void addVelocityListener(VehicleVelocityListener l) {
+		synchronized(_velocityListeners) {
+			// If we didn't have listeners before, register subscriber for state 
+			if (_velocityListeners.isEmpty() || _velocitySubscriber == null) {
+				_velocitySubscriber = _node.newSubscriber("velocity", "geometry_msgs/TwistWithCovarianceStamped", 
+						new MessageListener<TwistWithCovarianceStamped>() {
+							@Override
+							public void onNewMessage(
+									TwistWithCovarianceStamped velocity) {
+								sendVelocity(velocity);
+							}
+						});
+	
+			}
+			
+			// Register new listener
+			super.addVelocityListener(l);
+		}
+	}
+
+	@Override
+	public void removeImageListener(VehicleImageListener l) {
+		synchronized(_imageListeners) {
+			// Unregister this listener
+			super.removeImageListener(l);
+			
+			// If we don't have listeners anymore, unregister subscriber 
+			if (_imageListeners.isEmpty() && _imageSubscriber != null) {
+				_imageSubscriber.shutdown();
+				_imageSubscriber = null;
+			}
+		}
+	}
+
+	@Override
+	public void removeSensorListener(int channel, VehicleSensorListener l) {
+		synchronized(_sensorListeners) {
+			// Unregister this listener
+			super.removeSensorListener(channel, l);
+			
+			// If we don't have listeners anymore, unregister subscriber 
+			if (!_sensorListeners.containsKey(channel) && _sensorSubscriber.containsKey(channel)) {
+				_sensorSubscriber.get(channel).shutdown();
+				_sensorSubscriber.remove(channel);
+			}
+		}
+	}
+
+	@Override
+	public void removeStateListener(VehicleStateListener l) {
+		synchronized(_stateListeners) {
+			// Unregister this listener
+			super.removeStateListener(l);
+			
+			// If we don't have listeners anymore, unregister subscriber 
+			if (_stateListeners.isEmpty() && _stateSubscriber != null) {
+				_stateSubscriber.shutdown();
+				_stateSubscriber = null;
+			}
+		}
+	}
+
+	@Override
+	public void removeVelocityListener(VehicleVelocityListener l) {
+		synchronized(_velocityListeners) {
+			// Unregister this listener
+			super.removeVelocityListener(l);
+			
+			// If we don't have listeners anymore, unregister subscriber 
+			if (_velocityListeners.isEmpty() && _velocitySubscriber != null) {
+				_velocitySubscriber.shutdown();
+				_velocitySubscriber = null;
+			}
+		}
 	}
 }
