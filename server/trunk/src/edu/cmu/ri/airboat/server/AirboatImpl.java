@@ -588,7 +588,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 				AirboatController vehicleController;
 				try {
 					vehicleController = AirboatController.valueOf(controller);
-				} catch(IllegalArgumentException e) {
+				} catch(Exception e) {
 					vehicleController = DEFAULT_CONTROLLER;
 				}
 				
