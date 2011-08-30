@@ -38,11 +38,9 @@ import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
-import android.widget.CompoundButton.OnCheckedChangeListener;
 import at.abraxas.amarino.AmarinoIntent;
 import edu.cmu.ri.airboat.server.AirboatFailsafeService.AirboatFailsafeIntent;
 
@@ -230,11 +228,15 @@ public class AirboatActivity extends Activity {
 		
         // Register handler for server toggle button
         final ToggleButton connectToggle = (ToggleButton)findViewById(R.id.ConnectToggle);
-        connectToggle.setChecked(AirboatService.isRunning); // Hack to determine initial service state
-        connectToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+        connectToggle.setOnClickListener(new OnClickListener() {
         	
-    		public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-    			Intent intent = new Intent(AirboatActivity.this, AirboatService.class);
+			@Override
+			public void onClick(View v) {
+				// Don't allow re-clicking until the service status updates
+				connectToggle.setEnabled(false);
+				
+				// Create an intent to properly start the vehicle server
+				Intent intent = new Intent(AirboatActivity.this, AirboatService.class);
     			intent.putExtra(AirboatService.BD_ADDR, connectAddress.getText().toString());
     			intent.putExtra(AirboatService.ROS_MASTER_URI, masterAddress.getText().toString());
     			
@@ -245,14 +247,15 @@ public class AirboatActivity extends Activity {
 				prefsPrivateEditor.putString(KEY_MASTER_URI, masterAddress.getText().toString());
 				prefsPrivateEditor.commit();
     			
-    			if (isChecked) {
+				// Depending on whether the service is running, start or stop
+    			if (!connectToggle.isChecked()) {
     				Log.i(logTag, "Starting background service.");
     				startService(intent);
     			} else {
     				Log.i(logTag, "Stopping background service.");
     				stopService(intent);
     			}
-    		}
+			}
     	});
         
         // Periodically update status of toggle button
@@ -261,9 +264,10 @@ public class AirboatActivity extends Activity {
 			@Override
 			public void run() {
 				connectToggle.setChecked(AirboatService.isRunning);
+				connectToggle.setEnabled(true);
 				handler.postDelayed(this, 300);
 			}
-		}, 300);
+		}, 0);
         
         // Register handler for debug button
         final Button debugButton = (Button)findViewById(R.id.DebugButton);
@@ -349,10 +353,14 @@ public class AirboatActivity extends Activity {
 		
 		// Register handler for failsafe toggle button
         final ToggleButton failsafeToggle = (ToggleButton)findViewById(R.id.FailsafeToggle);
-        failsafeToggle.setChecked(AirboatFailsafeService.isRunning); // Hack to determine initial service state
-        failsafeToggle.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+        failsafeToggle.setOnClickListener(new OnClickListener() {
         	
-    		public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+			@Override
+			public void onClick(View v) {
+				// Don't allow re-clicking until the service status updates
+				failsafeToggle.setEnabled(false);
+				
+				// Create an intent to properly start the vehicle server
     			Intent intent = new Intent(AirboatActivity.this, AirboatFailsafeService.class);
     			intent.putExtra(AirboatFailsafeIntent.HOSTNAME, failsafeAddress.getText().toString());
     			intent.putExtra(AirboatFailsafeIntent.HOME_POSE, new double[] {
@@ -368,7 +376,7 @@ public class AirboatActivity extends Activity {
 				prefsPrivateEditor.putString(KEY_FAILSAFE_ADDR, failsafeAddress.getText().toString());
 				prefsPrivateEditor.commit();
     			
-    			if (isChecked) {
+    			if (!failsafeToggle.isChecked()) {
     				Log.i(logTag, "Starting failsafe service.");
     				startService(intent);
     			} else {
@@ -382,10 +390,11 @@ public class AirboatActivity extends Activity {
         handler.postDelayed(new Runnable() {
 			@Override
 			public void run() {
-				connectToggle.setChecked(AirboatFailsafeService.isRunning);
+				failsafeToggle.setChecked(AirboatFailsafeService.isRunning);
+				failsafeToggle.setEnabled(true);
 				handler.postDelayed(this, 300);
 			}
-		}, 300);
+		}, 0);
         
         // Register handler for homing button
         final Button homeButton = (Button)findViewById(R.id.HomeButton);

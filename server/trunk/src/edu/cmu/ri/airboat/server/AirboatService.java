@@ -39,7 +39,6 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
@@ -294,7 +293,7 @@ public class AirboatService extends Service {
 		formatter.setPattern("%r %d %m %T");
 		
 		// Set up and register data logger to a date-stamped file
-		String logFilename = Environment.getExternalStorageDirectory() + "/" + defaultLogFilename();
+		String logFilename = defaultLogFilename();
 		_fileAppender = new FileAppender();
 		_fileAppender.setFileName(logFilename);
 		_fileAppender.setAppend(true);
@@ -409,11 +408,15 @@ public class AirboatService extends Service {
 				if (_airboatImpl != null) {
 					velGains = _airboatImpl.getGains(0);
 					logger.info("PIDGAINS: " + "0 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
+				} else{
+					_timer.cancel();
 				}
 				
 				if (_airboatImpl != null) {
 					velGains = _airboatImpl.getGains(5);
 					logger.info("PIDGAINS: " + "5 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
+				} else {
+					_timer.cancel();
 				}
 			}
 		}).start();
