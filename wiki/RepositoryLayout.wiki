@@ -22,9 +22,9 @@ The vehicle interfaces with all low-level devices (serial, analog, and general p
 
 In the current implementation of the vehicles, communication is done via a serial Bluetooth link.  This project contains Arduino code that updates the firmware on a connected Bluetooth serial module, configuring it with the necessary settings to connect transparently to applications on the Android phone.
 
-== [http://code.google.com/p/crw-cmu/source/browse/#svn%2Fgulfsim%2Ftrunk GulfSim] ==
+== [http://code.google.com/p/crw-cmu/source/browse/#svn%2Fapps%2Ftrunk Apps] ==
 
-!GulfSim is a sample application that uses the client library to demonstrate operating a fleet of boats in a pollution monitoring environment.
+!Apps contains sample applications that use the client library to demonstrate operating a fleet of boats in various domains.  These include, examples of pollution monitoring and flood response.
 
 = Design Sub-Repositories =
 
