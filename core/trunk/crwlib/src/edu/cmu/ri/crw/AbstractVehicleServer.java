@@ -5,6 +5,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import javax.imageio.ImageIO;
 
@@ -20,7 +22,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 
 	protected double[][] _gains = new double[6][3];
 
-	protected List<VehicleSensorListener> _sensorListeners = new ArrayList<VehicleSensorListener>();
+	protected Map<Integer, List<VehicleSensorListener>> _sensorListeners = new TreeMap<Integer, List<VehicleSensorListener>>();
 	protected List<VehicleImageListener> _imageListeners = new ArrayList<VehicleImageListener>();
 	protected List<VehicleVelocityListener> _velocityListeners = new ArrayList<VehicleVelocityListener>();
 	protected List<VehicleStateListener> _stateListeners = new ArrayList<VehicleStateListener>();
@@ -107,17 +109,39 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 	}
 
 	public void addSensorListener(int channel, VehicleSensorListener l) {
-		// TODO: add support for separate channels
-		_sensorListeners.add(l);
+		
+		// If there were no previous listeners for the channel, create a list
+		if (!_sensorListeners.containsKey(channel)) {
+			_sensorListeners.put(channel, new ArrayList<VehicleSensorListener>());
+		}
+		
+		// Add the listener to the appropriate list
+		_sensorListeners.get(channel).add(l);
 	}
 
 	public void removeSensorListener(int channel, VehicleSensorListener l) {
-		// TODO: add support for separate channels
-		_sensorListeners.remove(l);
+		
+		// If there is no list of listeners, there is nothing to remove
+		if (!_sensorListeners.containsKey(channel))
+			return;
+		
+		// Remove the listener from the appropriate list
+		_sensorListeners.get(channel).remove(l);
+		
+		// If there are no more listeners for the channel, delete the list
+		if (_sensorListeners.get(channel).isEmpty()) {
+			_sensorListeners.remove(channel);
+		}
 	}
 
 	protected void sendSensor(int channel, SensorData reading) {
-		for (VehicleSensorListener l : _sensorListeners) {
+		
+		// If there is no list of listeners, there is nothing to notify
+		if (!_sensorListeners.containsKey(channel))
+			return;
+		
+		// Notify each listener in the appropriate list
+		for (VehicleSensorListener l : _sensorListeners.get(channel)) {
 			l.receivedSensor(reading);
 		}
 	}
