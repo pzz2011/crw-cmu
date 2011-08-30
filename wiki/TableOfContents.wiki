@@ -1,6 +1,6 @@
 #summary Navigation sidebar.
 
-  * [http://code.google.com/p/crw-cmu/wiki/Home?tm=6 Return to home]
+  * [http://code.google.com/p/crw-cmu/wiki/Home?tm=6 Home]
 
 *How the boats work:*
 
