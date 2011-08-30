@@ -4,6 +4,7 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.crw.CrwSecurityManager;
 import gov.nasa.worldwind.BasicModel;
 import gov.nasa.worldwind.Configuration;
 import gov.nasa.worldwind.WorldWind;
@@ -32,6 +33,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
+import org.ros.RosCore;
+import org.ros.node.NodeConfiguration;
+import org.ros.node.NodeRunner;
 
 /**
  *
@@ -55,6 +59,17 @@ public class OperatorConsole {
     public OperatorConsole() {
 
         System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Airboat Control");
+
+        // Cut and paste from BoatDebugger, not sure I understand why they are here.
+        
+        // CrwSecurityManager.loadIfDNSIsSlow();        
+        /*
+        RosCore core = RosCore.newPublic(11411);
+        NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
+        core.awaitStart();
+         * 
+         */
+        // End Cut and paste from BoatDebugger
 
         java.awt.EventQueue.invokeLater(new Runnable() {
 

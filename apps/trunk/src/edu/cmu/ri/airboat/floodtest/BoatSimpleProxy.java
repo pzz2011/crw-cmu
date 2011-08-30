@@ -142,7 +142,7 @@ public class BoatSimpleProxy extends Thread {
                 _pose.pose = upwcs.pose.pose.pose.clone();
                 _pose.utm = upwcs.utm.clone();
 
-                // System.out.println("Pose: [" + _pose.pose.position.x + ", " + _pose.pose.position.y + "], zone = " + _pose.utm.zone);
+                System.out.println("Pose: [" + _pose.pose.position.x + ", " + _pose.pose.position.y + "], zone = " + _pose.utm.zone);
 
                 try {
 
@@ -152,21 +152,13 @@ public class BoatSimpleProxy extends Thread {
                     String wwHemi = (_pose.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
 
                     // Fill in UTM data structure
-                    // System.out.println("Converting from " + longZone + " " + wwHemi + " " + _pose.pose.position.x + " " + _pose.pose.position.y);
+                    System.out.println("Converting from " + longZone + " " + wwHemi + " " + _pose.pose.position.x + " " + _pose.pose.position.y);
                     UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, _pose.pose.position.x, _pose.pose.position.y);
 
                     // UTMCoord boatPos = UTMCoord.fromLatLon(Angle.fromDegrees(14.22), Angle.fromDegrees(121.32));
                     // System.out.println("Boatpos: " + boatPos.getHemisphere() + " " + boatPos.getZone() + " " + boatPos.getLatitude() + " " + boatPos.getLongitude());
 
                     LatLon latlon = new LatLon(boatPos.getLatitude(), boatPos.getLongitude());
-
-                    /*
-                    // Convert yaw (0 at +x, CCW) to heading (0 at +y, CW)
-                    
-                    _worldPanel.boat.setHeading(Angle.fromRadians(Math.PI / 2.0
-                    - QuaternionUtils.toYaw(location.pose.orientation)));
-                     * 
-                     */
 
                     Position p = new Position(latlon, 0.0);
 
@@ -178,7 +170,7 @@ public class BoatSimpleProxy extends Thread {
                     marker.setHeading(Angle.fromRadians(Math.PI / 2.0 - QuaternionUtils.toYaw(_pose.pose.orientation)));
 
                 } catch (Exception e) {
-                    System.err.println("Invalid pose received: " + e);
+                    System.err.println("BoatSimpleProxy: Invalid pose received: " + e);
                 }
 
 
