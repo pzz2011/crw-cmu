@@ -60,17 +60,6 @@ public class OperatorConsole {
 
         System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Airboat Control");
 
-        // Cut and paste from BoatDebugger, not sure I understand why they are here.
-        
-        CrwSecurityManager.loadIfDNSIsSlow();        
-        /*
-        RosCore core = RosCore.newPublic(11411);
-        NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
-        core.awaitStart();
-         * 
-         */
-        // End Cut and paste from BoatDebugger
-
         java.awt.EventQueue.invokeLater(new Runnable() {
 
             public void run() {
@@ -147,13 +136,15 @@ public class OperatorConsole {
             wwd.getModel().getLayers().add(polyLayer);
             wwd.redraw();
 
-            String TEST_PATTERN = "/Users/pscerri/Desktop/1.jpg";
+            /*
+            String TEST_PATTERN = "/Users/pscerri/Documents/Code/crw-cmu/Laguna.png";
             SurfaceImage si2 = new SurfaceImage(TEST_PATTERN, new ArrayList<LatLon>(Arrays.asList(
-                    LatLon.fromDegrees(14.8677, 121.1668),
-                    LatLon.fromDegrees(14.8677, 120.8332),
-                    LatLon.fromDegrees(15.1321, 120.8326),
-                    LatLon.fromDegrees(15.1321, 121.1674))));
+            LatLon.fromDegrees(14.8677, 121.1668),
+            LatLon.fromDegrees(14.8677, 120.8332),
+            LatLon.fromDegrees(15.1321, 120.8326),
+            LatLon.fromDegrees(15.1321, 121.1674))));
             polyLayer.addRenderable(si2);
+             */
 
             // Example selection code
             wwd.addSelectListener(new SelectListener() {
@@ -170,9 +161,12 @@ public class OperatorConsole {
 
                                 if (po.getObject() instanceof BoatMarker) {
                                     System.out.println("Got boat marker: " + ((BoatMarker) po.getObject()).getProxy().toString());
+                                    setSelected(((BoatMarker) po.getObject()).getProxy());
+                                }
+                                /*
                                     boatPanel.setProxy(((BoatMarker) po.getObject()).getProxy());
                                     selectedProxy = ((BoatMarker) po.getObject()).getProxy();
-                                } /*else if (po.getObject() instanceof TaskMarker) {
+                                } else if (po.getObject() instanceof TaskMarker) {
                                 System.out.println("Got task marker, any action commented out");
                                 // taskPanel.setCurrTOP(((TaskMarker) po.getObject()).getTOP());
                                 } */
@@ -251,10 +245,8 @@ public class OperatorConsole {
                             }
 
                             if (shapeParams.size() == 1) {
-
-                                ellipsoid = new Ellipsoid(pickPos, 50, 150, 150);
-                                polyLayer.addRenderable(ellipsoid);
-
+                                // ellipsoid = new Ellipsoid(pickPos, 50, 150, 150);
+                                // polyLayer.addRenderable(ellipsoid);
                             } else if (shapeParams.size() > 1) {
 
                                 pLine = new Polyline(shapeParams);
@@ -291,10 +283,8 @@ public class OperatorConsole {
                             }
 
                             if (shapeParams.size() == 1) {
-
-                                ellipsoid = new Ellipsoid(pickPos, 50, 150, 150);
-                                polyLayer.addRenderable(ellipsoid);
-
+                                // ellipsoid = new Ellipsoid(pickPos, 50, 150, 150);
+                                // polyLayer.addRenderable(ellipsoid);
                             } else if (shapeParams.size() > 1) {
 
                                 pLine = new Polyline(shapeParams);
@@ -356,6 +346,11 @@ public class OperatorConsole {
         }
     }
 
+    public void setSelected(BoatSimpleProxy proxy) {
+        boatPanel.setProxy(proxy);
+        selectedProxy = proxy;
+    }
+
     public static void addRenderable(Renderable r) {
         polyLayer.addRenderable(r);
     }
@@ -370,11 +365,17 @@ public class OperatorConsole {
 
     public static void main(String[] args) {
 
+        // Cut and paste from BoatDebugger, not sure I understand why they are here.
+
+        CrwSecurityManager.loadIfDNSIsSlow();
+
+        // End Cut and paste from BoatDebugger
 
         ConfigureBoatsFrame config = new ConfigureBoatsFrame();
         config.setVisible(true);
 
         OperatorConsole oc = new OperatorConsole();
+        (new ProxyManager()).setConsole(oc);
 
         /*
         public static void main(String args[]) throws Exception {

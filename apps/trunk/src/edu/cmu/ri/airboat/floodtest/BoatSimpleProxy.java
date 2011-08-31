@@ -104,6 +104,12 @@ public class BoatSimpleProxy extends Thread {
         _server = new RosVehicleProxy(masterURI, nodeName);
 
 
+        try {
+            System.out.println("SLEEPING BEFORE CAMERA START");
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {}
+        System.out.println("DONE SLEEPING BEFORE CAMERA START");
+        
         _server.startCamera(0, 1.0, 640, 480, new ImagingObserver() {
 
             @Override
