@@ -91,8 +91,13 @@ public class ProxyManager {
                 BoatSimpleProxy proxy = new BoatSimpleProxy(name, markers, color, 1, uri, "vehicle_client" + (int) (new Random().nextInt(1000000)));               
                 boatProxies.add(proxy);
                 boatMap.put(uri, proxy);
+                
+                if (console != null) {
+                    console.setSelected(proxy);
+                }
             } catch (Exception e) {
                 System.out.println("Creating proxy failed: " + e);
+                e.printStackTrace();
             }
         }
 

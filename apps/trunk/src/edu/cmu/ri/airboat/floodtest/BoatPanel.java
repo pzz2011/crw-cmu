@@ -10,11 +10,12 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.airboat.client.BoatDebugPanel;
 import edu.cmu.ri.airboat.client.BoatDebugger;
 import edu.cmu.ri.airboat.client.gui.TeleopFrame;
 import gov.nasa.worldwind.geom.Position;
-import java.awt.Color;
 import java.awt.Insets;
+import javax.swing.JFrame;
 import javax.swing.border.MatteBorder;
 
 /**
@@ -24,9 +25,8 @@ import javax.swing.border.MatteBorder;
 public class BoatPanel extends javax.swing.JPanel {
 
     BoatSimpleProxy proxy = null;
-   
     edu.cmu.ri.airboat.client.gui.TeleopFrame teleOpFrame = null;
-    edu.cmu.ri.airboat.client.BoatDebugger debugFrame = null;
+    JFrame debugFrame = null;
 
     /** Creates new form BoatPanel */
     public BoatPanel() {
@@ -53,7 +53,6 @@ public class BoatPanel extends javax.swing.JPanel {
     }
 
     private void update() {
-                
     }
 
     public void setProxy(BoatSimpleProxy proxy) {
@@ -68,12 +67,12 @@ public class BoatPanel extends javax.swing.JPanel {
             assignPathB.setEnabled(true);
             cancelB.setEnabled(true);
             debuggerB.setEnabled(true);
-           
+
             setBorder(new MatteBorder(new Insets(5, 5, 5, 5), proxy.getColor()));
-            
-            
+
+
             update();
-            
+
         } else {
             addressF.setText("None");
             teleopB.setEnabled(false);
@@ -239,7 +238,7 @@ public class BoatPanel extends javax.swing.JPanel {
     }//GEN-LAST:event_addressFActionPerformed
 
     private void teleopBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_teleopBActionPerformed
-        
+
         if (teleOpFrame != null && teleOpFrame.isVisible()) {
         } else {
             teleOpFrame = new TeleopFrame(proxy.getVehicleServer());
@@ -252,9 +251,19 @@ public class BoatPanel extends javax.swing.JPanel {
     private void debuggerBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_debuggerBActionPerformed
         if (debugFrame != null && debugFrame.isVisible()) {
         } else {
-            debugFrame = new BoatDebugger();
-            debugFrame.setVisible(true);
-            System.out.println("Created debug frame");
+            BoatDebugPanel boatPanel = new BoatDebugPanel();
+            boatPanel.setServer(proxy.getVehicleServer());
+
+            JFrame mainFrame = new JFrame();
+            mainFrame.setTitle("Boat Debugging Panel");
+            mainFrame.getContentPane().add(boatPanel);
+            mainFrame.setLocation(100, 100);
+            mainFrame.pack();
+            mainFrame.setVisible(true);
+            mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+            debugFrame = mainFrame;
+
         }
     }//GEN-LAST:event_debuggerBActionPerformed
 
@@ -262,7 +271,7 @@ public class BoatPanel extends javax.swing.JPanel {
 
         // @todo Find a more elegant way of doing this
         OperatorConsole.assigningArea = true;
-        
+
     }//GEN-LAST:event_assignAreaBActionPerformed
 
     private void cancelBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cancelBActionPerformed
@@ -270,17 +279,16 @@ public class BoatPanel extends javax.swing.JPanel {
     }//GEN-LAST:event_cancelBActionPerformed
 
     private void assignPathBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_assignPathBActionPerformed
-        
+
         // @todo Find a more elegant way of doing this
         OperatorConsole.assigningPath = true;
-        
+
     }//GEN-LAST:event_assignPathBActionPerformed
 
     private void noteWriteBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_noteWriteBActionPerformed
-        System.out.println("Note: " + (proxy == null? "" : proxy) + " " + noteTF.getText());
-        noteTF.setText("");        
+        System.out.println("Note: " + (proxy == null ? "" : proxy) + " " + noteTF.getText());
+        noteTF.setText("");
     }//GEN-LAST:event_noteWriteBActionPerformed
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextField addressF;
     private javax.swing.JButton assignAreaB;
