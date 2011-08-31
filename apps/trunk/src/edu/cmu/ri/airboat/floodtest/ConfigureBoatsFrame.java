@@ -90,7 +90,7 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
         jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder("Physical"));
 
-        physicalServer.setText("http://192.168.1.131:11411");
+        physicalServer.setText("http://192.168.11.63:11411");
 
         jLabel6.setText("Server");
 

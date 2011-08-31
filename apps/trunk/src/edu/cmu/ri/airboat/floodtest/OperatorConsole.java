@@ -62,7 +62,7 @@ public class OperatorConsole {
 
         // Cut and paste from BoatDebugger, not sure I understand why they are here.
         
-        // CrwSecurityManager.loadIfDNSIsSlow();        
+        CrwSecurityManager.loadIfDNSIsSlow();        
         /*
         RosCore core = RosCore.newPublic(11411);
         NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
