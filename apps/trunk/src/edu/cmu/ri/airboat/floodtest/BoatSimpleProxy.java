@@ -115,12 +115,15 @@ public class BoatSimpleProxy extends Thread {
             }
         });
 
+        System.out.println("Starting image listener");
+            
         _server.addImageListener(new VehicleImageListener() {
-
+            
             public void receivedImage(CompressedImage ci) {
                 // Take a picture, and put the resulting image into the panel
                 try {
                     BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(ci.data));
+                    System.out.println("Got image ... ");
                     if (image != null) {
                         ImagePanel.addImage(image);
                     } else {
@@ -142,7 +145,7 @@ public class BoatSimpleProxy extends Thread {
                 _pose.pose = upwcs.pose.pose.pose.clone();
                 _pose.utm = upwcs.utm.clone();
 
-                System.out.println("Pose: [" + _pose.pose.position.x + ", " + _pose.pose.position.y + "], zone = " + _pose.utm.zone);
+                // System.out.println("Pose: [" + _pose.pose.position.x + ", " + _pose.pose.position.y + "], zone = " + _pose.utm.zone);
 
                 try {
 
@@ -152,7 +155,7 @@ public class BoatSimpleProxy extends Thread {
                     String wwHemi = (_pose.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
 
                     // Fill in UTM data structure
-                    System.out.println("Converting from " + longZone + " " + wwHemi + " " + _pose.pose.position.x + " " + _pose.pose.position.y);
+                    // System.out.println("Converting from " + longZone + " " + wwHemi + " " + _pose.pose.position.x + " " + _pose.pose.position.y);
                     UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, _pose.pose.position.x, _pose.pose.position.y);
 
                     // UTMCoord boatPos = UTMCoord.fromLatLon(Angle.fromDegrees(14.22), Angle.fromDegrees(121.32));
@@ -170,7 +173,7 @@ public class BoatSimpleProxy extends Thread {
                     marker.setHeading(Angle.fromRadians(Math.PI / 2.0 - QuaternionUtils.toYaw(_pose.pose.orientation)));
 
                 } catch (Exception e) {
-                    System.err.println("BoatSimpleProxy: Invalid pose received: " + e);
+                    System.err.println("BoatSimpleProxy: Invalid pose received: " + e + " Pose: [" + _pose.pose.position.x + ", " + _pose.pose.position.y + "], zone = " + _pose.utm.zone);
                 }
 
 
@@ -294,6 +297,10 @@ public class BoatSimpleProxy extends Thread {
             return;
         }
 
+        if (!_server.isAutonomous()) {
+            _server.setAutonomous(true);
+        }
+        
         currentWaypoint = wputm;
         _server.startWaypoint(wputm, null, new WaypointObserver() {
 
