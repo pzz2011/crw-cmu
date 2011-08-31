@@ -484,7 +484,7 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
             // Create a simulated boat and run a ROS server around it
             VehicleServer server = new FastSimpleBoatSimulator();
 
-            RosVehicleServer rosServer = new RosVehicleServer(masterUri, "vehicle_client", server);
+            RosVehicleServer rosServer = new RosVehicleServer(masterUri, "vehicle", server);
 
             // Create a ROS proxy server that accesses the same object
             // RosVehicleProxy proxyServer = new RosVehicleProxy(masterUri, "vehicle_client");

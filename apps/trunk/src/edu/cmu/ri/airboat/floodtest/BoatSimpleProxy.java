@@ -85,15 +85,12 @@ public class BoatSimpleProxy extends Thread {
     private StateEnum state = StateEnum.IDLE;
     final Queue<UtmPose> _waypoints = new LinkedList<UtmPose>();
     private UtmPose currentWaypoint = null;
-    BoatSimpleProxy self = null;
     RosVehicleProxy _server;
     private Polygon currentArea = null;
     private Polyline currentPath = null;
     private Color color = null;
 
     public BoatSimpleProxy(final String name, final ArrayList<Marker> markers, Color color, final int boatNo, URI masterURI, String nodeName) throws URISyntaxException {
-
-        self = this;
 
         this.masterURI = masterURI;
         this.name = name;
@@ -166,7 +163,7 @@ public class BoatSimpleProxy extends Thread {
                     Position p = new Position(latlon, 0.0);
 
                     if (marker == null) {
-                        marker = new BoatMarker(self, p, new BasicMarkerAttributes(material, BasicMarkerShape.ORIENTED_SPHERE, 0.9));
+                        marker = new BoatMarker(BoatSimpleProxy.this, p, new BasicMarkerAttributes(material, BasicMarkerShape.ORIENTED_SPHERE, 0.9));
                         markers.add(marker);
                     }
                     marker.setPosition(p);
@@ -239,6 +236,7 @@ public class BoatSimpleProxy extends Thread {
         }
     }
 
+    @Override
     public void run() {
     }
 
@@ -387,6 +385,7 @@ public class BoatSimpleProxy extends Thread {
         return _server;
     }
 
+    @Override
     public String toString() {
         return name + "@" + (masterURI == null ? "Unknown" : masterURI.toString());
     }
