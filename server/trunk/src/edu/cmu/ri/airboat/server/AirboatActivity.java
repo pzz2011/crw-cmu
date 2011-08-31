@@ -278,10 +278,6 @@ public class AirboatActivity extends Activity {
 			}
 		});
         
-        // Display current IP address
-        final TextView addrText = (TextView)findViewById(R.id.IpAddressText);
-        addrText.setText(getLocalIpAddress());
-        
         // Register handler for failsafe address that changes color 
 		// if a valid hostname seems to be reached.
 		// TODO: Move this to its own class!
@@ -466,6 +462,15 @@ public class AirboatActivity extends Activity {
         connectAddress.setText(prefs.getString(KEY_BT_ADDR, connectAddress.getText().toString()));
         masterAddress.setText(prefs.getString(KEY_MASTER_URI, masterAddress.getText().toString()));
         failsafeAddress.setText(prefs.getString(KEY_FAILSAFE_ADDR, failsafeAddress.getText().toString()));
+    }
+    
+    @Override
+    public void onResume() {
+    	super.onResume();
+    	
+    	// Refresh current IP address
+        final TextView addrText = (TextView)findViewById(R.id.IpAddressText);
+        addrText.setText(getLocalIpAddress());
     }
     
     @Override
