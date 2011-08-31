@@ -1,5 +1,7 @@
 package edu.cmu.ri.airboat.server;
 
+import android.util.Log;
+
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
 import org.ros.message.geometry_msgs.Pose;
@@ -18,7 +20,7 @@ import edu.cmu.ri.crw.VehicleServer;
  * 
  */
 public enum AirboatController {
-
+	
 	/**
 	 * This controller turns the boat around until it is facing the waypoint,
 	 * then drives roughly in an arc towards the waypoint. When it gets within a
@@ -26,6 +28,7 @@ public enum AirboatController {
 	 */
 
 	POINT_AND_SHOOT(new VehicleController() {
+		private final String logTag = AirboatController.class.getName();
 
 		@Override
 		public void update(VehicleServer server, double dt) {
@@ -33,9 +36,13 @@ public enum AirboatController {
 
 			// Get the position of the vehicle and the waypoint
 			UtmPoseWithCovarianceStamped state = server.getState();
-			Pose pose = state.pose.pose.pose;
-
 			UtmPose waypointState = server.getWaypoint();
+			if (state == null || waypointState == null) {
+				Log.w(logTag, "State or waypoint was null, not updating.");
+				return;
+			}
+			
+			Pose pose = state.pose.pose.pose;
 			Pose waypoint = waypointState.pose;
 
 			// TODO: handle different UTM zones!
