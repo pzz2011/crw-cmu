@@ -88,7 +88,7 @@ public class ProxyManager {
         public void createBoatProxy(String name, URI uri, Color color) {
         
             try {
-                BoatSimpleProxy proxy = new BoatSimpleProxy(name, markers, color, 1, uri, "vehicle" + (int) (new Random().nextInt(1000000)));               
+                BoatSimpleProxy proxy = new BoatSimpleProxy(name, markers, color, 1, uri, "vehicle_client" + (int) (new Random().nextInt(1000000)));               
                 boatProxies.add(proxy);
                 boatMap.put(uri, proxy);
             } catch (Exception e) {
