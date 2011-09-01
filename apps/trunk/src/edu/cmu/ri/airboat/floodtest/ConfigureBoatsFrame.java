@@ -15,10 +15,14 @@ import edu.cmu.ri.crw.ros.RosVehicleServer;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.Color;
+import java.io.File;
 import java.net.URI;
 import java.util.Random;
 import java.util.prefs.Preferences;
 import javax.swing.JColorChooser;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.plaf.FileChooserUI;
 import org.ros.RosCore;
 import org.ros.message.crwlib_msgs.UtmPose;
 import org.ros.node.NodeConfiguration;
@@ -31,9 +35,9 @@ import org.ros.node.NodeRunner;
 public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
     ProxyManager proxyManager = new ProxyManager();
-
     final String LAST_URI_KEY = "LAST_URI_KEY";
-    
+    final String LAST_IMG_DIR_KEY = "LAST_IMG_DIR_KEY";
+
     /** Creates new form ConfigureBoatsFrame */
     public ConfigureBoatsFrame() {
         initComponents();
@@ -41,8 +45,9 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
         Color color = randomColor();
         colorB.setBackground(color);
         colorB.setForeground(color);
-        
+
         physicalServer.setText(Preferences.userRoot().get(LAST_URI_KEY, "http://168.192.1.X:11411"));
+        imagesF.setText(Preferences.userRoot().get(LAST_IMG_DIR_KEY, "/tmp"));
     }
 
     /** This method is called from within the constructor to
@@ -89,6 +94,9 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
         jLabel11 = new javax.swing.JLabel();
         nameF = new javax.swing.JTextField();
         colorB = new javax.swing.JButton();
+        imagesF = new javax.swing.JTextField();
+        jLabel14 = new javax.swing.JLabel();
+        browseFB = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -360,6 +368,17 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
             }
         });
 
+        imagesF.setText("jTextField1");
+
+        jLabel14.setText("Images Directory");
+
+        browseFB.setText("Browse");
+        browseFB.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                browseFBActionPerformed(evt);
+            }
+        });
+
         org.jdesktop.layout.GroupLayout jPanel4Layout = new org.jdesktop.layout.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
@@ -372,17 +391,33 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
                         .add(jLabel11)
                         .add(18, 18, 18)
                         .add(nameF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 124, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(733, Short.MAX_VALUE))
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, 385, Short.MAX_VALUE)
+                .add(jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
+                    .add(jPanel4Layout.createSequentialGroup()
+                        .add(jLabel14)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(imagesF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 223, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                    .add(browseFB))
+                .add(8, 8, 8))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
             .add(jPanel4Layout.createSequentialGroup()
-                .addContainerGap()
-                .add(jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
-                    .add(jLabel11)
-                    .add(nameF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
-                .add(colorB, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 54, Short.MAX_VALUE)
+                .add(jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(jPanel4Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .add(jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                            .add(jLabel11)
+                            .add(nameF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(colorB, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 54, Short.MAX_VALUE))
+                    .add(jPanel4Layout.createSequentialGroup()
+                        .add(9, 9, 9)
+                        .add(jPanel4Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                            .add(imagesF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(jLabel14))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(browseFB)))
                 .addContainerGap())
         );
 
@@ -461,6 +496,9 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
         Preferences p = Preferences.userRoot();
         p.put(LAST_URI_KEY, server);
+
+        ImagePanel.setImagesDirectory(imagesF.getText());
+        p.put(LAST_IMG_DIR_KEY, imagesF.getText());
     }//GEN-LAST:event_createPhysicalBActionPerformed
 
     private void latSimActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_latSimActionPerformed
@@ -538,6 +576,19 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
         colorB.setForeground(color);
     }//GEN-LAST:event_colorBActionPerformed
 
+    private void browseFBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_browseFBActionPerformed
+        JFileChooser fc = new JFileChooser();
+
+        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        
+        //In response to a button click:
+        int returnVal = fc.showOpenDialog(this);
+        
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            imagesF.setText(fc.getSelectedFile().getAbsolutePath());
+        }
+    }//GEN-LAST:event_browseFBActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -551,16 +602,19 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JSpinner boatNoS;
+    private javax.swing.JButton browseFB;
     private javax.swing.JButton colorB;
     private javax.swing.JButton createPhysicalB;
     private javax.swing.JButton createSimB;
     private javax.swing.JButton createVBSB;
     private javax.swing.JTextField eBoxT;
+    private javax.swing.JTextField imagesF;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel14;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
