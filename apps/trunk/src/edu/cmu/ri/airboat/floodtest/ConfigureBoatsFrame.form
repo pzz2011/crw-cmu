@@ -111,7 +111,7 @@
       <SubComponents>
         <Component class="javax.swing.JTextField" name="physicalServer">
           <Properties>
-            <Property name="text" type="java.lang.String" value="http://128.237.250.65:11411"/>
+            <Property name="text" type="java.lang.String" value="http://192.168.1.149:11411"/>
           </Properties>
         </Component>
         <Component class="javax.swing.JLabel" name="jLabel6">
