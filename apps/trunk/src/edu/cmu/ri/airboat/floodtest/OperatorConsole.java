@@ -71,7 +71,13 @@ public class OperatorConsole {
 
                     String ipAddrS = addr.getHostAddress();
 
-                    frame.setTitle("Operator console @ " + ipAddrS);
+                    frame.setTitle("Operator console @ " + ipAddrS);                                       
+                    
+                    Runtime.getRuntime().addShutdownHook(new Thread() {
+                        public void run() {
+                            (new ProxyManager()).shutdown();
+                        }
+                    });
                     
                     frame.addWindowListener(new WindowAdapter() {
                         
