@@ -46,6 +46,10 @@ public class ProxyManager {
         return instance.boatProxies.get(rand.nextInt(instance.boatProxies.size()));
     }
 
+    public static void remove(BoatSimpleProxy proxy) {
+        instance.remove(proxy);
+    }
+    
     public boolean createSimulatedBoatProxy(String name, URI uri, Color color) {        
         
         instance.createBoatProxy(name, uri, color);
@@ -78,6 +82,10 @@ public class ProxyManager {
         return true;
     }
 
+    public void shutdown() {
+        instance.shutdown();
+    }
+    
     private static class Singleton {
 
         public ArrayList<Marker> markers = new ArrayList<Marker>();
@@ -127,6 +135,18 @@ public class ProxyManager {
             for (BoatSimpleProxy p : boatProxies) {
                 p._server.stopCamera();
                 p._server.startCamera(0, d, 640, 480, null);
+            }
+        }
+
+        private void remove(BoatSimpleProxy proxy) {
+            boatProxies.remove(proxy);
+            // @todo Proxies are not removed from hash table, expecting that something else with a new URI will override
+            // boatMap.remove(proxy.)
+        }
+
+        private void shutdown() {
+            for (BoatSimpleProxy p : boatProxies) {
+                p._server.shutdown();
             }
         }
     }

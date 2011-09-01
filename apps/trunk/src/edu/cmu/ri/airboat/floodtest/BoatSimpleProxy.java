@@ -78,7 +78,7 @@ public class BoatSimpleProxy extends Thread {
     //
     // New Control variables
     //
-    private enum StateEnum {
+    public enum StateEnum {
 
         IDLE, WAYPOINT, PATH, AREA
     };
@@ -90,6 +90,8 @@ public class BoatSimpleProxy extends Thread {
     private Polyline currentPath = null;
     private Color color = null;
     private URI masterURI = null;
+    Marker marker = null;
+    Marker waypointMarker = null;
 
     public BoatSimpleProxy(final String name, final ArrayList<Marker> markers, Color color, final int boatNo, URI masterURI, String nodeName) throws URISyntaxException {
 
@@ -105,9 +107,6 @@ public class BoatSimpleProxy extends Thread {
         _server = new RosVehicleProxy(masterURI, nodeName);
 
         _stateListener = new VehicleStateListener() {
-
-            Marker marker = null;
-            Marker waypointMarker = null;
 
             public void receivedState(UtmPoseWithCovarianceStamped upwcs) {
                 _pose = new UtmPose();
@@ -216,7 +215,7 @@ public class BoatSimpleProxy extends Thread {
     }
 
     private void startCamera() {
-        
+
         try {
             System.out.println("SLEEPING BEFORE CAMERA START");
             Thread.sleep(5000);
@@ -249,12 +248,18 @@ public class BoatSimpleProxy extends Thread {
             public void imagingUpdate(CameraState status) {
                 System.err.println("IMAGES: " + status);
             }
-        });                
-        
+        });
+
         System.out.println("Image listener started");
-        
+
     }
-    
+
+    void remove() {
+        stopBoat();
+
+        markers.remove(marker);
+        markers.remove(waypointMarker);
+    }
 
     public void stopBoat() {
         // @todo How to stop the boat
@@ -278,7 +283,7 @@ public class BoatSimpleProxy extends Thread {
 
     @Override
     public void run() {
-        
+
         startCamera();
     }
 
@@ -288,6 +293,10 @@ public class BoatSimpleProxy extends Thread {
         pLine.setColor(color);
         setWaypoints(pLine.getPositions());
         state = StateEnum.PATH;
+    }
+
+    public StateEnum getMode() {
+        return state;
     }
 
     public void setWaypoints(Iterable<Position> ps) {

@@ -17,6 +17,7 @@ import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.Color;
 import java.io.File;
 import java.net.URI;
+import java.security.AccessControlException;
 import java.util.Random;
 import java.util.prefs.Preferences;
 import javax.swing.JColorChooser;
@@ -46,8 +47,14 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
         colorB.setBackground(color);
         colorB.setForeground(color);
 
-        physicalServer.setText(Preferences.userRoot().get(LAST_URI_KEY, "http://168.192.1.X:11411"));
-        imagesF.setText(Preferences.userRoot().get(LAST_IMG_DIR_KEY, "/tmp"));
+        try {
+            physicalServer.setText(Preferences.userRoot().get(LAST_URI_KEY, "http://168.192.1.X:11411"));
+            imagesF.setText(Preferences.userRoot().get(LAST_IMG_DIR_KEY, "/tmp"));
+        } catch (AccessControlException e) {
+            System.out.println("Failed to access preferences");
+            physicalServer.setText("http://168.192.1.X:11411");
+            imagesF.setText("/tmp");
+        }
     }
 
     /** This method is called from within the constructor to
@@ -494,11 +501,16 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
         proxyManager.createPhysicalBoatProxy(nameF.getText(), server, colorB.getBackground());
 
-        Preferences p = Preferences.userRoot();
-        p.put(LAST_URI_KEY, server);
-
         ImagePanel.setImagesDirectory(imagesF.getText());
-        p.put(LAST_IMG_DIR_KEY, imagesF.getText());
+
+        try {
+            Preferences p = Preferences.userRoot();
+            p.put(LAST_URI_KEY, server);
+            p.put(LAST_IMG_DIR_KEY, imagesF.getText());
+        } catch (AccessControlException e) {
+            System.out.println("Failed to save preferences");
+        }
+
     }//GEN-LAST:event_createPhysicalBActionPerformed
 
     private void latSimActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_latSimActionPerformed
@@ -548,6 +560,8 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
             p.pose.position.x = 10.0;
             p.pose.position.y = 60.0;
 
+            // Tmp, we don't really want to save sim images
+            ImagePanel.setImagesDirectory(imagesF.getText());
 
             // @todo shutdown
 
@@ -580,10 +594,10 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
         JFileChooser fc = new JFileChooser();
 
         fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        
+
         //In response to a button click:
         int returnVal = fc.showOpenDialog(this);
-        
+
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             imagesF.setText(fc.getSelectedFile().getAbsolutePath());
         }

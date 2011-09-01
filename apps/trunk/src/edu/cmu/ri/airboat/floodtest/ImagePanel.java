@@ -50,9 +50,8 @@ public class ImagePanel extends javax.swing.JPanel {
 
     public static void addImage(BufferedImage img) {
 
-        /*
         if (imagesDir != null) {
-            try {                
+            try {
                 File outputfile = new File(imagesDir.getAbsolutePath() + File.separator + "BoatImg" + (new Date()) + ".png");
                 System.out.println("Writing to " + outputfile);
                 ImageIO.write(img, "png", outputfile);
@@ -62,11 +61,21 @@ public class ImagePanel extends javax.swing.JPanel {
         } else {
             System.out.println("Do not know where to save images");
         }
-         */
-        
-        queue.offer(new ImageComparable(img));
-        queueP.setValue(Math.min(100, queue.size()));
 
+        if (queue.size() > 100) {
+            int v = rateS.getValue();
+            int nv = Math.min(100, Math.max(v, (rateS.getValue() / 10)));
+            if (v != nv) {
+                rateS.setValue(nv);
+            }
+        }
+
+        if (queue.size() < 1000) {
+            queue.offer(new ImageComparable(img));
+            queueP.setValue(Math.min(100, queue.size()));
+        } else {
+            System.out.println("No longer queuing images, queue is full");
+        }
     }
 
     public static BufferedImage getImage() {
@@ -185,6 +194,6 @@ public class ImagePanel extends javax.swing.JPanel {
     private javax.swing.JPanel controlsP;
     private javax.swing.JPanel imagesP;
     private static javax.swing.JProgressBar queueP;
-    private javax.swing.JSlider rateS;
+    private static javax.swing.JSlider rateS;
     // End of variables declaration//GEN-END:variables
 }
