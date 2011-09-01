@@ -95,6 +95,9 @@ public class ProxyManager {
                 if (console != null) {
                     console.setSelected(proxy);
                 }
+                
+                proxy.start();
+                
             } catch (Exception e) {
                 System.out.println("Creating proxy failed: " + e);
                 e.printStackTrace();

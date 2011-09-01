@@ -13,7 +13,6 @@ import gov.nasa.worldwind.awt.WorldWindowGLJPanel;
 import gov.nasa.worldwind.event.SelectEvent;
 import gov.nasa.worldwind.event.SelectListener;
 import gov.nasa.worldwind.geom.Intersection;
-import gov.nasa.worldwind.geom.LatLon;
 import gov.nasa.worldwind.geom.Line;
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.layers.Earth.USGSDigitalOrtho;
@@ -22,20 +21,16 @@ import gov.nasa.worldwind.layers.Earth.USGSTopographicMaps;
 import gov.nasa.worldwind.layers.MarkerLayer;
 import gov.nasa.worldwind.layers.RenderableLayer;
 import gov.nasa.worldwind.pick.PickedObject;
-import gov.nasa.worldwind.render.Ellipsoid;
 import gov.nasa.worldwind.render.Polygon;
 import gov.nasa.worldwind.render.Polyline;
 import gov.nasa.worldwind.render.Renderable;
-import gov.nasa.worldwind.render.SurfaceImage;
 import gov.nasa.worldwind.render.markers.Marker;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import org.ros.RosCore;
-import org.ros.node.NodeConfiguration;
-import org.ros.node.NodeRunner;
 
 /**
  *
@@ -67,6 +62,16 @@ public class OperatorConsole {
                 // is done within an invokeLater call so that it executes on an AWT thread.
                 frame = new AppFrame();
                 frame.setVisible(true);
+
+                try {
+                    InetAddress addr = InetAddress.getLocalHost();
+
+                    String ipAddrS = addr.getHostAddress(); 
+                    
+                    frame.setTitle("Operator console @ " + ipAddrS);
+                } catch (Exception e) {
+                    System.out.println("Problem getting local IP " + e);
+                }
             }
         });
 
@@ -164,8 +169,8 @@ public class OperatorConsole {
                                     setSelected(((BoatMarker) po.getObject()).getProxy());
                                 }
                                 /*
-                                    boatPanel.setProxy(((BoatMarker) po.getObject()).getProxy());
-                                    selectedProxy = ((BoatMarker) po.getObject()).getProxy();
+                                boatPanel.setProxy(((BoatMarker) po.getObject()).getProxy());
+                                selectedProxy = ((BoatMarker) po.getObject()).getProxy();
                                 } else if (po.getObject() instanceof TaskMarker) {
                                 System.out.println("Got task marker, any action commented out");
                                 // taskPanel.setCurrTOP(((TaskMarker) po.getObject()).getTOP());
