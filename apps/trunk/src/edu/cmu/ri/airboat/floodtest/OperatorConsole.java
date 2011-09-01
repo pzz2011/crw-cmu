@@ -58,7 +58,7 @@ public class OperatorConsole {
 
     public OperatorConsole() {
 
-        System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Airboat Control");
+        // System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Airboat Control");
 
         java.awt.EventQueue.invokeLater(new Runnable() {
 
