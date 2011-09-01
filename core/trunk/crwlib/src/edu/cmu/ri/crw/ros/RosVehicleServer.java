@@ -112,7 +112,7 @@ public class RosVehicleServer {
 						"crwlib_msgs/UtmPoseWithCovarianceStamped");
 		_stateListener = new StateHandler(statePublisher);
 		_server.addStateListener(_stateListener);
-
+		
 		// Create publisher for image data and camera info
 		Publisher<CompressedImage> imagePublisher = _node.newPublisher(
 				"image/compressed", "sensor_msgs/CompressedImage");
@@ -490,10 +490,10 @@ public class RosVehicleServer {
 
 		@Override
 		public void goalCallback(
-				SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> actionServer) {
+				final SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> actionServer) {
 
 			try {
-				final VehicleNavigationGoal goal = _navServer.acceptNewGoal();
+				final VehicleNavigationGoal goal = actionServer.acceptNewGoal();
 				logger.info("Starting navigation to: " + print(goal.targetPose));
 
 				_server.stopWaypoint();
@@ -501,7 +501,7 @@ public class RosVehicleServer {
 
 					@Override
 					public void waypointUpdate(WaypointState status) {
-						if (!_navServer.isActive())
+						if (!actionServer.isActive())
 							return;
 
 						if (status == WaypointState.DONE) {
@@ -510,14 +510,14 @@ public class RosVehicleServer {
 									.getCurrentTime();
 							result.status = (byte) status.ordinal();
 							result.targetPose = goal.targetPose;
-							_navServer.setSucceeded(result, "DONE");
+							actionServer.setSucceeded(result, "DONE");
 						} else {
 							VehicleNavigationFeedback feedback = new VehicleNavigationFeedback();
 							feedback.header.stamp = new WallclockProvider()
 									.getCurrentTime();
 							feedback.status = (byte) status.ordinal();
 							feedback.targetPose = goal.targetPose;
-							_navServer.publishFeedback(feedback);
+							actionServer.publishFeedback(feedback);
 						}
 					}
 				});
@@ -531,6 +531,7 @@ public class RosVehicleServer {
 				SimpleActionServer<VehicleNavigationActionFeedback, VehicleNavigationActionGoal, VehicleNavigationActionResult, VehicleNavigationFeedback, VehicleNavigationGoal, VehicleNavigationResult> actionServer) {
 			logger.info("Navigation cancelled.");
 			_server.stopWaypoint();
+			actionServer.setPreempted();
 		}
 
 		@Override
@@ -549,10 +550,10 @@ public class RosVehicleServer {
 
 		@Override
 		public void goalCallback(
-				SimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> arg0) {
+				final SimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> actionServer) {
 
 			try {
-				final VehicleImageCaptureGoal goal = _imgServer.acceptNewGoal();
+				final VehicleImageCaptureGoal goal = actionServer.acceptNewGoal();
 				logger.info("Starting image capture: " + goal.frames + "@"
 						+ goal.interval + ", " + goal.width + "x" + goal.height);
 
@@ -562,7 +563,7 @@ public class RosVehicleServer {
 
 							@Override
 							public void imagingUpdate(CameraState status) {
-								if (!_navServer.isActive())
+								if (!actionServer.isActive())
 									return;
 
 								if (status == CameraState.DONE) {
@@ -570,13 +571,13 @@ public class RosVehicleServer {
 									result.header.stamp = new WallclockProvider()
 											.getCurrentTime();
 									result.status = (byte) status.ordinal();
-									_imgServer.setSucceeded(result, "DONE");
+									actionServer.setSucceeded(result, "DONE");
 								} else {
 									VehicleImageCaptureFeedback feedback = new VehicleImageCaptureFeedback();
 									feedback.header.stamp = new WallclockProvider()
 											.getCurrentTime();
 									feedback.status = (byte) status.ordinal();
-									_imgServer.publishFeedback(feedback);
+									actionServer.publishFeedback(feedback);
 								}
 							}
 						});
@@ -587,15 +588,16 @@ public class RosVehicleServer {
 
 		@Override
 		public void preemptCallback(
-				SimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> arg0) {
+				SimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> actionServer) {
 			logger.info("Imaging cancelled.");
 			_server.stopCamera();
+			actionServer.setPreempted();
 		}
 
 		@Override
 		public void blockingGoalCallback(
 				VehicleImageCaptureGoal goal,
-				SimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> arg1) {
+				SimpleActionServer<VehicleImageCaptureActionFeedback, VehicleImageCaptureActionGoal, VehicleImageCaptureActionResult, VehicleImageCaptureFeedback, VehicleImageCaptureGoal, VehicleImageCaptureResult> actionServer) {
 			// Blocking callback is not enabled
 		}
 	};
