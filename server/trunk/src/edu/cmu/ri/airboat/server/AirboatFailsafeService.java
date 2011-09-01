@@ -5,6 +5,8 @@ import java.net.InetAddress;
 
 import org.ros.message.crwlib_msgs.UtmPose;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
@@ -28,6 +30,7 @@ import edu.cmu.ri.crw.VehicleServer;
 public class AirboatFailsafeService extends Service {
 
 	private static final String LOG_TAG = "AirboatFailsafeService";
+	private static final int SERVICE_ID = 12311;
 	
 	private final IBinder _binder = new LocalBinder();
 	
@@ -94,6 +97,13 @@ public class AirboatFailsafeService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
     	super.onStartCommand(intent, flags, startId);
+    	
+		// Ignore startup requests that don't include an intent
+		if (intent == null) {
+			Log.e(LOG_TAG, "Started with null intent.");
+			return Service.START_STICKY;
+		}
+
     	Log.i(LOG_TAG, "onStart");
     	doBindService();
     	isRunning = true;
@@ -114,6 +124,26 @@ public class AirboatFailsafeService extends Service {
 		// Schedule the next connection test
 		_handler.postDelayed(_connectionTest, _connectionTestDelayMs);
 		
+		// This is now a foreground service
+		{
+			// Set up the icon and ticker text
+			int icon = R.drawable.icon; // TODO: change this to notification icon
+			CharSequence tickerText = "Running normally.";
+			long when = System.currentTimeMillis();
+		
+			// Set up the actual title and text
+			Context context = getApplicationContext();
+			CharSequence contentTitle = "Failsafe Server";
+			CharSequence contentText = tickerText;
+			Intent notificationIntent = new Intent(this, AirboatActivity.class);
+			PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+		
+			// Add a notification to the menu
+			Notification notification = new Notification(icon, tickerText, when);
+			notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
+		    startForeground(SERVICE_ID, notification);
+		}
+		
         // We want this service to continue running until it is explicitly
         // stopped, so return sticky.
         return START_STICKY;
@@ -128,6 +158,9 @@ public class AirboatFailsafeService extends Service {
     	
         _handler.removeCallbacks(_connectionTest);
         _handler = null;
+        
+        // Remove service from foreground
+        stopForeground(true);
     }
 
     @Override

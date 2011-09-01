@@ -39,6 +39,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
@@ -62,7 +63,7 @@ import edu.cmu.ri.crw.ros.RosVehicleServer;
  *
  */
 public class AirboatService extends Service {
-	private static final int AIRBOAT_SERVICE_ID = 1;
+	private static final int SERVICE_ID = 11312;
 	private static final String TAG = AirboatService.class.getName();
 	private static final com.google.code.microlog4android.Logger logger = LoggerFactory.getLogger();
 	
@@ -243,9 +244,6 @@ public class AirboatService extends Service {
 		_updateTask = new UpdateTask(this);
 		isRunning = true;
 		
-		// start tracing to "/sdcard/calc.trace"
-		// Debug.startMethodTracing("trace_airboat");
-		
 		// TODO: optimize this to allocate resources up here and handle multiple start commands
 	}
 
@@ -297,6 +295,9 @@ public class AirboatService extends Service {
 			return Service.START_STICKY;
 		}
 
+		// start tracing to "/sdcard/trace_crw.trace"
+		//Debug.startMethodTracing("trace_crw");
+		
 		// Set up logging format to include time, tag, and value
         PropertyConfigurator.getConfigurator(this).configure();		    
 		PatternFormatter formatter = new PatternFormatter(); 
@@ -431,6 +432,26 @@ public class AirboatService extends Service {
 			}
 		}).start();
 
+		// This is now a foreground service
+		{
+			// Set up the icon and ticker text
+			int icon = R.drawable.icon; // TODO: change this to notification icon
+			CharSequence tickerText = "Running normally.";
+			long when = System.currentTimeMillis();
+			
+			// Set up the actual title and text
+			Context context = getApplicationContext();
+			CharSequence contentTitle = "Airboat Server";
+			CharSequence contentText = tickerText;
+			Intent notificationIntent = new Intent(this, AirboatActivity.class);
+			PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
+		
+			// Add a notification to the menu
+			Notification notification = new Notification(icon, tickerText, when);
+			notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
+		    startForeground(SERVICE_ID, notification);
+		}
+		
 		// Indicate that the service should not be stopped arbitrarily
 		return Service.START_STICKY;
 	}
@@ -446,7 +467,8 @@ public class AirboatService extends Service {
 	 */
 	@Override
 	public void onDestroy() {
-		//		Debug.stopMethodTracing();
+		// stop tracing to "/sdcard/trace_crw.trace"
+		Debug.stopMethodTracing();
 		
 		// Shutdown the regular update function
 		_timer.cancel();
@@ -500,6 +522,9 @@ public class AirboatService extends Service {
 			}
 		}
 
+		// Disable this as a foreground service
+		stopForeground(true);
+		
 		Log.i(TAG, "AirboatService stopped.");
 		isRunning = false;
 		super.onDestroy();
@@ -507,7 +532,7 @@ public class AirboatService extends Service {
 	
 	public void sendNotification(CharSequence text) {
 		String ns = Context.NOTIFICATION_SERVICE;
-		NotificationManager mNotificationManager = (NotificationManager)getSystemService(ns);
+		NotificationManager notificationManager = (NotificationManager)getSystemService(ns);
 
 		// Set up the icon and ticker text
 		int icon = R.drawable.icon; // TODO: change this to notification icon
@@ -525,6 +550,6 @@ public class AirboatService extends Service {
 		notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
 		notification.flags |= Notification.FLAG_AUTO_CANCEL;
 		
-		mNotificationManager.notify(AIRBOAT_SERVICE_ID, notification);
+		notificationManager.notify(SERVICE_ID, notification);
 	}
 }
