@@ -11,13 +11,13 @@
 package edu.cmu.ri.airboat.floodtest;
 
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.ros.RosVehicleProxy;
 import edu.cmu.ri.crw.ros.RosVehicleServer;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.Color;
 import java.net.URI;
 import java.util.Random;
+import java.util.prefs.Preferences;
 import javax.swing.JColorChooser;
 import org.ros.RosCore;
 import org.ros.message.crwlib_msgs.UtmPose;
@@ -32,6 +32,8 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
     ProxyManager proxyManager = new ProxyManager();
 
+    final String LAST_URI_KEY = "LAST_URI_KEY";
+    
     /** Creates new form ConfigureBoatsFrame */
     public ConfigureBoatsFrame() {
         initComponents();
@@ -39,6 +41,8 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
         Color color = randomColor();
         colorB.setBackground(color);
         colorB.setForeground(color);
+        
+        physicalServer.setText(Preferences.userRoot().get(LAST_URI_KEY, "http://168.192.1.X:11411"));
     }
 
     /** This method is called from within the constructor to
@@ -455,7 +459,8 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
         proxyManager.createPhysicalBoatProxy(nameF.getText(), server, colorB.getBackground());
 
-
+        Preferences p = Preferences.userRoot();
+        p.put(LAST_URI_KEY, server);
     }//GEN-LAST:event_createPhysicalBActionPerformed
 
     private void latSimActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_latSimActionPerformed

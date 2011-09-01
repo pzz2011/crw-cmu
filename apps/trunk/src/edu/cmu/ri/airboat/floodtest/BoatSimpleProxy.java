@@ -23,6 +23,7 @@ import gov.nasa.worldwind.render.Material;
 import gov.nasa.worldwind.render.Polygon;
 import gov.nasa.worldwind.render.Polyline;
 import gov.nasa.worldwind.render.ShapeAttributes;
+import gov.nasa.worldwind.render.markers.BasicMarker;
 import gov.nasa.worldwind.render.markers.BasicMarkerAttributes;
 import gov.nasa.worldwind.render.markers.BasicMarkerShape;
 import gov.nasa.worldwind.render.markers.Marker;
@@ -73,11 +74,10 @@ public class BoatSimpleProxy extends Thread {
     int _boatNo;
     UtmPose _pose;
     volatile boolean _isShutdown = false;
-    URI masterURI = null;
+
     //
     // New Control variables
     //
-
     private enum StateEnum {
 
         IDLE, WAYPOINT, PATH, AREA
@@ -89,6 +89,7 @@ public class BoatSimpleProxy extends Thread {
     private Polygon currentArea = null;
     private Polyline currentPath = null;
     private Color color = null;
+    private URI masterURI = null;
 
     public BoatSimpleProxy(final String name, final ArrayList<Marker> markers, Color color, final int boatNo, URI masterURI, String nodeName) throws URISyntaxException {
 
@@ -103,48 +104,10 @@ public class BoatSimpleProxy extends Thread {
         _boatNo = boatNo;
         _server = new RosVehicleProxy(masterURI, nodeName);
 
-
-        /*
-        try {
-            System.out.println("SLEEPING BEFORE CAMERA START");
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {}
-        System.out.println("DONE SLEEPING BEFORE CAMERA START");
-        */
-        /*
-        _server.startCamera(0, 1.0, 640, 480, new ImagingObserver() {
-
-            @Override
-            public void imagingUpdate(CameraState status) {
-                System.err.println("IMAGES: " + status);
-            }
-        });
-
-        System.out.println("Starting image listener");
-            
-        _server.addImageListener(new VehicleImageListener() {
-            
-            public void receivedImage(CompressedImage ci) {
-                // Take a picture, and put the resulting image into the panel
-                try {
-                    BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(ci.data));
-                    System.out.println("Got image ... ");
-                    if (image != null) {
-                        ImagePanel.addImage(image);
-                    } else {
-                        System.err.println("Failed to decode image.");
-                    }
-                } catch (IOException ex) {
-                    System.err.println("Failed to decode image: " + ex);
-                }
-
-            }
-        });
-         */
-        
         _stateListener = new VehicleStateListener() {
 
             Marker marker = null;
+            Marker waypointMarker = null;
 
             public void receivedState(UtmPoseWithCovarianceStamped upwcs) {
                 _pose = new UtmPose();
@@ -177,6 +140,31 @@ public class BoatSimpleProxy extends Thread {
                     }
                     marker.setPosition(p);
                     marker.setHeading(Angle.fromRadians(Math.PI / 2.0 - QuaternionUtils.toYaw(_pose.pose.orientation)));
+
+                    UtmPose wpPose = _server.getWaypoint();
+
+                    if (wpPose != null && !(wpPose.utm.zone == 0 && wpPose.pose.position.x == 0.0)) {
+
+                        // System.out.println("wpPose is " + wpPose.utm.zone + " " + wpPose.pose.position.x);
+
+                        longZone = wpPose.utm.zone;
+                        wwHemi = (wpPose.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
+                        UTMCoord wpPos = UTMCoord.fromUTM(longZone, wwHemi, wpPose.pose.position.x, wpPose.pose.position.y);
+
+                        latlon = new LatLon(wpPos.getLatitude(), wpPos.getLongitude());
+
+                        Position pstn = new Position(latlon, 0.0);
+
+                        if (waypointMarker == null) {
+                            waypointMarker = new BasicMarker(pstn, new BasicMarkerAttributes(material, BasicMarkerShape.CONE, 0.9));
+                            markers.add(waypointMarker);
+                        }
+                        waypointMarker.setPosition(pstn);
+
+                    } else if (waypointMarker != null) {
+                        markers.remove(waypointMarker);
+                        waypointMarker = null;
+                    }
 
                 } catch (Exception e) {
                     System.err.println("BoatSimpleProxy: Invalid pose received: " + e + " Pose: [" + _pose.pose.position.x + ", " + _pose.pose.position.y + "], zone = " + _pose.utm.zone);
@@ -221,9 +209,52 @@ public class BoatSimpleProxy extends Thread {
 
         //add Listeners
         _server.addStateListener(_stateListener);
-        _server.addSensorListener(0, _sensorListener);
+
+        // This is causing a null pointer exception
+        // _server.addSensorListener(0, _sensorListener);
 
     }
+
+    private void startCamera() {
+        
+        try {
+            System.out.println("SLEEPING BEFORE CAMERA START");
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+        }
+        System.out.println("DONE SLEEPING BEFORE CAMERA START");
+
+        _server.addImageListener(new VehicleImageListener() {
+
+            public void receivedImage(CompressedImage ci) {
+                // Take a picture, and put the resulting image into the panel
+                try {
+                    BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(ci.data));
+                    System.out.println("Got image ... ");
+                    if (image != null) {
+                        ImagePanel.addImage(image);
+                    } else {
+                        System.err.println("Failed to decode image.");
+                    }
+                } catch (IOException ex) {
+                    System.err.println("Failed to decode image: " + ex);
+                }
+
+            }
+        });
+
+        _server.startCamera(10, 1.0, 640, 480, new ImagingObserver() {
+
+            @Override
+            public void imagingUpdate(CameraState status) {
+                System.err.println("IMAGES: " + status);
+            }
+        });
+        
+        System.out.println("Image listener started");
+        
+    }
+    
 
     public void stopBoat() {
         // @todo How to stop the boat
@@ -247,6 +278,8 @@ public class BoatSimpleProxy extends Thread {
 
     @Override
     public void run() {
+        
+        startCamera();
     }
 
     public void setWaypoints(Polyline pLine) {
@@ -307,7 +340,7 @@ public class BoatSimpleProxy extends Thread {
         if (!_server.isAutonomous()) {
             _server.setAutonomous(true);
         }
-        
+
         currentWaypoint = wputm;
         _server.startWaypoint(wputm, null, new WaypointObserver() {
 
@@ -327,7 +360,7 @@ public class BoatSimpleProxy extends Thread {
     public void setArea(Polygon poly) {
 
         clearRenderables();
-       
+
         ShapeAttributes normalAttributes = new BasicShapeAttributes();
         normalAttributes.setInteriorMaterial(new Material(color));
         normalAttributes.setOutlineOpacity(0.5);

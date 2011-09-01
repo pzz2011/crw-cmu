@@ -108,8 +108,20 @@ public class SingleImagePanel extends javax.swing.JPanel {
         // TODO add your handling code here:
     }//GEN-LAST:event_jButton2ActionPerformed
 
+    // @todo make this a proper semaphore
+    boolean lock = false;    
     private void doneBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_doneBActionPerformed
-        getImage();
+        
+        if (!lock) {
+            lock = true;
+            (new Thread() {
+                public void run() {
+                    getImage();
+                    lock = false;
+                }
+            }).start();
+        }
+        
     }//GEN-LAST:event_doneBActionPerformed
 
     private void enlargeBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_enlargeBActionPerformed
