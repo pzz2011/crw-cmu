@@ -33,6 +33,10 @@ public class ProxyManager {
         return instance.getMarkers();
     }
 
+    public static void setCameraRates(double d) {
+        instance.setCameraRates(d);
+    }
+    
     public BoatSimpleProxy getRandomProxy() {
 
         if (instance.boatProxies.isEmpty()) {
@@ -116,6 +120,14 @@ public class ProxyManager {
 
         public ArrayList<Marker> getMarkers() {
             return markers;
+        }
+        
+        public void setCameraRates(double d) {
+            System.out.println("Setting camera speeds to " + d);
+            for (BoatSimpleProxy p : boatProxies) {
+                p._server.stopCamera();
+                p._server.startCamera(0, d, 640, 480, null);
+            }
         }
     }
 }

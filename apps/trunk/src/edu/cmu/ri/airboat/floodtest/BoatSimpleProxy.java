@@ -243,13 +243,13 @@ public class BoatSimpleProxy extends Thread {
             }
         });
 
-        _server.startCamera(10, 1.0, 640, 480, new ImagingObserver() {
+        _server.startCamera(0, 1.0, 640, 480, new ImagingObserver() {
 
             @Override
             public void imagingUpdate(CameraState status) {
                 System.err.println("IMAGES: " + status);
             }
-        });
+        });                
         
         System.out.println("Image listener started");
         

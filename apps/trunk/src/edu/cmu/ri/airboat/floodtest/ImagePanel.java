@@ -12,7 +12,11 @@ package edu.cmu.ri.airboat.floodtest;
 
 import java.awt.GridLayout;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.Date;
 import java.util.concurrent.PriorityBlockingQueue;
+import javax.imageio.ImageIO;
 
 /**
  *
@@ -21,51 +25,81 @@ import java.util.concurrent.PriorityBlockingQueue;
 public class ImagePanel extends javax.swing.JPanel {
 
     private static PriorityBlockingQueue<ImageComparable> queue = new PriorityBlockingQueue<ImageComparable>();
-    
+    private static File imagesDir = null;
+
+    static void setImagesDirectory(String loc) {
+        imagesDir = new File(loc);
+        if (!imagesDir.isDirectory()) {
+            System.out.println("Invalid directory for images");
+            imagesDir = null;
+        }
+    }
     final int noPanels = 4;
-    private SingleImagePanel [] imgPanels = new SingleImagePanel[noPanels];
-    
+    private SingleImagePanel[] imgPanels = new SingleImagePanel[noPanels];
+
     /** Creates new form ImagePanel */
     public ImagePanel() {
         initComponents();
-        
+
         imagesP.setLayout(new GridLayout(0, 1));
         for (int i = 0; i < imgPanels.length; i++) {
             imgPanels[i] = new SingleImagePanel();
-            imagesP.add(imgPanels[i]);            
+            imagesP.add(imgPanels[i]);
         }
     }
-    
+
     public static void addImage(BufferedImage img) {
+
+        /*
+        if (imagesDir != null) {
+            try {                
+                File outputfile = new File(imagesDir.getAbsolutePath() + File.separator + "BoatImg" + (new Date()) + ".png");
+                System.out.println("Writing to " + outputfile);
+                ImageIO.write(img, "png", outputfile);
+            } catch (IOException e) {
+                System.out.println("Failed to write image to file: " + e);
+            }
+        } else {
+            System.out.println("Do not know where to save images");
+        }
+         */
+        
         queue.offer(new ImageComparable(img));
+        queueP.setValue(Math.min(100, queue.size()));
+
     }
 
     public static BufferedImage getImage() {
         try {
-            return queue.take().img;
-        } catch (InterruptedException e) {}
+            BufferedImage b = queue.take().img;
+            queueP.setValue(Math.min(100, queue.size()));
+            return b;
+        } catch (InterruptedException e) {
+        }
         return null;
     }
-    
     private static long count = 0L;
+
     private static class ImageComparable implements Comparable<ImageComparable> {
-        
+
         long c = count++;
-        
         private final BufferedImage img;
+
         public ImageComparable(BufferedImage img) {
-            this.img = img;            
+            this.img = img;
         }
 
         public int compareTo(ImageComparable t) {
-            if (t.c > c) return 1;
-            else if (t.c < c) return -1;
-            else return 0;
+            if (t.c > c) {
+                return 1;
+            } else if (t.c < c) {
+                return -1;
+            } else {
+                return 0;
+            }
         }
-        
-        
     }
-    
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -77,6 +111,8 @@ public class ImagePanel extends javax.swing.JPanel {
 
         imagesP = new javax.swing.JPanel();
         controlsP = new javax.swing.JPanel();
+        queueP = new javax.swing.JProgressBar();
+        rateS = new javax.swing.JSlider();
 
         setBorder(javax.swing.BorderFactory.createTitledBorder("Images"));
 
@@ -84,22 +120,39 @@ public class ImagePanel extends javax.swing.JPanel {
         imagesP.setLayout(imagesPLayout);
         imagesPLayout.setHorizontalGroup(
             imagesPLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(0, 233, Short.MAX_VALUE)
+            .add(0, 242, Short.MAX_VALUE)
         );
         imagesPLayout.setVerticalGroup(
             imagesPLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
             .add(0, 738, Short.MAX_VALUE)
         );
 
+        rateS.setMinimum(1);
+        rateS.setToolTipText("Time Between Images");
+        rateS.setValue(10);
+        rateS.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                rateSStateChanged(evt);
+            }
+        });
+
         org.jdesktop.layout.GroupLayout controlsPLayout = new org.jdesktop.layout.GroupLayout(controlsP);
         controlsP.setLayout(controlsPLayout);
         controlsPLayout.setHorizontalGroup(
             controlsPLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(0, 233, Short.MAX_VALUE)
+            .add(org.jdesktop.layout.GroupLayout.TRAILING, queueP, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 242, Short.MAX_VALUE)
+            .add(controlsPLayout.createSequentialGroup()
+                .add(4, 4, 4)
+                .add(rateS, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 232, Short.MAX_VALUE)
+                .addContainerGap())
         );
         controlsPLayout.setVerticalGroup(
             controlsPLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(0, 120, Short.MAX_VALUE)
+            .add(org.jdesktop.layout.GroupLayout.TRAILING, controlsPLayout.createSequentialGroup()
+                .addContainerGap(64, Short.MAX_VALUE)
+                .add(rateS, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                .add(queueP, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
         );
 
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(this);
@@ -122,8 +175,16 @@ public class ImagePanel extends javax.swing.JPanel {
                 .addContainerGap())
         );
     }// </editor-fold>//GEN-END:initComponents
+
+    private void rateSStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_rateSStateChanged
+        if (!rateS.getModel().getValueIsAdjusting()) {
+            ProxyManager.setCameraRates((double) rateS.getValue());
+        }
+    }//GEN-LAST:event_rateSStateChanged
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel controlsP;
     private javax.swing.JPanel imagesP;
+    private static javax.swing.JProgressBar queueP;
+    private javax.swing.JSlider rateS;
     // End of variables declaration//GEN-END:variables
 }
