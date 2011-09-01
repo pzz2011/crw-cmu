@@ -53,6 +53,8 @@ public class BoatPanel extends javax.swing.JPanel {
     }
 
     private void update() {
+        // proxy.getCurrWaypoint();
+        modeL.setText(proxy.getMode().toString());
     }
 
     public void setProxy(BoatSimpleProxy proxy) {
@@ -67,9 +69,9 @@ public class BoatPanel extends javax.swing.JPanel {
             assignPathB.setEnabled(true);
             cancelB.setEnabled(true);
             debuggerB.setEnabled(true);
-
+            disconnectB.setEnabled(true);
+            
             setBorder(new MatteBorder(new Insets(5, 5, 5, 5), proxy.getColor()));
-
 
             update();
 
@@ -80,18 +82,14 @@ public class BoatPanel extends javax.swing.JPanel {
             assignPathB.setEnabled(false);
             cancelB.setEnabled(false);
             debuggerB.setEnabled(true);
+            disconnectB.setEnabled(false);
+            modeL.setText("Unknown");
+            
+            setBorder(null);
         }
 
     }
-
-    public void setWaypoint(Position targetPos) {
-        if (proxy != null) {
-            proxy.setWaypoint(targetPos);
-
-            System.out.println("Boat panel processing");
-        }
-    }
-
+    
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -111,6 +109,8 @@ public class BoatPanel extends javax.swing.JPanel {
         noteTF = new javax.swing.JTextArea();
         jLabel1 = new javax.swing.JLabel();
         noteWriteB = new javax.swing.JButton();
+        modeL = new javax.swing.JLabel();
+        disconnectB = new javax.swing.JButton();
 
         setBorder(javax.swing.BorderFactory.createMatteBorder(3, 3, 3, 3, new java.awt.Color(0, 0, 0)));
 
@@ -174,20 +174,37 @@ public class BoatPanel extends javax.swing.JPanel {
             }
         });
 
+        modeL.setFont(new java.awt.Font("Lucida Grande", 1, 36)); // NOI18N
+        modeL.setText("Mode");
+
+        disconnectB.setText("Delete");
+        disconnectB.setToolTipText("Use this if boat needs to reconnect");
+        disconnectB.setEnabled(false);
+        disconnectB.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                disconnectBActionPerformed(evt);
+            }
+        });
+
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
             .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
-                .addContainerGap()
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-                    .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
-                        .add(layout.createSequentialGroup()
-                            .add(assignAreaB)
-                            .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
-                            .add(assignPathB))
-                        .add(cancelB, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .add(addressF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 427, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                    .add(layout.createSequentialGroup()
+                        .addContainerGap()
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
+                                .add(layout.createSequentialGroup()
+                                    .add(assignAreaB)
+                                    .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                    .add(assignPathB))
+                                .add(cancelB, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .add(addressF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 427, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
+                    .add(layout.createSequentialGroup()
+                        .add(30, 30, 30)
+                        .add(modeL, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 406, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
                 .add(62, 62, 62)
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
                     .add(layout.createSequentialGroup()
@@ -197,12 +214,12 @@ public class BoatPanel extends javax.swing.JPanel {
                                 .add(jLabel1)
                                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED))
                             .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
-                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .add(noteWriteB)
                                 .add(1, 1, 1)))
                         .add(jScrollPane1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 268, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
                     .add(debuggerB)
-                    .add(teleopB))
+                    .add(teleopB)
+                    .add(disconnectB))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -219,17 +236,21 @@ public class BoatPanel extends javax.swing.JPanel {
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
                     .add(layout.createSequentialGroup()
-                        .add(38, 38, 38)
+                        .add(disconnectB)
+                        .add(9, 9, 9)
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
+                            .add(jScrollPane1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 70, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                             .add(layout.createSequentialGroup()
                                 .add(jLabel1)
-                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(16, 16, 16)
                                 .add(noteWriteB)
-                                .add(6, 6, 6))
-                            .add(jScrollPane1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 70, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
-                    .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
-                        .add(assignAreaB)
-                        .add(assignPathB)))
+                                .add(6, 6, 6))))
+                    .add(layout.createSequentialGroup()
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                            .add(assignAreaB)
+                            .add(assignPathB))
+                        .add(36, 36, 36)
+                        .add(modeL, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .add(21, 21, 21))
         );
     }// </editor-fold>//GEN-END:initComponents
@@ -271,32 +292,44 @@ public class BoatPanel extends javax.swing.JPanel {
 
         // @todo Find a more elegant way of doing this
         OperatorConsole.assigningArea = true;
-
+        update();
     }//GEN-LAST:event_assignAreaBActionPerformed
 
     private void cancelBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cancelBActionPerformed
         proxy.stopBoat();
+        update();
     }//GEN-LAST:event_cancelBActionPerformed
 
     private void assignPathBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_assignPathBActionPerformed
 
         // @todo Find a more elegant way of doing this
         OperatorConsole.assigningPath = true;
-
+        update();
     }//GEN-LAST:event_assignPathBActionPerformed
 
     private void noteWriteBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_noteWriteBActionPerformed
         System.out.println("Note: " + (proxy == null ? "" : proxy) + " " + noteTF.getText());
         noteTF.setText("");
     }//GEN-LAST:event_noteWriteBActionPerformed
+
+    private void disconnectBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_disconnectBActionPerformed
+        if (proxy != null) {
+            ProxyManager.remove(proxy);
+            proxy.remove();
+            setProxy(null);
+        }
+    }//GEN-LAST:event_disconnectBActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextField addressF;
     private javax.swing.JButton assignAreaB;
     private javax.swing.JButton assignPathB;
     private javax.swing.JButton cancelB;
     private javax.swing.JButton debuggerB;
+    private javax.swing.JButton disconnectB;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel modeL;
     private javax.swing.JTextArea noteTF;
     private javax.swing.JButton noteWriteB;
     private javax.swing.JButton teleopB;

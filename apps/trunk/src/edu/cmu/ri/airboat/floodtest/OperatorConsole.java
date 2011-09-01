@@ -28,6 +28,9 @@ import gov.nasa.worldwind.render.markers.Marker;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowStateListener;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -66,9 +69,22 @@ public class OperatorConsole {
                 try {
                     InetAddress addr = InetAddress.getLocalHost();
 
-                    String ipAddrS = addr.getHostAddress(); 
-                    
+                    String ipAddrS = addr.getHostAddress();
+
                     frame.setTitle("Operator console @ " + ipAddrS);
+                    
+                    frame.addWindowListener(new WindowAdapter() {
+                        
+                        @Override
+                        public void windowClosing(WindowEvent we) {
+                            super.windowClosing(we);
+                            System.out.println("Shutting down");
+                            (new ProxyManager()).shutdown();
+                            System.exit(0);
+                        }
+                        
+                    });                                        
+                    
                 } catch (Exception e) {
                     System.out.println("Problem getting local IP " + e);
                 }
