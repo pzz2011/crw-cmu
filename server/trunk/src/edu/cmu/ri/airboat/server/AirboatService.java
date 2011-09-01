@@ -279,13 +279,23 @@ public class AirboatService extends Service {
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		super.onStartCommand(intent, flags, startId);
 		
+		// Ignore startup requests that don't include an intent
+		if (intent == null) {
+			Log.e(TAG, "Started with null intent.");
+			return Service.START_STICKY;
+		}
+			
 		// Ignore startup requests that don't include a device name
-		if (!intent.hasExtra(BD_ADDR))
+		if (!intent.hasExtra(BD_ADDR)) {
+			Log.e(TAG, "Started with no bluetooth address.");
 			return Service.START_STICKY;
-		
+		}
+			
 		// Ensure that we do not reinitialize if not necessary
-		if (_airboatImpl != null || _rosServer != null)
+		if (_airboatImpl != null || _rosServer != null) {
+			Log.w(TAG, "Attempted to start while running.");
 			return Service.START_STICKY;
+		}
 
 		// Set up logging format to include time, tag, and value
         PropertyConfigurator.getConfigurator(this).configure();		    
