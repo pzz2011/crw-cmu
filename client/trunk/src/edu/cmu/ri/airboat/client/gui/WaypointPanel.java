@@ -171,9 +171,10 @@ public class WaypointPanel extends AbstractAirboatPanel {
         @Override
         public void mouseReleased(java.awt.event.MouseEvent e) {
             Position wpPos = _worldPanel.click.getPosition();
-            UTMCoord wpUtm = UTMCoord.fromLatLon(wpPos.getLatitude(), wpPos.getLongitude());
-
             Position boatPos = _worldPanel.boat.getPosition();
+            if (wpPos == null || boatPos == null) return;
+            
+            UTMCoord wpUtm = UTMCoord.fromLatLon(wpPos.getLatitude(), wpPos.getLongitude());
             UTMCoord boatUtm = UTMCoord.fromLatLon(boatPos.getLatitude(), boatPos.getLongitude());
 
             // Convert out of zone for boat-local coordinates
