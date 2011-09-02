@@ -46,27 +46,37 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 	}
 	
 	public void addStateListener(VehicleStateListener l) {
-		_stateListeners.add(l);
+		synchronized(_stateListeners) {
+			_stateListeners.add(l);
+		}
 	}
 
 	public void removeStateListener(VehicleStateListener l) {
-		_stateListeners.remove(l);
+		synchronized(_stateListeners) {
+			_stateListeners.remove(l);
+		}
 	}
 
 	protected void sendState(UtmPoseWithCovarianceStamped pose) {
 		// Process the listeners last to first, notifying
 		// those that are interested in this event
-		for (VehicleStateListener l : _stateListeners) {
-			l.receivedState(pose);
+		synchronized(_stateListeners) {
+			for (VehicleStateListener l : _stateListeners) {
+				l.receivedState(pose);
+			}
 		}
 	}
 
 	public void addImageListener(VehicleImageListener l) {
-		_imageListeners.add(l);
+		synchronized(_imageListeners) {
+			_imageListeners.add(l);
+		}
 	}
 
 	public void removeImageListener(VehicleImageListener l) {
-		_imageListeners.remove(l);
+		synchronized(_imageListeners) {
+			_imageListeners.remove(l);
+		}
 	}
 
 	protected static CompressedImage toCompressedImage(RenderedImage image) {
@@ -103,60 +113,71 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 	}
 	
 	protected void sendImage(CompressedImage image) {
-		for (VehicleImageListener l : _imageListeners) {
-			l.receivedImage(image);
+		synchronized(_imageListeners) {
+			for (VehicleImageListener l : _imageListeners) {
+				l.receivedImage(image);
+			}
 		}
 	}
 
 	public void addSensorListener(int channel, VehicleSensorListener l) {
-		
-		// If there were no previous listeners for the channel, create a list
-		if (!_sensorListeners.containsKey(channel)) {
-			_sensorListeners.put(channel, new ArrayList<VehicleSensorListener>());
+		synchronized(_sensorListeners) {
+			// If there were no previous listeners for the channel, create a list
+			if (!_sensorListeners.containsKey(channel)) {
+				_sensorListeners.put(channel, new ArrayList<VehicleSensorListener>());
+			}
+			
+			// Add the listener to the appropriate list
+			_sensorListeners.get(channel).add(l);
 		}
-		
-		// Add the listener to the appropriate list
-		_sensorListeners.get(channel).add(l);
 	}
 
 	public void removeSensorListener(int channel, VehicleSensorListener l) {
-		
-		// If there is no list of listeners, there is nothing to remove
-		if (!_sensorListeners.containsKey(channel))
-			return;
-		
-		// Remove the listener from the appropriate list
-		_sensorListeners.get(channel).remove(l);
-		
-		// If there are no more listeners for the channel, delete the list
-		if (_sensorListeners.get(channel).isEmpty()) {
-			_sensorListeners.remove(channel);
+		synchronized(_sensorListeners) {
+			// If there is no list of listeners, there is nothing to remove
+			if (!_sensorListeners.containsKey(channel))
+				return;
+			
+			// Remove the listener from the appropriate list
+			_sensorListeners.get(channel).remove(l);
+			
+			// If there are no more listeners for the channel, delete the list
+			if (_sensorListeners.get(channel).isEmpty()) {
+				_sensorListeners.remove(channel);
+			}
 		}
 	}
 
 	protected void sendSensor(int channel, SensorData reading) {
-		
-		// If there is no list of listeners, there is nothing to notify
-		if (!_sensorListeners.containsKey(channel))
-			return;
-		
-		// Notify each listener in the appropriate list
-		for (VehicleSensorListener l : _sensorListeners.get(channel)) {
-			l.receivedSensor(reading);
+		synchronized(_sensorListeners) {
+			// If there is no list of listeners, there is nothing to notify
+			if (!_sensorListeners.containsKey(channel))
+				return;
+			
+			// Notify each listener in the appropriate list
+			for (VehicleSensorListener l : _sensorListeners.get(channel)) {
+				l.receivedSensor(reading);
+			}
 		}
 	}
 
 	public void addVelocityListener(VehicleVelocityListener l) {
-		_velocityListeners.add(l);
+		synchronized(_velocityListeners) {
+			_velocityListeners.add(l);
+		}
 	}
 
 	public void removeVelocityListener(VehicleVelocityListener l) {
-		_velocityListeners.remove(l);
+		synchronized(_velocityListeners) {
+			_velocityListeners.remove(l);
+		}
 	}
 
 	protected void sendVelocity(TwistWithCovarianceStamped velocity) {
-		for (VehicleVelocityListener l : _velocityListeners) {
-			l.receivedVelocity(velocity);
+		synchronized(_velocityListeners) {
+			for (VehicleVelocityListener l : _velocityListeners) {
+				l.receivedVelocity(velocity);
+			}
 		}
 	}
 }
