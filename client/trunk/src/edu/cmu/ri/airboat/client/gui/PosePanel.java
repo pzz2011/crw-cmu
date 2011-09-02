@@ -149,6 +149,7 @@ public class PosePanel extends AbstractAirboatPanel {
     private void setPoseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_setPoseButtonActionPerformed
         if (_worldPanel != null && _vehicle != null) {
             Position wpPos = _worldPanel.click.getPosition();
+            if (wpPos == null) return;
             UTMCoord wpUtm = UTMCoord.fromLatLon(wpPos.getLatitude(), wpPos.getLongitude());
 
             UtmPose pose = new UtmPose();
