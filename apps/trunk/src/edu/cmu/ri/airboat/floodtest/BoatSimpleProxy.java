@@ -82,6 +82,9 @@ public class BoatSimpleProxy extends Thread {
 
         IDLE, WAYPOINT, PATH, AREA
     };
+    // Set this to false to turn off the false safe
+    final boolean USE_SOFTWARE_FAIL_SAFE = true;
+    UtmPose home = null;
     private StateEnum state = StateEnum.IDLE;
     final Queue<UtmPose> _waypoints = new LinkedList<UtmPose>();
     private UtmPose currentWaypoint = null;
@@ -112,6 +115,12 @@ public class BoatSimpleProxy extends Thread {
                 _pose = new UtmPose();
                 _pose.pose = upwcs.pose.pose.pose.clone();
                 _pose.utm = upwcs.utm.clone();
+
+                if (home == null && USE_SOFTWARE_FAIL_SAFE) {
+                    home = new UtmPose();
+                    home.pose = upwcs.pose.pose.pose.clone();
+                    home.utm = upwcs.utm.clone();
+                }
 
                 // System.out.println("Pose: [" + _pose.pose.position.x + ", " + _pose.pose.position.y + "], zone = " + _pose.utm.zone);
 
@@ -242,7 +251,7 @@ public class BoatSimpleProxy extends Thread {
             }
         });
 
-        _server.startCamera(0, 1.0, 640, 480, new ImagingObserver() {
+        _server.startCamera(0, 10.0, 640, 480, new ImagingObserver() {
 
             @Override
             public void imagingUpdate(CameraState status) {
@@ -350,11 +359,14 @@ public class BoatSimpleProxy extends Thread {
             _server.setAutonomous(true);
         }
 
+        
+        
         currentWaypoint = wputm;
-        _server.startWaypoint(wputm, null, new WaypointObserver() {            
-            
+        _server.startWaypoint(wputm, null, new WaypointObserver() {
+
             int goingCounter = 0;
             int resendRate = 20;
+
             @Override
             public void waypointUpdate(WaypointState status) {
                 if (status == WaypointState.DONE) {
@@ -369,7 +381,7 @@ public class BoatSimpleProxy extends Thread {
                         System.out.println("Waypoint was resent, old observer done");
                     } else {
                         System.out.println("Unhandled STATUS: " + status);
-                    }
+                    }   
                 }
             }
         });
