@@ -11,6 +11,8 @@
 package edu.cmu.ri.airboat.floodtest;
 
 import java.awt.GridLayout;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -49,6 +51,12 @@ public class ImagePanel extends javax.swing.JPanel {
     }
 
     public static void addImage(BufferedImage img) {
+
+        // Flip the image vertically
+        AffineTransform tx = AffineTransform.getScaleInstance(1, -1);
+        tx.translate(0, -img.getHeight(null));
+        AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+        img = op.filter(img, null);
 
         if (imagesDir != null) {
             try {
