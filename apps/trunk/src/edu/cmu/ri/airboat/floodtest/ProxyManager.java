@@ -146,6 +146,7 @@ public class ProxyManager {
 
         private void shutdown() {
             for (BoatSimpleProxy p : boatProxies) {
+                p._server.stopCamera();
                 p._server.shutdown();
             }
         }
