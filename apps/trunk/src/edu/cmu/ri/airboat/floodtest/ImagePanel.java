@@ -34,7 +34,7 @@ public class ImagePanel extends javax.swing.JPanel {
             imagesDir = null;
         }
     }
-    final int noPanels = 4;
+    final int noPanels = 2;
     private SingleImagePanel[] imgPanels = new SingleImagePanel[noPanels];
 
     /** Creates new form ImagePanel */

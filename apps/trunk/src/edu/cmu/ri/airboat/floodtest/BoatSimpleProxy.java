@@ -373,9 +373,10 @@ public class BoatSimpleProxy extends Thread {
                     setWaypoint(_waypoints.poll());
                 } else if (status == WaypointState.GOING) {
                     ++goingCounter;
-                    if (goingCounter >= resendRate) {
+                    /*if (goingCounter >= resendRate) {
                         setWaypoint(currentWaypoint);
-                    }
+                    }*/
+                    System.out.println("GOING");
                 } else {
                     if (status == WaypointState.CANCELLED && goingCounter >= resendRate) {
                         System.out.println("Waypoint was resent, old observer done");
