@@ -466,9 +466,14 @@ public class AirboatImpl extends AbstractVehicleServer {
 
  			@Override
 			public void run() {
-				int iFrame = 0;
+ 				int iFrame = 0;
 
-				while (isCapturing.get() && (iFrame < numFrames)) {
+ 				// Report the new imaging job in the log file
+				logger.info("IMG: " + numFrames + " @ " + interval + "s, " +
+						width + " x " + height);
+ 				
+				while (isCapturing.get()
+						&& (numFrames <= 0 || iFrame < numFrames)) {
 
 					// Every so often, send out a random picture
 					sendImage(captureImage(width, height));
