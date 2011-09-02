@@ -41,6 +41,8 @@ public class BoatDebugPanel extends javax.swing.JPanel {
     }
 
     private void initComponents() {
+        
+        setLayout(new BorderLayout());
 
         _worldPanel = new SimpleWorldPanel();
         _ctrlPanel = new ControlPanel();
