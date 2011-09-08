@@ -351,16 +351,22 @@ public class BoatSimpleProxy extends Thread {
     public void setWaypoint(UtmPose wputm) {
 
         if (wputm == null) {
-            System.out.println("Null utm waypoint provided to BoatSimpleProxy");
-            return;
+            if (state == StateEnum.AREA) {
+                System.out.println("Repeating perimeter");
+                setArea(currentArea);
+                return;
+            } else {
+                System.out.println("Null utm waypoint provided to BoatSimpleProxy");
+                return;
+            }
         }
 
         if (!_server.isAutonomous()) {
             _server.setAutonomous(true);
         }
 
-        
-        
+
+
         currentWaypoint = wputm;
         _server.startWaypoint(wputm, null, new WaypointObserver() {
 
@@ -374,7 +380,7 @@ public class BoatSimpleProxy extends Thread {
                 } else if (status == WaypointState.GOING) {
                     ++goingCounter;
                     /*if (goingCounter >= resendRate) {
-                        setWaypoint(currentWaypoint);
+                    setWaypoint(currentWaypoint);
                     }*/
                     System.out.println("GOING");
                 } else {
@@ -382,7 +388,7 @@ public class BoatSimpleProxy extends Thread {
                         System.out.println("Waypoint was resent, old observer done");
                     } else {
                         System.out.println("Unhandled STATUS: " + status);
-                    }   
+                    }
                 }
             }
         });
@@ -391,7 +397,9 @@ public class BoatSimpleProxy extends Thread {
 
     public void setArea(Polygon poly) {
 
-        clearRenderables();
+        if (currentArea != poly) {
+            clearRenderables();
+        }
 
         ShapeAttributes normalAttributes = new BasicShapeAttributes();
         normalAttributes.setInteriorMaterial(new Material(color));
