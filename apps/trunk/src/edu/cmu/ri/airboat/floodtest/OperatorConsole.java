@@ -53,6 +53,7 @@ public class OperatorConsole {
     static RenderableLayer polyLayer = new RenderableLayer();
     static public boolean assigningArea = false;
     static public boolean assigningPath = false;
+    static public boolean settingWaterLevel = false;
 
     public OperatorConsole() {
 
@@ -224,7 +225,7 @@ public class OperatorConsole {
                 public void mouseReleased(MouseEvent me) {
                     super.mouseReleased(me);
 
-                    if (selectedProxy == null) {
+                    if (selectedProxy == null && !settingWaterLevel) {
                         return;
                     }
 
@@ -292,10 +293,7 @@ public class OperatorConsole {
                                 pLine = null;
                             }
                         }
-                    }
-
-                    // Areas
-                    if (assigningArea) {
+                    } else if (assigningArea) {
 
                         if (me.getClickCount() == 1) {
                             System.out.println("Point for shape: " + pickPos);
@@ -342,6 +340,39 @@ public class OperatorConsole {
 
                             assigningArea = false;
                         }
+                    } else if (settingWaterLevel) {
+                        
+                        System.out.println("Setting water level");
+                        
+                        final Position fPickPos = pickPos;
+                        (new Thread () {
+                            public void run() {
+                                Polygon water = getWaterLevel(fPickPos);
+                                polyLayer.addRenderable(water);
+                                settingWaterLevel = false;
+                            }
+
+                            private Polygon getWaterLevel(Position fPickPos) {
+                                ArrayList<Position> shapeParams = new ArrayList<Position>();
+                                
+                                // Dummy code - Arnav replace this
+                                int height = 1000;
+                                Position f0 = new Position(fPickPos.getLatitude(), fPickPos.getLongitude(), fPickPos.elevation + height);
+                                Position f1 = new Position(fPickPos.getLatitude().addDegrees(1.0), fPickPos.getLongitude(), fPickPos.elevation + height);
+                                Position f2 = new Position(fPickPos.getLatitude().addDegrees(1.0), fPickPos.getLongitude().addDegrees(1.0), fPickPos.elevation + height);
+                                Position f3 = new Position(fPickPos.getLatitude(), fPickPos.getLongitude().addDegrees(1.0), fPickPos.elevation + height);
+                                shapeParams.add(f0);
+                                shapeParams.add(f1);
+                                shapeParams.add(f2);
+                                shapeParams.add(f3);              
+                                // End dummy code
+                                
+                                Polygon p = new Polygon(shapeParams);
+                                p.setAltitudeMode(WorldWind.ABSOLUTE);
+                                
+                                return p;
+                            }
+                        }).start();
                     }
                 }
 
