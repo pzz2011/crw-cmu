@@ -6,7 +6,7 @@ There are two primary types of connectors available on the vehicles, a *sensor* 
 
 = Sensor Connector =
 
-The sensor connector is a watertight DB9 male connector that contains +5V DC @ 100ma power, a 0-5V analog input, two digital control lines, and a bidirectional TTL serial port.
+The sensor connector is a watertight DB9 male connector that contains +5V DC @ 100ma power, a 0-5V analog input, three digital control lines, and a bidirectional TTL serial port.
 
 *Note: The current connector implements a TTL-level serial port, and CANNOT handle RS-232 signal levels.  We may address RS-232 devices in future revisions, but currently, only TTL communication is supported.*
 
