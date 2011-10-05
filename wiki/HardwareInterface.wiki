@@ -12,16 +12,16 @@ The sensor connector is a watertight DB9 male connector that contains +5V DC @ 1
 
 https://docs.google.com/drawings/pub?id=11yK39E0AoaIxRG4ufvyOBV01eJktsC9YZTZWsP7ulxQ&w=253&h=181&fake.png
 
-|| *Pin* || *Serial Port Function* || *Description* ||
-|| 1 || Data Carrier Detect || GND ||
-|| 2 || Received Data || TTL TX (Output) ||
-|| 3 || Transmitted Data || TTL RX (Input) ||
-|| 4 || Data Terminal Ready || N/C ||
-|| 5 || Signal Ground || N/C ||
-|| 6 || Data Set Ready || GND ||
-|| 7 || Request to Send || +5V (@ 100 ma) ||
-|| 8 || Clear to Send || (0-5V) Analog Input ||
-|| 9 || Ring Indicator || N/C ||
+|| *Pin* <wiki:comment>|| *Serial Port Function* </wiki:comment>|| *Description* ||
+|| 1 <wiki:comment>|| Data Carrier Detect </wiki:comment>|| GND ||
+|| 2 <wiki:comment>|| Received Data </wiki:comment>|| TTL TX (Output) ||
+|| 3 <wiki:comment>|| Transmitted Data </wiki:comment>|| TTL RX (Input) ||
+|| 4 <wiki:comment>|| Data Terminal Ready </wiki:comment>|| N/C ||
+|| 5 <wiki:comment>|| Signal Ground </wiki:comment>|| N/C ||
+|| 6 <wiki:comment>|| Data Set Ready </wiki:comment>|| GND ||
+|| 7 <wiki:comment>|| Request to Send </wiki:comment>|| +5V (@ 100 ma) ||
+|| 8 <wiki:comment>|| Clear to Send </wiki:comment>|| (0-5V) Analog Input ||
+|| 9 <wiki:comment>|| Ring Indicator </wiki:comment>|| N/C ||
 
 = Motor Connector =
 
