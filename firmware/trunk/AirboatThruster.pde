@@ -23,7 +23,6 @@ int tIndx = 0;
 
 int send_thruster_cnt = 6;
 
-// Arm the speed controller
 void armThruster()
 {  
   thruster.write(1000);  
