@@ -53,7 +53,7 @@ void updateRudder()
   if (rPID > RMAX)
       rPID = RMAX;
       
-  pos = map((int)rPID,RMIN, RMAX, 30, 150);
+  pos = map((int)rPID,RMIN, RMAX, 150, 30);
   
   rudder.write(pos);
   
