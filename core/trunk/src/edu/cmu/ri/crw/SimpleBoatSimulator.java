@@ -1,18 +1,15 @@
 package edu.cmu.ri.crw;
 
+import edu.cmu.ri.crw.data.SensorData;
+import edu.cmu.ri.crw.data.Twist;
+import edu.cmu.ri.crw.data.UtmPose;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.ros.message.crwlib_msgs.SensorData;
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
-import org.ros.message.geometry_msgs.Pose;
-import org.ros.message.geometry_msgs.Twist;
-import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
-import org.ros.message.sensor_msgs.CompressedImage;
+import robotutils.Pose3D;
+import robotutils.Quaternion;
 
 /**
  * A simple simulation of an unmanned boat.
@@ -33,7 +30,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	public static final int UPDATE_INTERVAL_MS = 100;
 
 	public final SensorType[] _sensorTypes = new SensorType[3];
-	public UtmPoseWithCovarianceStamped _pose = new UtmPoseWithCovarianceStamped();
+	public UtmPose _pose = new UtmPose();
 	public Twist _velocity = new Twist();
 	public UtmPose _waypoint = null;
 
@@ -60,39 +57,34 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 				while (true) {
 					try {
-						Thread.sleep(UPDATE_INTERVAL_MS);
+                                            Thread.sleep(UPDATE_INTERVAL_MS);
 					} catch (InterruptedException e) {
 					}
 
 					// Send out pose updates
-					UtmPoseWithCovarianceStamped pose = new UtmPoseWithCovarianceStamped();
-					pose.pose.pose.pose = _pose.pose.pose.pose.clone();
-					pose.utm = _pose.utm.clone();
+					UtmPose pose = _pose.clone();
 					sendState(pose);
 
 					// Send out velocity updates
-					TwistWithCovarianceStamped velocity = new TwistWithCovarianceStamped();
-					velocity.twist.twist = _velocity.clone();
+					Twist velocity = _velocity.clone();
 					sendVelocity(velocity);
 
 					// Move in an arc with given velocity over time interval
-					double yaw = QuaternionUtils.toYaw(_pose.pose.pose.pose.orientation);
-					_pose.pose.pose.pose.position.x += _velocity.linear.x
-							* Math.cos(yaw) * dt;
-					_pose.pose.pose.pose.position.y += _velocity.linear.x
-							* Math.sin(yaw) * dt;
-					_pose.pose.pose.pose.orientation = QuaternionUtils.fromEulerAngles(
-							0, 0, yaw + _velocity.angular.z * dt);
+					double yaw = pose.pose.getRotation().toYaw();
+					double x = _pose.pose.getX() + _velocity.dx() * Math.cos(yaw) * dt;
+					double y = _pose.pose.getY() + _velocity.dx() * Math.sin(yaw) * dt;
+					Quaternion q = Quaternion.fromEulerAngles(0, 0, yaw + _velocity.drz() * dt);
+                                        _pose.pose = new Pose3D(x, y, _pose.pose.getZ(), q);
 
 					// Generate spurious sensor data
 					SensorData reading = new SensorData();
 					reading.data = new double[3];
-					reading.type = (byte) SensorType.TE.ordinal();
+					reading.type = SensorType.TE;
 
 					Random random = new Random();
-					reading.data[0] = (_pose.pose.pose.pose.position.x) + 10*random.nextGaussian();
-					reading.data[1] = (_pose.pose.pose.pose.position.y);
-					reading.data[2] = (_pose.pose.pose.pose.position.z);
+					reading.data[0] = (_pose.pose.getX()) + 10*random.nextGaussian();
+					reading.data[1] = (_pose.pose.getY());
+					reading.data[2] = (_pose.pose.getZ());
 
 					sendSensor(0, reading);
 				}
@@ -101,7 +93,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public CompressedImage captureImage(int width, int height) {
+	public byte[] captureImage(int width, int height) {
 
 		// Create an image and fill it with a random color
 		BufferedImage image = new BufferedImage(width, height,
@@ -133,8 +125,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 	@Override
 	public void setState(UtmPose state) {
-		_pose.utm = state.utm.clone();
-		_pose.pose.pose.pose = state.pose.clone();
+            _pose = state.clone();
 	}
 
 	@Override
@@ -144,7 +135,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		
 		// Keep a reference to the navigation flag for THIS waypoint
 		final AtomicBoolean isNavigating = new AtomicBoolean(true);
-		System.out.println("\nStart Waypoint to " + waypoint.pose.position.x);
+		System.out.println("\nStart Waypoint to " + waypoint);
 		// Set this to be the current navigation flag
 		synchronized (_navigationLock) {
 			if (_isNavigating != null)
@@ -170,8 +161,8 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 						
 						// Get the position of the vehicle and the waypoint
 						// TODO: fix threading issue (fast stop/start)
-						Pose pose = _pose.pose.pose.pose;
-						Pose wpPose = _waypoint.pose;
+						Pose3D pose = _pose.pose;
+						Pose3D wpPose = _waypoint.pose;
 	
 						// TODO: handle different UTM zones!
 						// Figure out how to drive to waypoint
@@ -181,7 +172,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 						
 						// Check for termination condition
 						// TODO: termination conditions tested by controller
-						double dist = distToGoal(pose, wpPose);
+						double dist = pose.getEuclideanDistance(wpPose);
 						
 						if (dist <= 6.0) 
 							{
@@ -197,12 +188,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 				}
 				
 				// Stop the vehicle
-				_velocity.linear.x = 0.0;
-				_velocity.linear.y = 0.0;
-				_velocity.linear.z = 0.0;
-				_velocity.angular.x = 0.0;
-				_velocity.angular.y = 0.0;
-				_velocity.angular.z = 0.0;
+				_velocity = new Twist();
 				
 				// Upon completion, report status 
 				// (if isNavigating is still true, we completed on our own)
@@ -322,20 +308,9 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 		}
 	}
 
-	double distToGoal(Pose x, Pose y) {
-		double x1 = x.position.x, x2 = x.position.y, x3 = 0.0;//x.position.z;
-		double y1 = y.position.x, y2 = y.position.y, y3 = 0.0;//y.position.z;
-
-		return Math.sqrt(Math.pow(x1 - y1, 2) + Math.pow(x2 - y2, 2)
-				+ Math.pow(x3 - y3, 2));
-	}
-
 	@Override
-	public UtmPoseWithCovarianceStamped getState() {
-		UtmPoseWithCovarianceStamped stateMsg = new UtmPoseWithCovarianceStamped();
-		stateMsg.utm = _pose.utm.clone();
-		stateMsg.pose.pose.pose = _pose.pose.pose.pose.clone();
-		return stateMsg;
+	public UtmPose getState() {
+		return _pose.clone();
 	}
 
 	@Override
@@ -349,10 +324,8 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public TwistWithCovarianceStamped getVelocity() {
-		TwistWithCovarianceStamped velMsg = new TwistWithCovarianceStamped();
-		velMsg.twist.twist = _velocity.clone();
-		return velMsg;
+	public Twist getVelocity() {
+		return _velocity.clone();
 	}
 
 	/**

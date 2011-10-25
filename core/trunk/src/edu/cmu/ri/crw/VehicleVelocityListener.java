@@ -1,9 +1,8 @@
 package edu.cmu.ri.crw;
 
+import edu.cmu.ri.crw.data.Twist;
 import java.util.EventListener;
 
-import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
-
 public interface VehicleVelocityListener extends EventListener {
-	public void receivedVelocity(TwistWithCovarianceStamped velocity);
+	public void receivedVelocity(Twist velocity);
 }

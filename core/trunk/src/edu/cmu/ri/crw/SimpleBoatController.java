@@ -1,12 +1,8 @@
 package edu.cmu.ri.crw;
 
-
-
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
-import org.ros.message.geometry_msgs.Pose;
-import org.ros.message.geometry_msgs.Twist;
-
+import edu.cmu.ri.crw.data.Twist;
+import edu.cmu.ri.crw.data.UtmPose;
+import robotutils.Pose3D;
 
 /**
  * A library of available navigation controllers that are accessible through the
@@ -30,22 +26,20 @@ public enum SimpleBoatController {
 			Twist twist = new Twist();
 
 			// Get the position of the vehicle and the waypoint
-			UtmPoseWithCovarianceStamped state = server.getState();
-			Pose pose = state.pose.pose.pose;
+			UtmPose state = server.getState();
+			Pose3D pose = state.pose;
 
 			UtmPose waypointState = server.getWaypoint();
-			Pose waypoint = waypointState.pose;
+			Pose3D waypoint = waypointState.pose;
 
 			// TODO: handle different UTM zones!
 
 			// Compute the distance and angle to the waypoint
 			// TODO: compute distance more efficiently
-			double distance = Math.sqrt(Math.pow(
-					(waypoint.position.x - pose.position.x), 2)
-					+ Math.pow((waypoint.position.y - pose.position.y), 2));
-			double angle = Math.atan2((waypoint.position.y - pose.position.y),
-					(waypoint.position.x - pose.position.x))
-					- QuaternionUtils.toYaw(pose.orientation);
+			double distance = waypoint.getEuclideanDistance(pose);
+			double angle = Math.atan2((waypoint.getY() - pose.getY()),
+					(waypoint.getX() - pose.getX()))
+					- pose.getRotation().toYaw();
 			angle = normalizeAngle(angle);
 
 			// Choose driving behavior depending on direction and and where we
@@ -53,13 +47,13 @@ public enum SimpleBoatController {
 			if (Math.abs(angle) > 1.0) {
 
 				// If we are facing away, turn around first
-				twist.linear.x = 0.5;
-				twist.angular.z = Math.max(Math.min(angle / 1.0, 1.0), -1.0);
+				twist.dx(0.5);
+				twist.drz(Math.max(Math.min(angle / 1.0, 1.0), -1.0));
 			} else if (distance >= 3.0) {
 
 				// If we are far away, drive forward and turn
-				twist.linear.x = Math.min(distance / 10.0, 1.0);
-				twist.angular.z = Math.max(Math.min(angle / 10.0, 1.0), -1.0);
+				twist.dx(Math.min(distance / 10.0, 1.0));
+				twist.drz(Math.max(Math.min(angle / 10.0, 1.0), -1.0));
 			}
 
 			// Set the desired velocity
@@ -92,32 +86,30 @@ public enum SimpleBoatController {
 		public void update(VehicleServer server, double dt) {
 			Twist twist = new Twist();
 			// Get the position of the vehicle and the waypoint
-			UtmPoseWithCovarianceStamped state = server.getState();
-			Pose pose = state.pose.pose.pose;
+			UtmPose state = server.getState();
+			Pose3D pose = state.pose;
 			UtmPose waypointState = server.getWaypoint();
-			Pose waypoint = waypointState.pose;
+			Pose3D waypoint = waypointState.pose;
 
 			// TODO: handle different UTM zones!
 			// Compute the distance and angle to the waypoint
 			// TODO: compute distance more efficiently
-			double distance = Math.sqrt(Math.pow(
-					(waypoint.position.x - pose.position.x), 2)
-					+ Math.pow((waypoint.position.y - pose.position.y), 2));
-			double angle = Math.atan2((waypoint.position.y - pose.position.y),
-					(waypoint.position.x - pose.position.x))
-					- QuaternionUtils.toYaw(pose.orientation);
+			double distance = waypoint.getEuclideanDistance(pose);
+			double angle = Math.atan2((waypoint.getY() - pose.getY()),
+					(waypoint.getX() - pose.getX())
+					- pose.getRotation().toYaw());
 			angle = normalizeAngle(angle);
 
 			// Choose driving behavior depending on direction and and where we
 			// are
 			if (Math.abs(angle) > 1.0) {
 				// If we are facing away, turn around first
-				twist.linear.x = 0.5;
-				twist.angular.z = Math.max(Math.min(angle / 1.0, 1.0), -1.0);
+				twist.dx(0.5);
+				twist.drz(Math.max(Math.min(angle / 1.0, 1.0), -1.0));
 			} else if (distance >= 3.0) {
 				// If we are far away, drive forward and turn
-				twist.linear.x = Math.min(distance / 10.0, 1.0);
-				twist.angular.z = Math.max(Math.min(angle / 10.0, 1.0), -1.0);
+				twist.dx(Math.min(distance / 10.0, 1.0));
+				twist.drz(Math.max(Math.min(angle / 10.0, 1.0), -1.0));
 			}
 
 			// Set the desired velocity
@@ -176,7 +168,7 @@ public enum SimpleBoatController {
 	 * @param method The Planning Method to be implemented
 	 * @return A weight of novelty between 0 and 1
 	 */
-	static double isNovel(Pose pose, Pose waypoint, PlanningMethod method ) {
+	static double isNovel(Pose3D pose, Pose3D waypoint, PlanningMethod method ) {
 
 		final double CAMERA_AOV = Math.PI/180.0f*30;	//Assuming that the angle of view of the camera is 30 Degrees
 		final double OVERLAP_RATIO = 0.8f;
@@ -193,10 +185,10 @@ public enum SimpleBoatController {
 				 */
 				
 				//No need to worry about the waypoint, inconsequential
-				double angle  = Math.abs(QuaternionUtils.toYaw(pose.orientation) - QuaternionUtils.toYaw(lastPose.pose.orientation));
+				double angle  = Math.abs(pose.getRotation().toYaw() - lastPose.pose.getRotation().toYaw());
 				double distance = Math.sqrt(
-						(lastPose.pose.position.x - pose.position.x)*(lastPose.pose.position.x - pose.position.x)
-						+ (lastPose.pose.position.y - pose.position.y)*(lastPose.pose.position.y - pose.position.y));
+						(lastPose.pose.getX() - pose.getX())*(lastPose.pose.getX() - pose.getX())
+						+ (lastPose.pose.getY() - pose.getY())*(lastPose.pose.getY() - pose.getY()));
 				
 				//Assign half weight to yaw, and half to distance
 				

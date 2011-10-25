@@ -1,9 +1,8 @@
 package edu.cmu.ri.crw;
 
+import edu.cmu.ri.crw.data.UtmPose;
 import java.util.EventListener;
 
-import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
-
 public interface VehicleStateListener extends EventListener {
-	public void receivedState(UtmPoseWithCovarianceStamped state);
+	public void receivedState(UtmPose state);
 }
