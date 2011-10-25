@@ -20,7 +20,10 @@ public abstract class AbstractVehicleServer implements VehicleServer {
     protected final List<ImageListener> _imageListeners = new ArrayList<ImageListener>();
     protected final List<VelocityListener> _velocityListeners = new ArrayList<VelocityListener>();
     protected final List<PoseListener> _stateListeners = new ArrayList<PoseListener>();
+    protected final List<CameraListener> _cameraListeners = new ArrayList<CameraListener>();
+    protected final List<WaypointListener> _waypointListeners = new ArrayList<WaypointListener>();
 
+    @Override
     public double[] getGains(int axis) {
         if (axis < 0 || axis >= _gains.length) {
             return new double[0];
@@ -32,6 +35,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         return gains;
     }
 
+    @Override
     public void setGains(int axis, double[] gains) {
         if (axis < 0 || axis >= _gains.length) {
             return;
@@ -41,12 +45,14 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         System.arraycopy(gains, 0, _gains[axis], 0, Math.min(gains.length, _gains[axis].length));
     }
 
+    @Override
     public void addStateListener(PoseListener l) {
         synchronized (_stateListeners) {
             _stateListeners.add(l);
         }
     }
 
+    @Override
     public void removeStateListener(PoseListener l) {
         synchronized (_stateListeners) {
             _stateListeners.remove(l);
@@ -63,12 +69,14 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         }
     }
 
+    @Override
     public void addImageListener(ImageListener l) {
         synchronized (_imageListeners) {
             _imageListeners.add(l);
         }
     }
 
+    @Override
     public void removeImageListener(ImageListener l) {
         synchronized (_imageListeners) {
             _imageListeners.remove(l);
@@ -83,7 +91,6 @@ public abstract class AbstractVehicleServer implements VehicleServer {
             ImageIO.write(image, "jpeg", buffer);
             return buffer.toByteArray();
         } catch (IOException ex) {
-            ex.printStackTrace();
             return null;
         }
     }
@@ -96,6 +103,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         }
     }
 
+    @Override
     public void addSensorListener(int channel, SensorListener l) {
         synchronized (_sensorListeners) {
             // If there were no previous listeners for the channel, create a list
@@ -108,6 +116,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         }
     }
 
+    @Override
     public void removeSensorListener(int channel, SensorListener l) {
         synchronized (_sensorListeners) {
             // If there is no list of listeners, there is nothing to remove
@@ -139,12 +148,14 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         }
     }
 
+    @Override
     public void addVelocityListener(VelocityListener l) {
         synchronized (_velocityListeners) {
             _velocityListeners.add(l);
         }
     }
 
+    @Override
     public void removeVelocityListener(VelocityListener l) {
         synchronized (_velocityListeners) {
             _velocityListeners.remove(l);
@@ -155,6 +166,54 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         synchronized (_velocityListeners) {
             for (VelocityListener l : _velocityListeners) {
                 l.receivedVelocity(velocity);
+            }
+        }
+    }
+
+    @Override
+    public void addCameraListener(CameraListener l) {
+        synchronized (_cameraListeners) {
+            _cameraListeners.add(l);
+        }
+    }
+
+    @Override
+    public void removeCameraListener(CameraListener l) {
+        synchronized (_cameraListeners) {
+            _cameraListeners.remove(l);
+        }
+    }
+    
+    protected void sendCamera(CameraState status) {
+        // Process the listeners last to first, notifying
+        // those that are interested in this event
+        synchronized (_cameraListeners) {
+            for (CameraListener l : _cameraListeners) {
+                l.imagingUpdate(status);
+            }
+        }
+    }
+
+    @Override
+    public void addWaypointListener(WaypointListener l) {
+        synchronized (_waypointListeners) {
+            _waypointListeners.add(l);
+        }
+    }
+
+    @Override
+    public void removeWaypointListener(WaypointListener l) {
+        synchronized (_waypointListeners) {
+            _waypointListeners.remove(l);
+        }
+    }
+    
+    protected void sendWaypointUpdate(WaypointState status) {
+        // Process the listeners last to first, notifying
+        // those that are interested in this event
+        synchronized (_waypointListeners) {
+            for (WaypointListener l : _waypointListeners) {
+                l.waypointUpdate(status);
             }
         }
     }
