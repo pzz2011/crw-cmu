@@ -112,7 +112,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public UtmPose getWaypoint() {
+	public UtmPose getWaypoints() {
 		synchronized (_navigationLock) {
 			return _waypoint;
 		}
@@ -129,7 +129,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startWaypoint(final UtmPose waypoint, final String controller, final WaypointObserver obs) {
+	public void startWaypoints(final UtmPose waypoint, final String controller, final WaypointListener obs) {
 
 		final double dt = (double)UPDATE_INTERVAL_MS / 1000.0;
 		
@@ -210,7 +210,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void stopWaypoint() {
+	public void stopWaypoints() {
 
 		// Stop the thread that is doing the "navigation" by terminating its
 		// navigation flag and then removing the reference to the old flag.
@@ -238,7 +238,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
 	@Override
 	public void startCamera(final long numFrames, final double interval,
-			final int width, final int height, final ImagingObserver obs) {
+			final int width, final int height, final CameraListener obs) {
 
 		// Keep a reference to the capture flag for THIS capture process
 		final AtomicBoolean isCapturing = new AtomicBoolean(true);

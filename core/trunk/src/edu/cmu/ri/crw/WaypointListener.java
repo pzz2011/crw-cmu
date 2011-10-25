@@ -2,6 +2,6 @@ package edu.cmu.ri.crw;
 
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 
-public interface WaypointObserver {
+public interface WaypointListener {
 	public void waypointUpdate(WaypointState status);
 }

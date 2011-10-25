@@ -5,41 +5,47 @@ import edu.cmu.ri.crw.data.UtmPose;
 
 public interface VehicleServer {
 	
-	public enum SensorType { ANALOG, DIGITAL, TE, UNKNOWN };
+	public enum SensorType { ANALOG, DIGITAL, TE, WATERCANARY, BATTERY, UNKNOWN };
 	public enum WaypointState { GOING, DONE, CANCELLED, OFF, UNKNOWN };
 	public enum CameraState { CAPTURING, DONE, CANCELLED, OFF, UNKNOWN };
 
-	public void addStateListener(VehicleStateListener l);
-	public void removeStateListener(VehicleStateListener l);
+	public void addStateListener(PoseListener l);
+	public void removeStateListener(PoseListener l);
 	public void setState(UtmPose state);
 	public UtmPose getState();
 	
-	public void addImageListener(VehicleImageListener l);
-	public void removeImageListener(VehicleImageListener l);
-	public void startCamera(long numFrames, double interval, int width, int height, ImagingObserver obs);
+	public void addImageListener(ImageListener l);
+	public void removeImageListener(ImageListener l);
+        public byte[] captureImage(int width, int height);
+        
+        public void addCameraListener(CameraListener l);
+	public void removeCameraListener(CameraListener l);
+	public void startCamera(long numFrames, double interval, int width, int height);
 	public void stopCamera();
-	public byte[] captureImage(int width, int height);
 	public CameraState getCameraStatus();
 	
-	public void addSensorListener(int channel, VehicleSensorListener l);
-	public void removeSensorListener(int channel, VehicleSensorListener l);
+	public void addSensorListener(int channel, SensorListener l);
+	public void removeSensorListener(int channel, SensorListener l);
 	public void setSensorType(int channel, SensorType type);
 	public SensorType getSensorType(int channel);
 	public int getNumSensors();
 	
-	public void addVelocityListener(VehicleVelocityListener l);
-	public void removeVelocityListener(VehicleVelocityListener l);
+	public void addVelocityListener(VelocityListener l);
+	public void removeVelocityListener(VelocityListener l);
 	public void setVelocity(Twist velocity);
 	public Twist getVelocity();
 	
-	public boolean isAutonomous();
-	public void setAutonomous(boolean auto);
-	
-	public void startWaypoint(UtmPose waypoint, String controller, WaypointObserver obs);
-	public void stopWaypoint();
-	public UtmPose getWaypoint();
+        public void addWaypointListener(WaypointListener l);
+	public void removeWaypointListener(WaypointListener l);
+	public void startWaypoints(UtmPose[] waypoint, String controller);
+	public void stopWaypoints();
+	public UtmPose[] getWaypoints();
 	public WaypointState getWaypointStatus();
 	
+        public boolean isConnected();
+        public boolean isAutonomous();
+	public void setAutonomous(boolean auto);
+        
 	public void setGains(int axis, double[] gains);
 	public double[] getGains(int axis);
 }

@@ -29,7 +29,7 @@ public enum SimpleBoatController {
 			UtmPose state = server.getState();
 			Pose3D pose = state.pose;
 
-			UtmPose waypointState = server.getWaypoint();
+			UtmPose waypointState = server.getWaypoints();
 			Pose3D waypoint = waypointState.pose;
 
 			// TODO: handle different UTM zones!
@@ -88,7 +88,7 @@ public enum SimpleBoatController {
 			// Get the position of the vehicle and the waypoint
 			UtmPose state = server.getState();
 			Pose3D pose = state.pose;
-			UtmPose waypointState = server.getWaypoint();
+			UtmPose waypointState = server.getWaypoints();
 			Pose3D waypoint = waypointState.pose;
 
 			// TODO: handle different UTM zones!
