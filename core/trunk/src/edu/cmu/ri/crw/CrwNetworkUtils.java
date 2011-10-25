@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.ros.address.InetAddressFactory;
-
 /**
  * Contains network utility functions for finding hosts, interfaces, etc. 
  * 
@@ -98,10 +96,11 @@ public class CrwNetworkUtils {
 		addr = CrwNetworkUtils.getAddrForNeighbor(externalHost);
 		
 		// If that fails, go for any non-loopback IPv4 address
-		if (addr == null) addr = InetAddressFactory.newNonLoopback();
-		
-		// If that fails, settle for a loopback address
-		if (addr == null) addr = InetAddressFactory.newLoopback();
+		if (addr == null) {
+                    try {
+                         addr = InetAddress.getLocalHost();
+                    } catch (UnknownHostException ex) {}
+                }
 		
 		// If THAT fails, we are done here
 		return (addr == null) ? null : addr.getHostAddress();

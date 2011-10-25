@@ -1,7 +1,6 @@
 package edu.cmu.ri.crw;
 
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
+import edu.cmu.ri.crw.data.UtmPose;
 
 /**
  * Represents a 6D inertial state estimator that can handle updates from
@@ -35,7 +34,7 @@ public interface VehicleFilter {
          * @param time the current time in milliseconds
          * @return the estimated pose of the vehicle in UTM coordinates
          */
-        public UtmPoseWithCovarianceStamped pose(long time);
+        public UtmPose pose(long time);
 
         // TODO: change GPS update to include covariance of reading 
         /**

@@ -1,8 +1,8 @@
 package edu.cmu.ri.crw;
 
+import edu.cmu.ri.crw.data.SensorData;
+import java.io.Serializable;
 import java.util.EventListener;
-
-import org.ros.message.crwlib_msgs.SensorData;
 
 public interface VehicleSensorListener extends EventListener {
 	public void receivedSensor(SensorData sensor);
