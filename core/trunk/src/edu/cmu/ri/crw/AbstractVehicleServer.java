@@ -16,10 +16,10 @@ import javax.imageio.ImageIO;
 public abstract class AbstractVehicleServer implements VehicleServer {
 
     protected double[][] _gains = new double[6][3];
-    protected final Map<Integer, List<VehicleSensorListener>> _sensorListeners = new TreeMap<Integer, List<VehicleSensorListener>>();
-    protected final List<VehicleImageListener> _imageListeners = new ArrayList<VehicleImageListener>();
-    protected final List<VehicleVelocityListener> _velocityListeners = new ArrayList<VehicleVelocityListener>();
-    protected final List<VehicleStateListener> _stateListeners = new ArrayList<VehicleStateListener>();
+    protected final Map<Integer, List<SensorListener>> _sensorListeners = new TreeMap<Integer, List<SensorListener>>();
+    protected final List<ImageListener> _imageListeners = new ArrayList<ImageListener>();
+    protected final List<VelocityListener> _velocityListeners = new ArrayList<VelocityListener>();
+    protected final List<PoseListener> _stateListeners = new ArrayList<PoseListener>();
 
     public double[] getGains(int axis) {
         if (axis < 0 || axis >= _gains.length) {
@@ -41,13 +41,13 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         System.arraycopy(gains, 0, _gains[axis], 0, Math.min(gains.length, _gains[axis].length));
     }
 
-    public void addStateListener(VehicleStateListener l) {
+    public void addStateListener(PoseListener l) {
         synchronized (_stateListeners) {
             _stateListeners.add(l);
         }
     }
 
-    public void removeStateListener(VehicleStateListener l) {
+    public void removeStateListener(PoseListener l) {
         synchronized (_stateListeners) {
             _stateListeners.remove(l);
         }
@@ -57,19 +57,19 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         // Process the listeners last to first, notifying
         // those that are interested in this event
         synchronized (_stateListeners) {
-            for (VehicleStateListener l : _stateListeners) {
+            for (PoseListener l : _stateListeners) {
                 l.receivedState(pose);
             }
         }
     }
 
-    public void addImageListener(VehicleImageListener l) {
+    public void addImageListener(ImageListener l) {
         synchronized (_imageListeners) {
             _imageListeners.add(l);
         }
     }
 
-    public void removeImageListener(VehicleImageListener l) {
+    public void removeImageListener(ImageListener l) {
         synchronized (_imageListeners) {
             _imageListeners.remove(l);
         }
@@ -90,17 +90,17 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 
     protected void sendImage(byte[] image) {
         synchronized (_imageListeners) {
-            for (VehicleImageListener l : _imageListeners) {
+            for (ImageListener l : _imageListeners) {
                 l.receivedImage(image);
             }
         }
     }
 
-    public void addSensorListener(int channel, VehicleSensorListener l) {
+    public void addSensorListener(int channel, SensorListener l) {
         synchronized (_sensorListeners) {
             // If there were no previous listeners for the channel, create a list
             if (!_sensorListeners.containsKey(channel)) {
-                _sensorListeners.put(channel, new ArrayList<VehicleSensorListener>());
+                _sensorListeners.put(channel, new ArrayList<SensorListener>());
             }
 
             // Add the listener to the appropriate list
@@ -108,7 +108,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         }
     }
 
-    public void removeSensorListener(int channel, VehicleSensorListener l) {
+    public void removeSensorListener(int channel, SensorListener l) {
         synchronized (_sensorListeners) {
             // If there is no list of listeners, there is nothing to remove
             if (!_sensorListeners.containsKey(channel)) {
@@ -133,19 +133,19 @@ public abstract class AbstractVehicleServer implements VehicleServer {
             }
 
             // Notify each listener in the appropriate list
-            for (VehicleSensorListener l : _sensorListeners.get(channel)) {
+            for (SensorListener l : _sensorListeners.get(channel)) {
                 l.receivedSensor(reading);
             }
         }
     }
 
-    public void addVelocityListener(VehicleVelocityListener l) {
+    public void addVelocityListener(VelocityListener l) {
         synchronized (_velocityListeners) {
             _velocityListeners.add(l);
         }
     }
 
-    public void removeVelocityListener(VehicleVelocityListener l) {
+    public void removeVelocityListener(VelocityListener l) {
         synchronized (_velocityListeners) {
             _velocityListeners.remove(l);
         }
@@ -153,7 +153,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
 
     protected void sendVelocity(Twist velocity) {
         synchronized (_velocityListeners) {
-            for (VehicleVelocityListener l : _velocityListeners) {
+            for (VelocityListener l : _velocityListeners) {
                 l.receivedVelocity(velocity);
             }
         }
