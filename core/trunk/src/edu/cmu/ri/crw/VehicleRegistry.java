@@ -22,8 +22,6 @@ public class VehicleRegistry {
     
     private static final Charset US_ASCII = Charset.forName("US_ASCII");
     
-    public static final String CMD_REGISTER = "REGISTER";
-    public static final String CMD_UNREGISTER = "UNREGISTER";
     
     protected final InetSocketAddress _address;
     protected final DatagramSocket _socket;
@@ -39,23 +37,32 @@ public class VehicleRegistry {
         if (!_socket.isBound() || _socket.isClosed())
             throw new IllegalStateException("Socket is not open.");
         
-        String payload = CMD_REGISTER + " " + _name + " " + _address;
-        byte[] buffer = payload.getBytes(US_ASCII);
-        
-        try {
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, _address);
-            _socket.send(packet);
-        } catch(IOException ex) {
-            ex.printStackTrace();
-        }
+        send(VehicleRegistryService.CMD_REGISTER + " " + _name);
     }
     
     public void unregister(String name) {
         if (!_socket.isBound() || _socket.isClosed())
             throw new IllegalStateException("Socket is not open.");
         
-        String payload = CMD_UNREGISTER + " " + _name + " " + _address;
-        byte[] buffer = payload.getBytes(US_ASCII);
+        send(VehicleRegistryService.CMD_UNREGISTER + " " + _name);
+    }
+    
+    public void connect(String name) {
+        if (!_socket.isBound() || _socket.isClosed())
+            throw new IllegalStateException("Socket is not open.");
+        
+        send(VehicleRegistryService.CMD_CONNECT + " " + _name);
+    }
+    
+    public void list() {
+        if (!_socket.isBound() || _socket.isClosed())
+            throw new IllegalStateException("Socket is not open.");
+        
+        send(VehicleRegistryService.CMD_LIST);
+    }
+    
+    protected void send(String data) {
+        byte[] buffer = data.getBytes(US_ASCII);
         
         try {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, _address);
