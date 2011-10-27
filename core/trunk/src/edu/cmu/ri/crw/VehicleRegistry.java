@@ -34,34 +34,25 @@ public class VehicleRegistry {
     }
     
     public void register(String name) {
-        if (!_socket.isBound() || _socket.isClosed())
-            throw new IllegalStateException("Socket is not open.");
-        
         send(VehicleRegistryService.CMD_REGISTER + " " + _name);
     }
     
     public void unregister(String name) {
-        if (!_socket.isBound() || _socket.isClosed())
-            throw new IllegalStateException("Socket is not open.");
-        
         send(VehicleRegistryService.CMD_UNREGISTER + " " + _name);
     }
     
     public void connect(String name) {
-        if (!_socket.isBound() || _socket.isClosed())
-            throw new IllegalStateException("Socket is not open.");
-        
         send(VehicleRegistryService.CMD_CONNECT + " " + _name);
     }
     
     public void list() {
-        if (!_socket.isBound() || _socket.isClosed())
-            throw new IllegalStateException("Socket is not open.");
-        
         send(VehicleRegistryService.CMD_LIST);
     }
     
     protected void send(String data) {
+        if (!_socket.isBound() || _socket.isClosed())
+            throw new IllegalStateException("Socket is not open.");
+        
         byte[] buffer = data.getBytes(US_ASCII);
         
         try {
