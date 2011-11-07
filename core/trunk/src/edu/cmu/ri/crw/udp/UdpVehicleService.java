@@ -1,7 +1,8 @@
-package edu.cmu.ri.crw;
+package edu.cmu.ri.crw.udp;
 
 // TODO: finish this class!
 
+import edu.cmu.ri.crw.VehicleServer;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
