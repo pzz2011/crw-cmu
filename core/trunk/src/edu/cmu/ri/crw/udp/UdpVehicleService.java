@@ -7,7 +7,9 @@ import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -71,7 +73,7 @@ public class UdpVehicleService {
     
     protected final DatagramSocket _socket;
     protected final Object _socketLock = new Object();
-    
+
     protected final List<InetSocketAddress> _registries = new ArrayList<InetSocketAddress>();
     protected final List<InetSocketAddress> _stateListeners = new ArrayList<InetSocketAddress>();
     protected final List<InetSocketAddress> _imageListeners = new ArrayList<InetSocketAddress>();
@@ -139,6 +141,18 @@ public class UdpVehicleService {
         return new UtmPose(pose, origin);
     }
 
+    static void fromUtmPose(DataOutputStream out, UtmPose utmPose) throws IOException {
+        out.writeDouble(utmPose.pose.getX());
+        out.writeDouble(utmPose.pose.getY());
+        out.writeDouble(utmPose.pose.getZ());
+        out.writeDouble(utmPose.pose.getRotation().getW());
+        out.writeDouble(utmPose.pose.getRotation().getX());
+        out.writeDouble(utmPose.pose.getRotation().getY());
+        out.writeDouble(utmPose.pose.getRotation().getZ());
+        out.writeInt(utmPose.origin.zone);
+        out.writeBoolean(utmPose.origin.isNorth);
+    }
+
     /**
      * Listener class that received UDP packets and decodes the function calls
      * inside them.
@@ -151,8 +165,11 @@ public class UdpVehicleService {
             while (_socket.isBound() && !_socket.isClosed()) {
                 try {
                     _socket.receive(_packet);
+                    // TODO: thread this
                     
                     final DataInputStream in = new DataInputStream(new ByteArrayInputStream(_packet.getData()));
+                    final DataOutputStream out = new DataOutputStream(new ByteArrayOutputStream());
+
                     final int ticket = in.readInt();
                     final String command = in.readUTF();
                     
@@ -167,7 +184,7 @@ public class UdpVehicleService {
                                 // TODO: response
                                 break;
                             case CMD_GET_STATE:
-                                _server.getState();
+                                fromUtmPose(out, _server.getState());
                                 // TODO: response
                                 break;
                             case CMD_REGISTER_IMAGE_LISTENER:
