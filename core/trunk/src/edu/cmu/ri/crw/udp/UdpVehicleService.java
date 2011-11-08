@@ -3,6 +3,13 @@ package edu.cmu.ri.crw.udp;
 // TODO: finish this class!
 
 import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.data.Twist;
+import edu.cmu.ri.crw.data.Utm;
+import edu.cmu.ri.crw.data.UtmPose;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
@@ -10,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import robotutils.Pose3D;
 
 /**
  * A service that registers a vehicle server over UDP to allow control over the 
@@ -21,6 +29,42 @@ public class UdpVehicleService {
     private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
     
     public static final int REGISTRATION_RATE_MS = 5000;
+    public static final int PACKET_SIZE = 32767;
+
+    public enum COMMAND {
+        CMD_REGISTER_STATE_LISTENER("RSTL"),
+        CMD_SET_STATE("SS"),
+        CMD_GET_STATE("GS"),
+        CMD_REGISTER_IMAGE_LISTENER("RIL"),
+        CMD_CAPTURE_IMAGE("CI"),
+        CMD_REGISTER_CAMERA_LISTENER("CIL"),
+        CMD_START_CAMERA("STC"),
+        CMD_STOP_CAMERA("SPC"),
+        CMD_GET_CAMERA_STATUS("CS"),
+        CMD_REGISTER_SENSOR_LISTENER("RSEL"),
+        CMD_SET_SENSOR_TYPE("SST"),
+        CMD_GET_SENSOR_TYPE("GST"),
+        CMD_GET_NUM_SENSORS("GNS"),
+        CMD_REGISTER_VELOCITY_LISTENER("RVL"),
+        CMD_SET_VELOCITY("SV"),
+        CMD_GET_VELOCITY("GV"),
+        CMD_REGISTER_WAYPOINT_LISTENER("RWL"),
+        CMD_START_WAYPOINTS("STW"),
+        CMD_STOP_WAYPOINTS("SPW"),
+        CMD_GET_WAYPOINTS("GW"),
+        CMD_GET_WAYPOINT_STATUS("GWS"),
+        CMD_IS_CONNECTED("IC"),
+        CMD_IS_AUTONOMOUS("IA"),
+        CMD_SET_AUTONOMOUS("SA"),
+        CMD_SET_GAINS("SG"),
+        CMD_GET_GAINS("GG");
+
+        COMMAND(String s) {
+            str = s;
+        }
+
+        public final String str;
+    }
     
     protected VehicleServer _server;
     protected final Object _serverLock = new Object();
@@ -29,7 +73,13 @@ public class UdpVehicleService {
     protected final Object _socketLock = new Object();
     
     protected final List<InetSocketAddress> _registries = new ArrayList<InetSocketAddress>();
-    
+    protected final List<InetSocketAddress> _stateListeners = new ArrayList<InetSocketAddress>();
+    protected final List<InetSocketAddress> _imageListeners = new ArrayList<InetSocketAddress>();
+    protected final List<InetSocketAddress> _cameraListeners = new ArrayList<InetSocketAddress>();
+    protected final List<InetSocketAddress> _sensorListeners = new ArrayList<InetSocketAddress>();
+    protected final List<InetSocketAddress> _velocityListeners = new ArrayList<InetSocketAddress>();
+    protected final List<InetSocketAddress> _waypointListeners = new ArrayList<InetSocketAddress>();
+
     public UdpVehicleService() {
         _server = null;
         
@@ -77,7 +127,160 @@ public class UdpVehicleService {
             return _registries.toArray(new InetSocketAddress[0]);
         }
     }
-    
+
+    void respondVoid() {
+        
+    }
+
+    static UtmPose toUtmPose(DataInputStream in) throws IOException {
+        Pose3D pose = new Pose3D(in.readDouble(), in.readDouble(), in.readDouble(),
+                in.readDouble(), in.readDouble(), in.readDouble(), in.readDouble());
+        Utm origin = new Utm(in.readInt(), in.readBoolean());
+        return new UtmPose(pose, origin);
+    }
+
+    /**
+     * Listener class that received UDP packets and decodes the function calls
+     * inside them.
+     */
+    class UdpListener implements Runnable {
+        private final DatagramPacket _packet = new DatagramPacket(new byte[PACKET_SIZE], PACKET_SIZE);
+
+        @Override
+        public void run() {
+            while (_socket.isBound() && !_socket.isClosed()) {
+                try {
+                    _socket.receive(_packet);
+                    
+                    final DataInputStream in = new DataInputStream(new ByteArrayInputStream(_packet.getData()));
+                    final int ticket = in.readInt();
+                    final String command = in.readUTF();
+                    
+                    try {
+                        switch (COMMAND.valueOf(command)) {
+                            case CMD_REGISTER_STATE_LISTENER:
+                                // TODO: registration
+                                // TODO: response
+                                break;
+                            case CMD_SET_STATE:
+                                _server.setState(toUtmPose(in));
+                                // TODO: response
+                                break;
+                            case CMD_GET_STATE:
+                                _server.getState();
+                                // TODO: response
+                                break;
+                            case CMD_REGISTER_IMAGE_LISTENER:
+                                // TODO: registration
+                                // TODO: response
+                                break;
+                            case CMD_CAPTURE_IMAGE:
+                                _server.captureImage(in.readInt(), in.readInt());
+                                // TODO: response
+                                break;
+                            case CMD_REGISTER_CAMERA_LISTENER:
+                                // TODO: registration
+                                // TODO: response
+                                break;
+                            case CMD_START_CAMERA:
+                                _server.startCamera(in.readLong(), in.readDouble(), in.readInt(), in.readInt());
+                                // TODO: response
+                                break;
+                            case CMD_STOP_CAMERA:
+                                _server.stopCamera();
+                                // TODO: response
+                                break;
+                            case CMD_GET_CAMERA_STATUS:
+                                _server.getCameraStatus();
+                                // TODO: response
+                                break;
+                            case CMD_REGISTER_SENSOR_LISTENER:
+                                // TODO: registration
+                                // TODO: response
+                                break;
+                            case CMD_SET_SENSOR_TYPE:
+                                _server.setSensorType(in.readInt(), VehicleServer.SensorType.values()[in.readByte()]);
+                                // TODO: response
+                                break;
+                            case CMD_GET_SENSOR_TYPE:
+                                _server.getSensorType(in.readInt());
+                                // TODO: response
+                                break;
+                            case CMD_GET_NUM_SENSORS:
+                                _server.getNumSensors();
+                                // TODO: response
+                                break;
+                            case CMD_REGISTER_VELOCITY_LISTENER:
+                                // TODO: registration
+                                // TODO: response
+                                break;
+                            case CMD_SET_VELOCITY:
+                                _server.setVelocity(new Twist(in.readInt(), in.readInt(), in.readInt(), in.readInt(), in.readInt(), in.readInt()));
+                                // TODO: response
+                                break;
+                            case CMD_GET_VELOCITY:
+                                _server.getVelocity();
+                                // TODO: response
+                                break;
+                            case CMD_REGISTER_WAYPOINT_LISTENER:
+                                // TODO: registration
+                                // TODO: response
+                                break;
+                            case CMD_START_WAYPOINTS:
+                                UtmPose[] swPoses = new UtmPose[in.readInt()];
+                                for (int i = 0; i < swPoses.length; ++i)
+                                    swPoses[i] = toUtmPose(in);
+                                _server.startWaypoints(swPoses, in.readUTF());
+                                // TODO: response
+                                break;
+                            case CMD_STOP_WAYPOINTS:
+                                _server.stopWaypoints();
+                                // TODO: response
+                                break;
+                            case CMD_GET_WAYPOINTS:
+                                UtmPose[] gwPoses = _server.getWaypoints();
+                                // TODO: response
+                                break;
+                            case CMD_GET_WAYPOINT_STATUS:
+                                _server.getWaypointStatus();
+                                // TODO: response
+                                break;
+                            case CMD_IS_CONNECTED:
+                                _server.isConnected();
+                                // TODO: response
+                                break;
+                            case CMD_IS_AUTONOMOUS:
+                                _server.isAutonomous();
+                                // TODO: response
+                                break;
+                            case CMD_SET_AUTONOMOUS:
+                                _server.setAutonomous(in.readBoolean());
+                                // TODO: response
+                                break;
+                            case CMD_SET_GAINS:
+                                double[] sgGains = new double[in.readInt()];
+                                for (int i = 0; i < sgGains.length; ++i)
+                                    sgGains[i] = in.readDouble();
+                                _server.setGains(in.readInt(), sgGains);
+                                // TODO: response
+                                break;
+                            case CMD_GET_GAINS:
+                                double[] gains = _server.getGains(in.readInt());
+                                // TODO: response
+                            default:
+                                throw new IllegalStateException("Unknown command received.");
+                        }
+                    } catch (IllegalArgumentException e) {
+                        // TODO: error handling
+                    }
+
+                } catch (IOException e) {
+                    // TODO: error handling
+                }
+            }
+        }
+    }
+
     /**
      * Terminates service processes and de-registers the service from a 
      * registry, if one was being used.
