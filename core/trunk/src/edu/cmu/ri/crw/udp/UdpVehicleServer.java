@@ -56,8 +56,8 @@ public class UdpVehicleServer implements AsyncVehicleServer {
     private class UdpFuture<V> implements Future<V>, Delayed {
 
         private V _result = null;
-        private boolean isCancelled = false;
-        private boolean isDone = false;
+        private boolean _isCancelled = false;
+        private boolean _isDone = false;
         
         private final long _timeoutTime;
         private final int _ticket;
@@ -69,30 +69,30 @@ public class UdpVehicleServer implements AsyncVehicleServer {
 
         @Override
         public synchronized boolean cancel(boolean mayInterruptIfRunning) {
-            if (isCancelled || isDone || !mayInterruptIfRunning)
+            if (_isCancelled || _isDone || !mayInterruptIfRunning)
                 return false;
 
             _result = null;
-            isCancelled = true;
-            isDone = false;
+            _isCancelled = true;
+            _isDone = false;
             _tickets.remove(_ticket);
             return true;
         }
 
         @Override
         public synchronized boolean isCancelled() {
-            return isCancelled;
+            return _isCancelled;
         }
 
         @Override
         public synchronized boolean isDone() {
-            return isDone;
+            return _isDone;
         }
 
         @Override
         public V get() throws InterruptedException, ExecutionException {
             synchronized(this) {
-                while(!isCancelled && !isDone)
+                while(!_isCancelled && !_isDone)
                     this.wait();
                 return _result;
             }
@@ -102,7 +102,7 @@ public class UdpVehicleServer implements AsyncVehicleServer {
         @Override
         public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
             synchronized(this) {
-                while(!isCancelled && !isDone)
+                while(!_isCancelled && !_isDone)
                     this.wait(TimeUnit.MILLISECONDS.convert(timeout, unit));
                 return _result;
             }
