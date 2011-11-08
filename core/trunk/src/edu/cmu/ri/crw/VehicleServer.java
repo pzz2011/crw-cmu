@@ -3,6 +3,18 @@ package edu.cmu.ri.crw;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
 
+
+/**
+ * Standard interface for controlling a vehicle.  Methods in this interface
+ * are assumed to block until completion, or throw a runtime exception upon
+ * failure.
+ *
+ * For asynchronous operation, see AsyncVehicleServer.
+ *
+ * @see AsyncVehicleServer
+ *
+ * @author Pras Velagapudi <psigen@gmail.com>
+ */
 public interface VehicleServer {
 	
 	public enum SensorType { ANALOG, DIGITAL, TE, WATERCANARY, BATTERY, UNKNOWN };
