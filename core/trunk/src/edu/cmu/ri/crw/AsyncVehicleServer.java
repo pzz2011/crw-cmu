@@ -5,56 +5,54 @@ import edu.cmu.ri.crw.VehicleServer.SensorType;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
-import java.util.concurrent.Future;
 
 /**
- * A variant of VehicleServer in which methods are asynchronous, and return
- * futures that represent their outcomes.
+ * A variant of VehicleServer in which methods are asynchronous, and allows the
+ * registration of observers that represent their outcomes.
  *
  * @see VehicleServer
- * @see Future
  * 
  * @author Pras Velagapudi <psigen@gmail.com>
  */
 public interface AsyncVehicleServer {
 	
-	public Future<Void> addStateListener(PoseListener l);
-	public Future<Void> removeStateListener(PoseListener l);
-	public Future<Void> setState(UtmPose state);
-	public Future<UtmPose> getState();
+	public void addStateListener(PoseListener l, FunctionObserver<Void> obs);
+	public void removeStateListener(PoseListener l, FunctionObserver<Void> obs);
+	public void setState(UtmPose state, FunctionObserver<Void> obs);
+	public void getState(FunctionObserver<UtmPose> obs);
 	
-	public Future<Void> addImageListener(ImageListener l);
-	public Future<Void> removeImageListener(ImageListener l);
-        public Future<byte[]> captureImage(int width, int height);
+	public void addImageListener(ImageListener l, FunctionObserver<Void> obs);
+	public void removeImageListener(ImageListener l, FunctionObserver<Void> obs);
+        public void captureImage(int width, int height, FunctionObserver<byte[]> obs);
         
-        public Future<Void> addCameraListener(CameraListener l);
-	public Future<Void> removeCameraListener(CameraListener l);
-	public Future<Void> startCamera(long numFrames, double interval, int width, int height);
-	public Future<Void> stopCamera();
-	public Future<CameraState> getCameraStatus();
+        public void addCameraListener(CameraListener l, FunctionObserver<Void> obs);
+	public void removeCameraListener(CameraListener l, FunctionObserver<Void> obs);
+	public void startCamera(long numFrames, double interval, int width, int height, FunctionObserver<Void> obs);
+	public void stopCamera(FunctionObserver<Void> obs);
+	public void getCameraStatus(FunctionObserver<CameraState> obs);
 	
-	public Future<Void> addSensorListener(int channel, SensorListener l);
-	public Future<Void> removeSensorListener(int channel, SensorListener l);
-	public Future<Void> setSensorType(int channel, SensorType type);
-	public Future<SensorType> getSensorType(int channel);
-	public Future<Integer> getNumSensors();
+	public void addSensorListener(int channel, SensorListener l, FunctionObserver<Void> obs);
+	public void removeSensorListener(int channel, SensorListener l, FunctionObserver<Void> obs);
+	public void setSensorType(int channel, SensorType type, FunctionObserver<Void> obs);
+	public void getSensorType(int channel, FunctionObserver<Void> obs);
+	public void getNumSensors(FunctionObserver<Integer> obs);
 	
-	public Future<Void> addVelocityListener(VelocityListener l);
-	public Future<Void> removeVelocityListener(VelocityListener l);
-	public Future<Void> setVelocity(Twist velocity);
-	public Future<Twist> getVelocity();
+	public void addVelocityListener(VelocityListener l, FunctionObserver<Void> obs);
+	public void removeVelocityListener(VelocityListener l, FunctionObserver<Void> obs);
+	public void setVelocity(Twist velocity, FunctionObserver<Void> obs);
+	public void getVelocity(FunctionObserver<Twist> obs);
 	
-        public Future<Void> addWaypointListener(WaypointListener l);
-	public Future<Void> removeWaypointListener(WaypointListener l);
-	public Future<Void> startWaypoints(UtmPose[] waypoint, String controller);
-	public Future<Void> stopWaypoints();
-	public Future<UtmPose[]> getWaypoints();
-	public Future<WaypointState> getWaypointStatus();
+        public void addWaypointListener(WaypointListener l, FunctionObserver<Void> obs);
+	public void removeWaypointListener(WaypointListener l, FunctionObserver<Void> obs);
+	public void startWaypoints(UtmPose[] waypoint, String controller, FunctionObserver<Void> obs);
+	public void stopWaypoints(FunctionObserver<Void> obs);
+	public void getWaypoints(FunctionObserver<UtmPose[]> obs);
+	public void getWaypointStatus(FunctionObserver<WaypointState> obs);
 	
-        public Future<Boolean> isConnected();
-        public Future<Boolean> isAutonomous();
-	public Future<Void> setAutonomous(boolean auto);
+        public void isConnected(FunctionObserver<Boolean> obs);
+        public void isAutonomous(FunctionObserver<Boolean> obs);
+	public void setAutonomous(boolean auto, FunctionObserver<Void> obs);
         
-	public Future<Void> setGains(int axis, double[] gains);
-	public Future<double[]> getGains(int axis);
+	public void setGains(int axis, double[] gains, FunctionObserver<Void> obs);
+	public void getGains(int axis, FunctionObserver<double[]> obs);
 }
