@@ -2,6 +2,7 @@ package edu.cmu.ri.crw.udp;
 
 import edu.cmu.ri.crw.AsyncVehicleServer;
 import edu.cmu.ri.crw.CameraListener;
+import edu.cmu.ri.crw.FunctionObserver;
 import edu.cmu.ri.crw.ImageListener;
 import edu.cmu.ri.crw.PoseListener;
 import edu.cmu.ri.crw.SensorListener;
@@ -12,13 +13,23 @@ import edu.cmu.ri.crw.VelocityListener;
 import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
+import edu.cmu.ri.crw.udp.UdpVehicleServer.VoidCallback;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 // TODO: finish this class!
 /**
@@ -39,87 +50,109 @@ import java.util.concurrent.TimeoutException;
  * @author Prasanna Velagapudi <psigen@gmail.com>
  */
 public class UdpVehicleServer implements AsyncVehicleServer {
+    private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
 
     public static final int RETRY_RATE_MS = 1000;
     public static final int RETRY_COUNT = 3;
     public static final int TIMEOUT_NS = RETRY_RATE_MS * RETRY_COUNT * 1000;
+    public static final int NO_TICKET = -1;
 
-    final DelayQueue<UdpFuture> _timeouts = new DelayQueue<UdpFuture>();
-    final ConcurrentHashMap<Integer, UdpFuture> _tickets = new ConcurrentHashMap<Integer, UdpFuture>();
+    protected final DatagramSocket _socket;
+    protected SocketAddress _server;
 
-    /**
-     * Implements a future that waits for a UDP response, timing out if no
-     * such response is returned within the specified amount of time.
-     *
-     * @param <V>
-     */
-    private class UdpFuture<V> implements Future<V>, Delayed {
+    final Timer _registrationTimer = new Timer(true);
+    final PriorityQueue _timeouts = new PriorityQueue();
+    final ConcurrentHashMap<Long, Callback> _tickets = new ConcurrentHashMap<Long, Callback>();
+    final AtomicLong _ticketCounter = new AtomicLong();
 
-        private V _result = null;
-        private boolean _isCancelled = false;
-        private boolean _isDone = false;
-        
-        private final long _timeoutTime;
-        private final int _ticket;
+    protected final Map<Integer, List<SensorListener>> _sensorListeners = new TreeMap<Integer, List<SensorListener>>();
+    protected final List<ImageListener> _imageListeners = new ArrayList<ImageListener>();
+    protected final List<VelocityListener> _velocityListeners = new ArrayList<VelocityListener>();
+    protected final List<PoseListener> _stateListeners = new ArrayList<PoseListener>();
+    protected final List<CameraListener> _cameraListeners = new ArrayList<CameraListener>();
+    protected final List<WaypointListener> _waypointListeners = new ArrayList<WaypointListener>();
 
-        public UdpFuture(int ticket, long timeout_ns) {
-            _timeoutTime = System.nanoTime() + timeout_ns;
-            _ticket = ticket;
+    public UdpVehicleServer() {
+        // Create and bind a socket to connect to a server
+        DatagramSocket s = null;
+        try {
+            s = new DatagramSocket();
+        } catch(SocketException ex) {
+            logger.log(Level.SEVERE, "Unable to open UDP socket", ex);
+        }
+        _socket = s;
+
+        // Start a task to periodically register for stream updates
+        _registrationTimer.scheduleAtFixedRate(new RegistrationTask(), 0, UdpConstants.REGISTRATION_RATE_MS);
+    }
+
+    private static interface Callback {
+        public void response(DatagramPacket response);
+        public void timeout();
+    }
+
+    private static class VoidCallback implements Callback {
+        private FunctionObserver<Void> _obs;
+
+        public VoidCallback(FunctionObserver<Void> obs) {
+            _obs = obs;
         }
 
         @Override
-        public synchronized boolean cancel(boolean mayInterruptIfRunning) {
-            if (_isCancelled || _isDone || !mayInterruptIfRunning)
-                return false;
-
-            _result = null;
-            _isCancelled = true;
-            _isDone = false;
-            _tickets.remove(_ticket);
-            return true;
-        }
-
-        @Override
-        public synchronized boolean isCancelled() {
-            return _isCancelled;
-        }
-
-        @Override
-        public synchronized boolean isDone() {
-            return _isDone;
-        }
-
-        @Override
-        public V get() throws InterruptedException, ExecutionException {
-            synchronized(this) {
-                while(!_isCancelled && !_isDone)
-                    this.wait();
-                return _result;
+        public void response(DatagramPacket response) {
+            if (_obs != null) {
+                _obs.completed(null);
             }
-            // TODO: better error handling
         }
 
         @Override
-        public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-            synchronized(this) {
-                while(!_isCancelled && !_isDone)
-                    this.wait(TimeUnit.MILLISECONDS.convert(timeout, unit));
-                return _result;
+        public void timeout() {
+            if (_obs != null) {
+                _obs.failed(FunctionObserver.FunctionError.TIMEOUT);
             }
-            // TODO: better error handling
         }
+    }
 
-        @Override
-        public long getDelay(TimeUnit unit) {
-            return unit.convert(_timeoutTime - System.nanoTime(), TimeUnit.NANOSECONDS);
+    private void registerListener(List listenerList, UdpConstants.COMMAND registerCommand) {
+        synchronized(listenerList) {
+            if (!listenerList.isEmpty()) {
+                UdpResponse response = new UdpResponse();
+                response.writeLong(NO_TICKET);
+                response.writeString(registerCommand.str);
+
+                try {
+                    response.send(_socket, _server);
+                } catch (IOException e) {
+                    // TODO: not sure what to do here?
+                    System.err.println("HELP: IMPLEMENTATION NOT COMPLETE: WHAT DO I DO?");
+                }
+            }
         }
+    }
 
+    private class RegistrationTask extends TimerTask {
         @Override
-        public int compareTo(Delayed o) {
-            if (o instanceof UdpFuture) {
-                return Long.signum(this._timeoutTime - ((UdpFuture)o)._timeoutTime);
-            } else {
-                return Long.signum(this.getDelay(TimeUnit.NANOSECONDS) - o.getDelay(TimeUnit.NANOSECONDS));
+        public void run() {
+            registerListener(_imageListeners, UdpConstants.COMMAND.CMD_REGISTER_IMAGE_LISTENER);
+            registerListener(_velocityListeners, UdpConstants.COMMAND.CMD_REGISTER_VELOCITY_LISTENER);
+            registerListener(_stateListeners, UdpConstants.COMMAND.CMD_REGISTER_STATE_LISTENER);
+            registerListener(_cameraListeners, UdpConstants.COMMAND.CMD_REGISTER_CAMERA_LISTENER);
+            registerListener(_waypointListeners, UdpConstants.COMMAND.CMD_REGISTER_WAYPOINT_LISTENER);
+
+            synchronized (_sensorListeners) {
+                for (Integer i : _sensorListeners.keySet()) {
+                    UdpResponse response = new UdpResponse();
+                    response.writeLong(NO_TICKET);
+                    response.writeString(UdpConstants.COMMAND.CMD_REGISTER_SENSOR_LISTENER.str);
+                    response.writeInt(i);
+
+                    try {
+                        response.send(_socket, _server);
+                    } catch (IOException e) {
+                        // TODO: not sure what to do here?
+                        System.err.println("HELP: IMPLEMENTATION NOT COMPLETE: WHAT DO I DO?");
+                    }
+                }
             }
         }
     }
@@ -128,164 +161,259 @@ public class UdpVehicleServer implements AsyncVehicleServer {
         return -1;
     }
 
+
     @Override
-    public Future<Void> addStateListener(PoseListener l) {
+    public void addStateListener(PoseListener l, FunctionObserver<Void> obs) {
+        synchronized (_stateListeners) {
+            _stateListeners.add(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
+    }
+
+    @Override
+    public void removeStateListener(PoseListener l, FunctionObserver<Void> obs) {
+        synchronized (_stateListeners) {
+            _stateListeners.remove(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
+    }
+
+    @Override
+    public void setState(UtmPose state, FunctionObserver<Void> obs) {
+        long ticket = (obs == null) ? NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        UdpResponse response = new UdpResponse();
+        response.writeLong(ticket);
+        response.writeString(UdpConstants.COMMAND.CMD_SET_STATE.str);
+        response.writePose(state);
+
+        try {
+            response.send(_socket, _server);
+
+            if (obs != null) {
+                _tickets.put(ticket, new VoidCallback(obs));
+            }
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
+        }
+    }
+
+    @Override
+    public void getState(FunctionObserver<UtmPose> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> removeStateListener(PoseListener l) {
+    public void addImageListener(ImageListener l, FunctionObserver<Void> obs) {
+        synchronized (_imageListeners) {
+            _imageListeners.add(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
+    }
+
+    @Override
+    public void removeImageListener(ImageListener l, FunctionObserver<Void> obs) {
+        synchronized (_imageListeners) {
+            _imageListeners.remove(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
+    }
+
+    @Override
+    public void captureImage(int width, int height, FunctionObserver<byte[]> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> setState(UtmPose state) {
-        return new UdpFuture<Void>(call("setState", state), TIMEOUT_NS);
+    public void addCameraListener(CameraListener l, FunctionObserver<Void> obs) {
+        synchronized (_cameraListeners) {
+            _cameraListeners.add(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
     }
 
     @Override
-    public Future<UtmPose> getState() {
-        return new UdpFuture<UtmPose>(call("getState"), TIMEOUT_NS);
+    public void removeCameraListener(CameraListener l, FunctionObserver<Void> obs) {
+        synchronized (_cameraListeners) {
+            _cameraListeners.remove(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
     }
 
     @Override
-    public Future<Void> addImageListener(ImageListener l) {
+    public void startCamera(long numFrames, double interval, int width, int height, FunctionObserver<Void> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> removeImageListener(ImageListener l) {
+    public void stopCamera(FunctionObserver<Void> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<byte[]> captureImage(int width, int height) {
+    public void getCameraStatus(FunctionObserver<CameraState> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> addCameraListener(CameraListener l) {
+    public void addSensorListener(int channel, SensorListener l, FunctionObserver<Void> obs) {
+        synchronized (_sensorListeners) {
+            // If there were no previous listeners for the channel, create a list
+            if (!_sensorListeners.containsKey(channel)) {
+                _sensorListeners.put(channel, new ArrayList<SensorListener>());
+            }
+
+            // Add the listener to the appropriate list
+            _sensorListeners.get(channel).add(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
+    }
+
+    @Override
+    public void removeSensorListener(int channel, SensorListener l, FunctionObserver<Void> obs) {
+        synchronized (_sensorListeners) {
+            // If there is no list of listeners, there is nothing to remove
+            if (!_sensorListeners.containsKey(channel)) {
+                return;
+            }
+
+            // Remove the listener from the appropriate list
+            _sensorListeners.get(channel).remove(l);
+
+            // If there are no more listeners for the channel, delete the list
+            if (_sensorListeners.get(channel).isEmpty()) {
+                _sensorListeners.remove(channel);
+            }
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
+    }
+
+    @Override
+    public void setSensorType(int channel, SensorType type, FunctionObserver<Void> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> removeCameraListener(CameraListener l) {
+    public void getSensorType(int channel, FunctionObserver<Void> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> startCamera(long numFrames, double interval, int width, int height) {
+    public void getNumSensors(FunctionObserver<Integer> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> stopCamera() {
+    public void addVelocityListener(VelocityListener l, FunctionObserver<Void> obs) {
+        synchronized (_velocityListeners) {
+            _velocityListeners.add(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
+    }
+
+    @Override
+    public void removeVelocityListener(VelocityListener l, FunctionObserver<Void> obs) {
+        synchronized (_velocityListeners) {
+            _velocityListeners.remove(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
+    }
+
+    @Override
+    public void setVelocity(Twist velocity, FunctionObserver<Void> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<CameraState> getCameraStatus() {
+    public void getVelocity(FunctionObserver<Twist> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> addSensorListener(int channel, SensorListener l) {
+    public void addWaypointListener(WaypointListener l, FunctionObserver<Void> obs) {
+        synchronized (_waypointListeners) {
+            _waypointListeners.add(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
+    }
+
+    @Override
+    public void removeWaypointListener(WaypointListener l, FunctionObserver<Void> obs) {
+        synchronized (_waypointListeners) {
+            _waypointListeners.remove(l);
+        }
+        if (obs != null) {
+            obs.completed(null);
+        }
+    }
+
+    @Override
+    public void startWaypoints(UtmPose[] waypoint, String controller, FunctionObserver<Void> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> removeSensorListener(int channel, SensorListener l) {
+    public void stopWaypoints(FunctionObserver<Void> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> setSensorType(int channel, SensorType type) {
+    public void getWaypoints(FunctionObserver<UtmPose[]> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<SensorType> getSensorType(int channel) {
+    public void getWaypointStatus(FunctionObserver<WaypointState> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Integer> getNumSensors() {
+    public void isConnected(FunctionObserver<Boolean> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> addVelocityListener(VelocityListener l) {
+    public void isAutonomous(FunctionObserver<Boolean> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> removeVelocityListener(VelocityListener l) {
+    public void setAutonomous(boolean auto, FunctionObserver<Void> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Void> setVelocity(Twist velocity) {
+    public void setGains(int axis, double[] gains, FunctionObserver<Void> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public Future<Twist> getVelocity() {
+    public void getGains(int axis, FunctionObserver<double[]> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
-
-    @Override
-    public Future<Void> addWaypointListener(WaypointListener l) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public Future<Void> removeWaypointListener(WaypointListener l) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public Future<Void> startWaypoints(UtmPose[] waypoint, String controller) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public Future<Void> stopWaypoints() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public Future<UtmPose[]> getWaypoints() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public Future<WaypointState> getWaypointStatus() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public Future<Boolean> isConnected() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public Future<Boolean> isAutonomous() {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public Future<Void> setAutonomous(boolean auto) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public Future<Void> setGains(int axis, double[] gains) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
-    public Future<double[]> getGains(int axis) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
 }
