@@ -12,10 +12,11 @@ package edu.cmu.ri.crw;
  */
 public interface FunctionObserver<V> {
     public enum FunctionError {
-        CANCEL, // TODO: fill in useful codes here
-        FAILED;
+        CANCELLED, // TODO: fill in useful codes here
+        ERROR,
+        TIMEOUT;
     }
 
     public void completed(V result);
-    public void cancelled(FunctionError cause);
+    public void failed(FunctionError cause);
 }
