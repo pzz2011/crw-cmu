@@ -55,4 +55,17 @@ public interface AsyncVehicleServer {
         
 	public void setGains(int axis, double[] gains, FunctionObserver<Void> obs);
 	public void getGains(int axis, FunctionObserver<double[]> obs);
+
+        /**
+         * Utility class for handling AsyncVehicleServer objects.
+         */
+        public static class Util {
+            /**
+             * Converts VehicleServer implementation into asynchronous implementation
+             * @param server
+             */
+            public AsyncVehicleServer wrap(VehicleServer server) {
+                throw new UnsupportedOperationException("Not implemented yet.");
+            }
+        }
 }
