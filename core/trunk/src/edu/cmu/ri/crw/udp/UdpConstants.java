@@ -20,11 +20,14 @@ public class UdpConstants {
     public static final int TIMEOUT_NS = RETRY_RATE_MS * (RETRY_COUNT + 1) * 1000;
     public static final int NO_TICKET = -1;
 
+    public static final int INITIAL_PACKET_SIZE = 512;
+
     /**
      * Enumeration of tunneled commands and the strings used in the UDP packet
      * to represent them.
      */
     public enum COMMAND {
+        CMD_ACKNOWLEDGE("OK"),
         CMD_REGISTER_STATE_LISTENER("RSTL"),
         CMD_SET_STATE("SS"),
         CMD_GET_STATE("GS"),
