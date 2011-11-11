@@ -13,7 +13,6 @@ import edu.cmu.ri.crw.VelocityListener;
 import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
-import edu.cmu.ri.crw.udp.UdpVehicleServer.VoidCallback;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -23,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
@@ -52,18 +52,13 @@ import java.util.logging.Logger;
 public class UdpVehicleServer implements AsyncVehicleServer {
     private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
 
-    public static final int RETRY_RATE_MS = 1000;
-    public static final int RETRY_COUNT = 3;
-    public static final int TIMEOUT_NS = RETRY_RATE_MS * RETRY_COUNT * 1000;
-    public static final int NO_TICKET = -1;
-
     protected final DatagramSocket _socket;
     protected SocketAddress _server;
 
     final Timer _registrationTimer = new Timer(true);
     final PriorityQueue _timeouts = new PriorityQueue();
     final ConcurrentHashMap<Long, Callback> _tickets = new ConcurrentHashMap<Long, Callback>();
-    final AtomicLong _ticketCounter = new AtomicLong();
+    final AtomicLong _ticketCounter = new AtomicLong(new Random().nextLong() << 32); // Start ticket with random offset to prevent collisions across multiple clients
 
     protected final Map<Integer, List<SensorListener>> _sensorListeners = new TreeMap<Integer, List<SensorListener>>();
     protected final List<ImageListener> _imageListeners = new ArrayList<ImageListener>();
@@ -117,7 +112,7 @@ public class UdpVehicleServer implements AsyncVehicleServer {
         synchronized(listenerList) {
             if (!listenerList.isEmpty()) {
                 UdpResponse response = new UdpResponse();
-                response.writeLong(NO_TICKET);
+                response.writeLong(UdpConstants.NO_TICKET);
                 response.writeString(registerCommand.str);
 
                 try {
@@ -142,7 +137,7 @@ public class UdpVehicleServer implements AsyncVehicleServer {
             synchronized (_sensorListeners) {
                 for (Integer i : _sensorListeners.keySet()) {
                     UdpResponse response = new UdpResponse();
-                    response.writeLong(NO_TICKET);
+                    response.writeLong(UdpConstants.NO_TICKET);
                     response.writeString(UdpConstants.COMMAND.CMD_REGISTER_SENSOR_LISTENER.str);
                     response.writeInt(i);
 
@@ -184,7 +179,7 @@ public class UdpVehicleServer implements AsyncVehicleServer {
 
     @Override
     public void setState(UtmPose state, FunctionObserver<Void> obs) {
-        long ticket = (obs == null) ? NO_TICKET : _ticketCounter.incrementAndGet();
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         UdpResponse response = new UdpResponse();
         response.writeLong(ticket);

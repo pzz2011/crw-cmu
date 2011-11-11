@@ -15,6 +15,11 @@ public class UdpConstants {
 
     public static final int REGISTRATION_RATE_MS = 1000;
 
+    public static final int RETRY_RATE_MS = 1000;
+    public static final int RETRY_COUNT = 3;
+    public static final int TIMEOUT_NS = RETRY_RATE_MS * (RETRY_COUNT + 1) * 1000;
+    public static final int NO_TICKET = -1;
+
     /**
      * Enumeration of tunneled commands and the strings used in the UDP packet
      * to represent them.
