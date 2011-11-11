@@ -22,7 +22,6 @@ public class VehicleRegistry {
     
     private static final Charset US_ASCII = Charset.forName("US_ASCII");
     
-    
     protected final InetSocketAddress _address;
     protected final DatagramSocket _socket;
     protected final String _name;

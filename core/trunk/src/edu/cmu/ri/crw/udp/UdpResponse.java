@@ -9,6 +9,7 @@ import edu.cmu.ri.crw.data.UtmPose;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
@@ -24,8 +25,20 @@ public class UdpResponse {
 
     public static final int DEFAULT_BUFFER_INITIAL_SIZE = 1024;
 
-    private ByteArrayOutputStream _buffer = new ByteArrayOutputStream(1024);
-    private DataOutputStream _out = new DataOutputStream(_buffer);
+    private ByteArrayOutputStream _buffer;
+    private ObjectOutputStream _out;
+
+    public UdpResponse(long ticket) {
+        _buffer = new ByteArrayOutputStream(1024);        
+        
+        try {
+            _out = new ObjectOutputStream(_buffer);
+            _out.writeLong(ticket);
+        } catch (IOException e) {
+            // This should never happen
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
      * Clears the previously stacked items from the response buffer, but does

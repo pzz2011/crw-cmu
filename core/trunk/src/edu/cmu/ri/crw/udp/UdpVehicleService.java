@@ -17,6 +17,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import robotutils.Pose3D;
@@ -37,7 +39,7 @@ public class UdpVehicleService {
     protected final Object _serverLock = new Object();
     
     protected final DatagramSocket _socket;
-    
+
     protected final List<InetSocketAddress> _registries = new ArrayList<InetSocketAddress>();
     protected final List<InetSocketAddress> _stateListeners = new ArrayList<InetSocketAddress>();
     protected final List<InetSocketAddress> _imageListeners = new ArrayList<InetSocketAddress>();
