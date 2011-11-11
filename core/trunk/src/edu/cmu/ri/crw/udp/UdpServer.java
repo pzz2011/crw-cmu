@@ -28,20 +28,21 @@ import java.util.concurrent.TimeUnit;
  * - Spurious packet loss is common
  * - Packets may be delayed for a relatively long time (~1s) due to lossy WLAN
  *
+ * Overview of three-way RPC from client
+ * 1. Send function call: <12131, "GET_STATE", args>
+ * 2. (No response after timeout)
+ * 3. Send function call: <12131, "GET_STATE", args>
+ * 4. Get response: <12131, response>
+ * 5. Send function ack: <12131, "OK">
+ *
  * Overview of three-way RPC from server
  * 1. Receive function call: <12131, "GET_STATE", args>
  * 2. Execute function call on implementation
  * 3. Send response: <12131, response>
- * 4. No response after timeout
+ * 4. (No response after timeout)
  * 5. Send response: <12131, response>
  * 6. Get function ack: <12131, "OK">
  * 
- * Overview of three-way RPC from client
- * 1. Send function call: <12131, "GET_STATE", args>
- * 2. No response after timeout
- * 3. Send function call: <12131, "GET_STATE", args>
- * 4. Get response: <12131, response>
- * 5. Send function ack: <12131, "OK">
  *
  * @author Pras Velagapudi <psigen@gmail.com>
  */
