@@ -61,10 +61,22 @@ public interface AsyncVehicleServer {
          */
         public static class Util {
             /**
-             * Converts VehicleServer implementation into asynchronous implementation
-             * @param server
+             * Converts VehicleServer implementation into asynchronous implementation.
+             *
+             * @param server the synchronous vehicle server implementation that will be wrapped
+             * @return an asynchronous vehicle server using the specified implementation
              */
-            public AsyncVehicleServer wrap(VehicleServer server) {
+            public AsyncVehicleServer toAsyncVehicleServer(VehicleServer server) {
+                throw new UnsupportedOperationException("Not implemented yet.");
+            }
+
+            /**
+             * Converts AsyncVehicleServer implementation into synchronous implementation.
+             *
+             * @param server the asynchronous vehicle server implementation that will be wrapped
+             * @return a synchronous vehicle server using the specified implementation
+             */
+            public VehicleServer toVehicleServer(AsyncVehicleServer server) {
                 throw new UnsupportedOperationException("Not implemented yet.");
             }
         }
