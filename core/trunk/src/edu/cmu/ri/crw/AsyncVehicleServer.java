@@ -27,7 +27,7 @@ public interface AsyncVehicleServer {
         
         public void addCameraListener(CameraListener l, FunctionObserver<Void> obs);
 	public void removeCameraListener(CameraListener l, FunctionObserver<Void> obs);
-	public void startCamera(long numFrames, double interval, int width, int height, FunctionObserver<Void> obs);
+	public void startCamera(int numFrames, double interval, int width, int height, FunctionObserver<Void> obs);
 	public void stopCamera(FunctionObserver<Void> obs);
 	public void getCameraStatus(FunctionObserver<CameraState> obs);
 	
