@@ -6,8 +6,13 @@ import edu.cmu.ri.crw.data.UtmPose;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.util.Arrays;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import robotutils.Pose3D;
 import robotutils.Quaternion;
 
@@ -27,331 +32,284 @@ import robotutils.Quaternion;
  */
 public class SimpleBoatSimulator extends AbstractVehicleServer {
 
-	public static final int UPDATE_INTERVAL_MS = 100;
+    private static final Logger logger = Logger.getLogger(SimpleBoatSimulator.class.getName());
+    public static final int UPDATE_INTERVAL_MS = 100;
+    
+    public final SensorType[] _sensorTypes = new SensorType[3];
+    public UtmPose _pose = new UtmPose();
+    public Twist _velocity = new Twist();
+    public UtmPose[] _waypoints = new UtmPose[0];
+    
+    protected final Object _captureLock = new Object();
+    protected TimerTask _captureTask = null;
+    
+    protected final Object _navigationLock = new Object();
+    protected TimerTask _navigationTask = null;
+    
+    protected final AtomicBoolean _isAutonomous = new AtomicBoolean(true);
+    protected final Timer _timer = new Timer();
+    
+    /**
+     * Current navigation controller
+     */
+    SimpleBoatController _controller = SimpleBoatController.POINT_AND_SHOOT;
 
-	public final SensorType[] _sensorTypes = new SensorType[3];
-	public UtmPose _pose = new UtmPose();
-	public Twist _velocity = new Twist();
-	public UtmPose _waypoint = null;
+    public SimpleBoatSimulator() {
+        final double dt = UPDATE_INTERVAL_MS / 1000.0;
 
-	protected final Object _captureLock = new Object();
-	protected AtomicBoolean _isCapturing = new AtomicBoolean(false);
+        new Thread(new Runnable() {
 
-	protected final Object _navigationLock = new Object();
-	protected AtomicBoolean _isNavigating = null;
+            @Override
+            public void run() {
 
-	protected final AtomicBoolean _isAutonomous = new AtomicBoolean(true);
-	
-	/**
-	 * Current navigation controller
-	 */
-	SimpleBoatController _controller = SimpleBoatController.POINT_AND_SHOOT;
-	
-	public SimpleBoatSimulator() {
-		final double dt = UPDATE_INTERVAL_MS / 1000.0;
+                while (true) {
+                    try {
+                        Thread.sleep(UPDATE_INTERVAL_MS);
+                    } catch (InterruptedException e) {
+                    }
 
-		new Thread(new Runnable() {
+                    // Send out pose updates
+                    UtmPose pose = _pose.clone();
+                    sendState(pose);
 
-			@Override
-			public void run() {
+                    // Send out velocity updates
+                    Twist velocity = _velocity.clone();
+                    sendVelocity(velocity);
 
-				while (true) {
-					try {
-                                            Thread.sleep(UPDATE_INTERVAL_MS);
-					} catch (InterruptedException e) {
-					}
+                    // Move in an arc with given velocity over time interval
+                    double yaw = pose.pose.getRotation().toYaw();
+                    double x = _pose.pose.getX() + _velocity.dx() * Math.cos(yaw) * dt;
+                    double y = _pose.pose.getY() + _velocity.dx() * Math.sin(yaw) * dt;
+                    Quaternion q = Quaternion.fromEulerAngles(0, 0, yaw + _velocity.drz() * dt);
+                    _pose.pose = new Pose3D(x, y, _pose.pose.getZ(), q);
 
-					// Send out pose updates
-					UtmPose pose = _pose.clone();
-					sendState(pose);
+                    // Generate spurious sensor data
+                    SensorData reading = new SensorData();
+                    reading.data = new double[3];
+                    reading.type = SensorType.TE;
 
-					// Send out velocity updates
-					Twist velocity = _velocity.clone();
-					sendVelocity(velocity);
+                    Random random = new Random();
+                    reading.data[0] = (_pose.pose.getX()) + 10 * random.nextGaussian();
+                    reading.data[1] = (_pose.pose.getY());
+                    reading.data[2] = (_pose.pose.getZ());
 
-					// Move in an arc with given velocity over time interval
-					double yaw = pose.pose.getRotation().toYaw();
-					double x = _pose.pose.getX() + _velocity.dx() * Math.cos(yaw) * dt;
-					double y = _pose.pose.getY() + _velocity.dx() * Math.sin(yaw) * dt;
-					Quaternion q = Quaternion.fromEulerAngles(0, 0, yaw + _velocity.drz() * dt);
-                                        _pose.pose = new Pose3D(x, y, _pose.pose.getZ(), q);
+                    sendSensor(0, reading);
+                }
+            }
+        }).start();
+    }
 
-					// Generate spurious sensor data
-					SensorData reading = new SensorData();
-					reading.data = new double[3];
-					reading.type = SensorType.TE;
+    @Override
+    public byte[] captureImage(int width, int height) {
 
-					Random random = new Random();
-					reading.data[0] = (_pose.pose.getX()) + 10*random.nextGaussian();
-					reading.data[1] = (_pose.pose.getY());
-					reading.data[2] = (_pose.pose.getZ());
+        // Create an image and fill it with a random color
+        BufferedImage image = new BufferedImage(width, height,
+                BufferedImage.TYPE_3BYTE_BGR);
+        Graphics2D graphics = (Graphics2D) image.getGraphics();
+        graphics.setPaint(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
+        graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
 
-					sendSensor(0, reading);
-				}
-			}
-		}).start();
-	}
+        return toCompressedImage(image);
+    }
 
-	@Override
-	public byte[] captureImage(int width, int height) {
+    @Override
+    public SensorType getSensorType(int channel) {
+        return _sensorTypes[channel];
+    }
 
-		// Create an image and fill it with a random color
-		BufferedImage image = new BufferedImage(width, height,
-				BufferedImage.TYPE_3BYTE_BGR);
-		Graphics2D graphics = (Graphics2D) image.getGraphics();
-		graphics.setPaint(new Color((float) Math.random(), (float) Math
-				.random(), (float) Math.random()));
-		graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+    @Override
+    public UtmPose[] getWaypoints() {
+        synchronized (_navigationLock) {
+            return _waypoints;
+        }
+    }
 
-		return toCompressedImage(image);
-	}
+    @Override
+    public void setSensorType(int channel, SensorType type) {
+        _sensorTypes[channel] = type;
+    }
 
-	@Override
-	public SensorType getSensorType(int channel) {
-		return _sensorTypes[channel];
-	}
+    @Override
+    public void setState(UtmPose state) {
+        _pose = state.clone();
+    }
 
-	@Override
-	public UtmPose getWaypoints() {
-		synchronized (_navigationLock) {
-			return _waypoint;
-		}
-	}
+    @Override
+    public void startWaypoints(final UtmPose[] waypoints, final String controller) {
 
-	@Override
-	public void setSensorType(int channel, SensorType type) {
-		_sensorTypes[channel] = type;
-	}
+        logger.log(Level.INFO, "Starting waypoints: {0}", Arrays.toString(waypoints));
+        
+        synchronized (_navigationLock) {
+            // Change waypoints to new set of waypoints
+            _waypoints = Arrays.copyOf(waypoints, waypoints.length);
 
-	@Override
-	public void setState(UtmPose state) {
-            _pose = state.clone();
-	}
+            // Cancel any previous navigation tasks
+            _navigationTask.cancel();
+            
+            // Create a waypoint navigation task
+            _navigationTask = new TimerTask() {
+                final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
 
-	@Override
-	public void startWaypoints(final UtmPose waypoint, final String controller, final WaypointListener obs) {
+                @Override
+                public void run() {
+                    synchronized (_navigationLock) {
+                        if (!_isAutonomous.get()) {
+                            // If we are not autonomous, do nothing
+                            sendWaypointUpdate(WaypointState.PAUSED);
+                            return;
+                        } else if (_waypoints.length == 0) {
+                            // If we are finished with waypoints, stop in place
+                            sendWaypointUpdate(WaypointState.OFF);
+                            setVelocity(new Twist());
+                            this.cancel();
+                        } else {
+                            // If we are still executing waypoints, use a 
+                            // controller to figure out how to get to waypoint
+                            // TODO: measure dt directly instead of approximating
+                            _controller.controller.update(SimpleBoatSimulator.this, dt);
+                        }
+                    }
+                }
+            };
+            
+            // Schedule this task for execution
+            _timer.scheduleAtFixedRate(_navigationTask, 0, UPDATE_INTERVAL_MS);
+        }
+    }
 
-		final double dt = (double)UPDATE_INTERVAL_MS / 1000.0;
-		
-		// Keep a reference to the navigation flag for THIS waypoint
-		final AtomicBoolean isNavigating = new AtomicBoolean(true);
-		System.out.println("\nStart Waypoint to " + waypoint);
-		// Set this to be the current navigation flag
-		synchronized (_navigationLock) {
-			if (_isNavigating != null)
-				_isNavigating.set(false);
-			_isNavigating = isNavigating;
-			_waypoint = waypoint.clone();
-		}
+    @Override
+    public void stopWaypoints() {
 
-		new Thread(new Runnable() {
+        // Stop the thread that is doing the "navigation" by terminating its
+        // navigation flag and then removing the reference to the old flag.
+        System.out.println("STOP!!!!");
+        synchronized (_navigationLock) {
+            _navigationTask.cancel();
+            _navigationTask = null;
+            _waypoints = new UtmPose[0];
+        }
+    }
 
-			@Override
-			public void run() {
-				while (isNavigating.get()) {
-					// If we are not set in autonomous mode, don't try to drive!
-					if (!_isAutonomous.get()) {
-						// TODO: probably should add a "paused" state
-						if (obs != null) 
-							obs.waypointUpdate(WaypointState.OFF);
-					} else {
-						// Report our status as moving toward target
-						if (obs != null)
-							obs.waypointUpdate(WaypointState.GOING);
-						
-						// Get the position of the vehicle and the waypoint
-						// TODO: fix threading issue (fast stop/start)
-						Pose3D pose = _pose.pose;
-						Pose3D wpPose = _waypoint.pose;
-	
-						// TODO: handle different UTM zones!
-						// Figure out how to drive to waypoint
-						_controller.controller.update(SimpleBoatSimulator.this, dt);
-						
-						// TODO: measure dt directly instead of approximating
-						
-						// Check for termination condition
-						// TODO: termination conditions tested by controller
-						double dist = pose.getEuclideanDistance(wpPose);
-						
-						if (dist <= 6.0) 
-							{
-								System.out.println("Should reach a waypoint now.");
-								break;
-							}
-					}
-					
-					// Pause for a while
-					try { 
-						Thread.sleep(UPDATE_INTERVAL_MS); 
-					} catch (InterruptedException e) {}
-				}
-				
-				// Stop the vehicle
-				_velocity = new Twist();
-				
-				// Upon completion, report status 
-				// (if isNavigating is still true, we completed on our own)
-				if (isNavigating.getAndSet(false)) {
-					if (obs != null)
-					{
-						obs.waypointUpdate(WaypointState.DONE);
-						System.out.println("Should report reaching a waypoint now.");
-						
-					}
-				} else {
-					if (obs != null){
-						obs.waypointUpdate(WaypointState.CANCELLED);
-						System.out.println("Should report cancelling a waypoint now.");
-					}
-				}
-			}
-		}).start();
-	}
+    @Override
+    public WaypointState getWaypointStatus() {
+        synchronized (_navigationLock) {
+            if (_waypoints.length > 0) {
+                return WaypointState.GOING;
+            } else {
+                return WaypointState.OFF;
+            }
+        }
+    }
 
-	@Override
-	public void stopWaypoints() {
+    @Override
+    public void startCamera(final int numFrames, final double interval, final int width, final int height) {
 
-		// Stop the thread that is doing the "navigation" by terminating its
-		// navigation flag and then removing the reference to the old flag.
-		System.out.println("STOP!!!!");
-		synchronized (_navigationLock) {
-			if (_isNavigating != null) {
-				_isNavigating.set(false);
-				_isNavigating = null;
-			}
-			_waypoint = null;
-		}
-	}
+        logger.log(Level.INFO, "Starting capture: {0} ({1}x{2}) frames @ {3}s ", new Object[]{numFrames, width, height, interval});
+        
+        synchronized (_captureLock) {
+            // Cancel any previous capture tasks
+            _captureTask.cancel();
+            
+            // Create a camera capture task
+            _captureTask = new TimerTask() {
+                int nFrames = numFrames;
 
-	public WaypointState getWaypointStatus() {
-		synchronized (_navigationLock) {
-			if (_isNavigating == null) {
-				return WaypointState.OFF;
-			} else if (_isNavigating.get()) {
-				return WaypointState.GOING;
-			} else {
-				return WaypointState.DONE;
-			}
-		}
-	}
+                @Override
+                public void run() {
+                    // Take a new image and send it out
+                    sendImage(captureImage(width, height));
+                    
+                    // Decrement the number of frames left
+                    if (nFrames > 0)
+                        nFrames--;
+                    
+                    // If we hit exactly 0, that means we just finished
+                    if (nFrames == 0) {
+                        sendCameraUpdate(CameraState.DONE);
+                        this.cancel();
+                    } else {
+                        sendCameraUpdate(CameraState.CAPTURING);
+                    }
+                }
+            };
+            
+            // Schedule this task for execution
+            _timer.scheduleAtFixedRate(_captureTask, 0, (long)(interval * 1000.0));
+        }
+    }
 
-	@Override
-	public void startCamera(final long numFrames, final double interval,
-			final int width, final int height, final CameraListener obs) {
+    @Override
+    public void stopCamera() {
+        // Stop the thread that sends out images by terminating its
+        // navigation flag and then removing the reference to the old flag.
+        synchronized (_captureLock) {
+            _captureTask.cancel();
+            _captureTask = null;
+        }
+    }
 
-		// Keep a reference to the capture flag for THIS capture process
-		final AtomicBoolean isCapturing = new AtomicBoolean(true);
+    @Override
+    public CameraState getCameraStatus() {
+        synchronized (_captureLock) {
+            if (_captureTask != null) {
+                return CameraState.CAPTURING;
+            } else {
+                return CameraState.OFF;
+            }
+        }
+    }
 
-		// Set this to be the current capture flag
-		synchronized (_captureLock) {
-			if (_isCapturing != null)
-				_isCapturing.set(false);
-			_isCapturing = isCapturing;
-		}
+    @Override
+    public UtmPose getState() {
+        return _pose.clone();
+    }
 
-		new Thread(new Runnable() {
+    @Override
+    public int getNumSensors() {
+        return _sensorTypes.length;
+    }
 
-			@Override
-			public void run() {
-				int iFrame = 0;
-				long int_ms = (long) (interval * 1000.0);
+    @Override
+    public void setVelocity(Twist velocity) {
+        _velocity = velocity.clone();
+    }
 
-				while (isCapturing.get()
-						&& (numFrames <= 0 || iFrame < numFrames)) {
+    @Override
+    public Twist getVelocity() {
+        return _velocity.clone();
+    }
 
-					// Every so often, send out a random picture
-					sendImage(captureImage(width, height));
-					iFrame++;
+    /**
+     * Takes an angle and shifts it to be in the range -Pi to Pi.
+     * 
+     * @param angle
+     *            an angle in radians
+     * @return the same angle as given, normalized to the range -Pi to Pi.
+     */
+    public static double normalizeAngle(double angle) {
+        while (angle > Math.PI) {
+            angle -= 2 * Math.PI;
+        }
+        while (angle < -Math.PI) {
+            angle += 2 * Math.PI;
+        }
+        return angle;
+    }
 
-					if (obs != null)
-						obs.imagingUpdate(CameraState.CAPTURING);
+    @Override
+    public boolean isAutonomous() {
+        return _isAutonomous.get();
+    }
 
-					// Wait for a while
-					try {
-						Thread.sleep(int_ms);
-					} catch (InterruptedException ex) {
-						if (obs != null)
-							obs.imagingUpdate(CameraState.CANCELLED);
-						isCapturing.set(false);
-						return;
-					}
-				}
+    @Override
+    public void setAutonomous(boolean auto) {
+        _isAutonomous.set(auto);
+        _velocity = new Twist(); // Reset velocity when changing modes
+    }
 
-				if (obs != null)
-					obs.imagingUpdate(CameraState.DONE);
-				isCapturing.set(false);
-			}
-		}).start();
-	}
-
-	@Override
-	public void stopCamera() {
-		// Stop the thread that sends out images by terminating its
-		// navigation flag and then removing the reference to the old flag.
-		synchronized (_captureLock) {
-			if (_isCapturing != null) {
-				_isCapturing.set(false);
-				
-			}
-		}
-	}
-
-	@Override
-	public CameraState getCameraStatus() {
-		synchronized (_captureLock) {
-			if (_isCapturing.get()) {
-				return CameraState.CAPTURING;
-			} else {
-				return CameraState.OFF;
-			}
-		}
-	}
-
-	@Override
-	public UtmPose getState() {
-		return _pose.clone();
-	}
-
-	@Override
-	public int getNumSensors() {
-		return _sensorTypes.length;
-	}
-
-	@Override
-	public void setVelocity(Twist velocity) {
-		_velocity = velocity.clone();
-	}
-
-	@Override
-	public Twist getVelocity() {
-		return _velocity.clone();
-	}
-
-	/**
-	 * Takes an angle and shifts it to be in the range -Pi to Pi.
-	 * 
-	 * @param angle
-	 *            an angle in radians
-	 * @return the same angle as given, normalized to the range -Pi to Pi.
-	 */
-	public static double normalizeAngle(double angle) {
-		while (angle > Math.PI)
-			angle -= 2 * Math.PI;
-		while (angle < -Math.PI)
-			angle += 2 * Math.PI;
-		return angle;
-	}
-
-	@Override
-	public boolean isAutonomous() {
-		return _isAutonomous.get();
-	}
-
-	@Override
-	public void setAutonomous(boolean auto) {
-		_isAutonomous.set(auto);
-		_velocity = new Twist(); // Reset velocity when changing modes
-	}
-
+    @Override
+    public boolean isConnected() {
+        // The simulated vehicle will always be connected
+        return true;
+    }
 }
