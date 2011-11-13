@@ -55,8 +55,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     protected SocketAddress _vehicleServer;
 
     final Timer _registrationTimer = new Timer(true);
-    final PriorityQueue _timeouts = new PriorityQueue();
-    final ConcurrentHashMap<Long, Callback> _tickets = new ConcurrentHashMap<Long, Callback>();
+    final ConcurrentHashMap<Long, FunctionObserver> _tickets = new ConcurrentHashMap<Long, FunctionObserver>();
     final AtomicLong _ticketCounter = new AtomicLong(new Random().nextLong() << 32); // Start ticket with random offset to prevent collisions across multiple clients
 
     protected final Map<Integer, List<SensorListener>> _sensorListeners = new TreeMap<Integer, List<SensorListener>>();
@@ -73,33 +72,6 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
         // Start a task to periodically register for stream updates
         _registrationTimer.scheduleAtFixedRate(new RegistrationTask(), 0, UdpConstants.REGISTRATION_RATE_MS);
-    }
-
-    private static interface Callback {
-        public void response(DatagramPacket response);
-        public void timeout();
-    }
-
-    private static class VoidCallback implements Callback {
-        private FunctionObserver<Void> _obs;
-
-        public VoidCallback(FunctionObserver<Void> obs) {
-            _obs = obs;
-        }
-
-        @Override
-        public void response(DatagramPacket response) {
-            if (_obs != null) {
-                _obs.completed(null);
-            }
-        }
-
-        @Override
-        public void timeout() {
-            if (_obs != null) {
-                _obs.failed(FunctionObserver.FunctionError.TIMEOUT);
-            }
-        }
     }
 
     private void registerListener(List listenerList, UdpConstants.COMMAND registerCommand) {
@@ -147,11 +119,14 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    private int call(String name, Object... params) {
-        return -1;
+    @Override
+    public void timeout(long ticket, SocketAddress destination) {
+        FunctionObserver obs = _tickets.get(ticket);
+        if (obs != null) {
+            obs.failed(FunctionObserver.FunctionError.TIMEOUT);
+        }
     }
-
-
+    
     @Override
     public void addStateListener(PoseListener l, FunctionObserver<Void> obs) {
         synchronized (_stateListeners) {
@@ -182,14 +157,12 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             UdpConstants.writePose(response.stream, state);
             _server.send(response);
 
-            if (obs != null) {
-                _tickets.put(ticket, new VoidCallback(obs));
-            }
+            if (obs != null)
+                _tickets.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null) {
+            if (obs != null)
                 obs.failed(FunctionObserver.FunctionError.ERROR);
-            }
         }
     }
 

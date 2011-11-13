@@ -79,6 +79,8 @@ public class UdpServer {
     
     public interface RequestHandler {
         public void received(Request req);
+        // TODO: should we save the response for some reason?
+        public void timeout(long ticket, SocketAddress destination);
     }
 
     public static class Request {
@@ -152,7 +154,7 @@ public class UdpServer {
         public final byte[] bytes = null; // TODO: fix me
         public final int ticket = 0; // TODO: fix me
         public int ttl = UdpConstants.RETRY_COUNT;
-        public long timeout = 0;
+        public long timeout = System.nanoTime() + UdpConstants.TIMEOUT_NS;
 
         public void resetDelay() {
             timeout = System.nanoTime() + UdpConstants.TIMEOUT_NS;
@@ -263,6 +265,11 @@ public class UdpServer {
                     response.ttl--;
                     response.resetDelay();
                     _responses.offer(response);
+                } else {
+                    // If the TTL is at zero, report a transmission loss
+                    if (_handler != null) {
+                        _handler.timeout(response.ticket, response.destination);
+                    }
                 }
             }
         }
@@ -296,6 +303,7 @@ public class UdpServer {
      */
     public void bcast(Response response, List<SocketAddress> destinations) {
         try {
+            // TODO: this shouldn't generate a ticket!
             DatagramPacket packet = response.toQueuedResponse().toPacket();
             
             for (SocketAddress dest : destinations) {
@@ -317,6 +325,7 @@ public class UdpServer {
      */
     public void send(Response response) {
         try {
+            // TODO: this shouldn't generate a ticket!
             DatagramPacket packet = response.toQueuedResponse().toPacket();
             _socket.send(packet);
         } catch (SocketException e) {
