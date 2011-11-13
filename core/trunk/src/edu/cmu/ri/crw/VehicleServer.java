@@ -18,7 +18,7 @@ import edu.cmu.ri.crw.data.UtmPose;
 public interface VehicleServer {
 	
 	public enum SensorType { ANALOG, DIGITAL, TE, WATERCANARY, BATTERY, UNKNOWN };
-	public enum WaypointState { GOING, DONE, CANCELLED, OFF, UNKNOWN };
+	public enum WaypointState { GOING, PAUSED, OFF, UNKNOWN };
 	public enum CameraState { CAPTURING, DONE, CANCELLED, OFF, UNKNOWN };
 
 	public void addStateListener(PoseListener l);

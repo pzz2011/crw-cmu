@@ -184,7 +184,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         }
     }
     
-    protected void sendCamera(CameraState status) {
+    protected void sendCameraUpdate(CameraState status) {
         // Process the listeners last to first, notifying
         // those that are interested in this event
         synchronized (_cameraListeners) {
