@@ -11,12 +11,14 @@ package edu.cmu.ri.crw;
  */
 public interface VehicleController {
 
-        /**
-         * Update function which is given a reference to the calling vehicle
-         * and the time since the last control update was called.
-         * 
-         * @param server reference to vehicle
-         * @param dt elapsed time since last controller call in seconds
-         */
-        public void update(VehicleServer server, double dt);
+    /**
+     * Update function which is given a reference to the calling vehicle
+     * and the time since the last control update was called. Returns whether
+     * the controller believes the current waypoint has been reached.
+     * 
+     * @param server reference to vehicle
+     * @param dt elapsed time since last controller call in seconds
+     * @return 
+     */
+    public void update(VehicleServer server, double dt);
 }
