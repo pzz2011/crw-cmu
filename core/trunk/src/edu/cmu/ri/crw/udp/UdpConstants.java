@@ -1,5 +1,12 @@
 package edu.cmu.ri.crw.udp;
 
+import edu.cmu.ri.crw.data.Utm;
+import edu.cmu.ri.crw.data.UtmPose;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import robotutils.Pose3D;
+
 /**
  * Static helper class that contains constants and definitions required by the
  * UDP communications system.
@@ -15,14 +22,14 @@ public class UdpConstants {
     public static final int TIMEOUT_NS = RETRY_RATE_MS * (RETRY_COUNT + 1) * 1000;
     public static final int NO_TICKET = -1;
 
-    public static final int INITIAL_PACKET_SIZE = 512;
+    public static final int MAX_PACKET_SIZE = 512;
+    public static final String CMD_ACKNOWLEDGE = "OK";
 
     /**
      * Enumeration of tunneled commands and the strings used in the UDP packet
      * to represent them.
      */
     public enum COMMAND {
-        CMD_ACKNOWLEDGE("OK"),
         CMD_REGISTER_STATE_LISTENER("RSTL"),
         CMD_SET_STATE("SS"),
         CMD_GET_STATE("GS"),
@@ -57,4 +64,37 @@ public class UdpConstants {
         public final String str;
     }
 
+    public static void writePose(DataOutputStream out, UtmPose utmPose) throws IOException {
+        out.writeDouble(utmPose.pose.getX());
+        out.writeDouble(utmPose.pose.getY());
+        out.writeDouble(utmPose.pose.getZ());
+
+        out.writeDouble(utmPose.pose.getRotation().getW());
+        out.writeDouble(utmPose.pose.getRotation().getX());
+        out.writeDouble(utmPose.pose.getRotation().getY());
+        out.writeDouble(utmPose.pose.getRotation().getZ());
+
+        out.writeByte(utmPose.origin.zone);
+        out.writeBoolean(utmPose.origin.isNorth);
+    }
+    
+    public static UtmPose readPose(DataInputStream in) throws IOException {
+        double x = in.readDouble();
+        double y = in.readDouble();
+        double z = in.readDouble();
+
+        double qw = in.readDouble();
+        double qx = in.readDouble();
+        double qy = in.readDouble();
+        double qz = in.readDouble();
+        
+        int utmZone = in.readByte();
+        boolean utmHemi = in.readBoolean();
+        
+        Pose3D pose = new Pose3D(x, y, z, qw, qx, qy, qz);
+        Utm utm = new Utm(utmZone, utmHemi);
+        
+        return new UtmPose(pose, utm);
+    }
+    
 }

@@ -13,11 +13,11 @@ import edu.cmu.ri.crw.VelocityListener;
 import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
+import edu.cmu.ri.crw.udp.UdpServer.Request;
+import edu.cmu.ri.crw.udp.UdpServer.Response;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.SocketAddress;
-import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +28,6 @@ import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 // TODO: finish this class!
@@ -49,11 +48,11 @@ import java.util.logging.Logger;
  * 
  * @author Prasanna Velagapudi <psigen@gmail.com>
  */
-public class UdpVehicleServer implements AsyncVehicleServer {
+public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHandler {
     private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
 
-    protected final DatagramSocket _socket;
-    protected SocketAddress _server;
+    protected final UdpServer _server;
+    protected SocketAddress _vehicleServer;
 
     final Timer _registrationTimer = new Timer(true);
     final PriorityQueue _timeouts = new PriorityQueue();
@@ -68,14 +67,9 @@ public class UdpVehicleServer implements AsyncVehicleServer {
     protected final List<WaypointListener> _waypointListeners = new ArrayList<WaypointListener>();
 
     public UdpVehicleServer() {
-        // Create and bind a socket to connect to a server
-        DatagramSocket s = null;
-        try {
-            s = new DatagramSocket();
-        } catch(SocketException ex) {
-            logger.log(Level.SEVERE, "Unable to open UDP socket", ex);
-        }
-        _socket = s;
+        // Create a UDP server that will handle RPC
+        _server = new UdpServer();
+        _server.start();
 
         // Start a task to periodically register for stream updates
         _registrationTimer.scheduleAtFixedRate(new RegistrationTask(), 0, UdpConstants.REGISTRATION_RATE_MS);
@@ -111,12 +105,10 @@ public class UdpVehicleServer implements AsyncVehicleServer {
     private void registerListener(List listenerList, UdpConstants.COMMAND registerCommand) {
         synchronized(listenerList) {
             if (!listenerList.isEmpty()) {
-                UdpResponse response = new UdpResponse();
-                response.writeLong(UdpConstants.NO_TICKET);
-                response.writeString(registerCommand.str);
-
                 try {
-                    response.send(_socket, _server);
+                    Response response = new Response(UdpConstants.NO_TICKET, _vehicleServer);
+                    response.stream.writeUTF(registerCommand.str);
+                    _server.send(response);
                 } catch (IOException e) {
                     // TODO: not sure what to do here?
                     System.err.println("HELP: IMPLEMENTATION NOT COMPLETE: WHAT DO I DO?");
@@ -136,13 +128,11 @@ public class UdpVehicleServer implements AsyncVehicleServer {
 
             synchronized (_sensorListeners) {
                 for (Integer i : _sensorListeners.keySet()) {
-                    UdpResponse response = new UdpResponse();
-                    response.writeLong(UdpConstants.NO_TICKET);
-                    response.writeString(UdpConstants.COMMAND.CMD_REGISTER_SENSOR_LISTENER.str);
-                    response.writeInt(i);
-
                     try {
-                        response.send(_socket, _server);
+                        Response response = new Response(UdpConstants.NO_TICKET, _vehicleServer);
+                        response.stream.writeUTF(UdpConstants.COMMAND.CMD_REGISTER_SENSOR_LISTENER.str);
+                        response.stream.writeInt(i);
+                        _server.send(response);
                     } catch (IOException e) {
                         // TODO: not sure what to do here?
                         System.err.println("HELP: IMPLEMENTATION NOT COMPLETE: WHAT DO I DO?");
@@ -150,6 +140,11 @@ public class UdpVehicleServer implements AsyncVehicleServer {
                 }
             }
         }
+    }
+    
+    @Override
+    public void received(Request req) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     private int call(String name, Object... params) {
@@ -181,13 +176,11 @@ public class UdpVehicleServer implements AsyncVehicleServer {
     public void setState(UtmPose state, FunctionObserver<Void> obs) {
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
-        UdpResponse response = new UdpResponse();
-        response.writeLong(ticket);
-        response.writeString(UdpConstants.COMMAND.CMD_SET_STATE.str);
-        response.writePose(state);
-
         try {
-            response.send(_socket, _server);
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_STATE.str);
+            UdpConstants.writePose(response.stream, state);
+            _server.send(response);
 
             if (obs != null) {
                 _tickets.put(ticket, new VoidCallback(obs));
