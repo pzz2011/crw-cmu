@@ -49,54 +49,49 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     protected final AtomicBoolean _isAutonomous = new AtomicBoolean(true);
     protected final Timer _timer = new Timer();
     
+    protected final TimerTask _updateTask = new TimerTask() {
+        final double dt = UPDATE_INTERVAL_MS / 1000.0;
+        
+        @Override
+        public void run() {
+            
+            // Move in an arc with given velocity over time interval
+            double yaw = _pose.pose.getRotation().toYaw();
+            double x = _pose.pose.getX() + _velocity.dx() * Math.cos(yaw) * dt;
+            double y = _pose.pose.getY() + _velocity.dx() * Math.sin(yaw) * dt;
+            Quaternion q = Quaternion.fromEulerAngles(0, 0, yaw + _velocity.drz() * dt);
+            _pose.pose = new Pose3D(x, y, _pose.pose.getZ(), q);
+
+            // Send out pose updates
+            UtmPose pose = _pose.clone();
+            sendState(pose);
+
+            // Send out velocity updates
+            Twist velocity = _velocity.clone();
+            sendVelocity(velocity);
+
+            // Generate simulated sensor data
+            SensorData reading = new SensorData();
+            reading.data = new double[3];
+            reading.type = SensorType.TE;
+
+            Random random = new Random();
+            reading.data[0] = (_pose.pose.getX()) + 10 * random.nextGaussian();
+            reading.data[1] = (_pose.pose.getY());
+            reading.data[2] = (_pose.pose.getZ());
+
+            sendSensor(0, reading);
+        }
+    };
+    
     /**
      * Current navigation controller
      */
     SimpleBoatController _controller = SimpleBoatController.POINT_AND_SHOOT;
 
     public SimpleBoatSimulator() {
-        final double dt = UPDATE_INTERVAL_MS / 1000.0;
-
-        new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-
-                while (true) {
-                    try {
-                        Thread.sleep(UPDATE_INTERVAL_MS);
-                    } catch (InterruptedException e) {
-                    }
-
-                    // Send out pose updates
-                    UtmPose pose = _pose.clone();
-                    sendState(pose);
-
-                    // Send out velocity updates
-                    Twist velocity = _velocity.clone();
-                    sendVelocity(velocity);
-
-                    // Move in an arc with given velocity over time interval
-                    double yaw = pose.pose.getRotation().toYaw();
-                    double x = _pose.pose.getX() + _velocity.dx() * Math.cos(yaw) * dt;
-                    double y = _pose.pose.getY() + _velocity.dx() * Math.sin(yaw) * dt;
-                    Quaternion q = Quaternion.fromEulerAngles(0, 0, yaw + _velocity.drz() * dt);
-                    _pose.pose = new Pose3D(x, y, _pose.pose.getZ(), q);
-
-                    // Generate spurious sensor data
-                    SensorData reading = new SensorData();
-                    reading.data = new double[3];
-                    reading.type = SensorType.TE;
-
-                    Random random = new Random();
-                    reading.data[0] = (_pose.pose.getX()) + 10 * random.nextGaussian();
-                    reading.data[1] = (_pose.pose.getY());
-                    reading.data[2] = (_pose.pose.getZ());
-
-                    sendSensor(0, reading);
-                }
-            }
-        }).start();
+        // Start the internal update process
+        _timer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
     }
 
     @Override
@@ -311,5 +306,12 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     public boolean isConnected() {
         // The simulated vehicle will always be connected
         return true;
+    }
+    
+    /**
+     * Terminates internal update processes and threads.
+     */
+    public void shutdown() {
+        _timer.cancel();
     }
 }
