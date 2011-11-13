@@ -81,7 +81,7 @@ public class UdpServer {
         public void received(Request req);
     }
 
-    public class Request {
+    public static class Request {
         private final ByteArrayInputStream _buffer;
         public final DataInputStream stream;
         public final long ticket;
@@ -115,7 +115,7 @@ public class UdpServer {
         }
     }
 
-    public class Response {
+    public static class Response {
         private final ByteArrayOutputStream _buffer;
         public final DataOutputStream stream;
         public final SocketAddress destination;
@@ -147,7 +147,7 @@ public class UdpServer {
         }
     }
 
-    public class QueuedResponse implements Delayed {
+    public static class QueuedResponse implements Delayed {
         public final SocketAddress destination = null; // TODO: fix me
         public final byte[] bytes = null; // TODO: fix me
         public final int ticket = 0; // TODO: fix me
@@ -212,14 +212,14 @@ public class UdpServer {
                 
                 // If it is an ACK, remove the corresponding outgoing messages,
                 // otherwise, send out an ACK and handle the message
-                if (cmd.equals(UdpConstants.COMMAND.CMD_ACKNOWLEDGE)) {
+                if (cmd.equals(UdpConstants.CMD_ACKNOWLEDGE)) {
                     acknowledge(request.ticket);
                 } else {
                     Response response = new Response(request);
 
                     // Construct an ack and send it out
                     try {
-                        response.stream.writeUTF(UdpConstants.COMMAND.CMD_ACKNOWLEDGE.str);
+                        response.stream.writeUTF(UdpConstants.CMD_ACKNOWLEDGE);
                         send(response);
                     } catch (IOException e) {
                         // TODO: more elegant error message
