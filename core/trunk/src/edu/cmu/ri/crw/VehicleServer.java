@@ -32,7 +32,7 @@ public interface VehicleServer {
         
         public void addCameraListener(CameraListener l);
 	public void removeCameraListener(CameraListener l);
-	public void startCamera(long numFrames, double interval, int width, int height);
+	public void startCamera(int numFrames, double interval, int width, int height);
 	public void stopCamera();
 	public CameraState getCameraStatus();
 	
