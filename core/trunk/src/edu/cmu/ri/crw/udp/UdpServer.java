@@ -172,10 +172,6 @@ public class UdpServer {
             }
         }
 
-        public DatagramPacket toPacket(SocketAddress addr) throws SocketException {
-            return new DatagramPacket(bytes, bytes.length, addr);
-        }
-
         public DatagramPacket toPacket() throws SocketException {
             return new DatagramPacket(bytes, bytes.length, destination);
         }
@@ -279,7 +275,15 @@ public class UdpServer {
      * @param response the response to be sent
      */
     public void respond(Response response) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        try {
+            QueuedResponse qr = response.toQueuedResponse();
+            _responses.add(qr);
+            _socket.send(qr.toPacket());
+        } catch (SocketException e) {
+            // TODO: Error! do something
+        } catch (IOException e) {
+            // TODO: Error! do something else
+        }
     }
 
     /**
@@ -291,7 +295,18 @@ public class UdpServer {
      * @param destinations the destination addresses to which it will be sent
      */
     public void bcast(Response response, List<SocketAddress> destinations) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        try {
+            DatagramPacket packet = response.toQueuedResponse().toPacket();
+            
+            for (SocketAddress dest : destinations) {
+                packet.setSocketAddress(dest);
+                _socket.send(packet);
+            }
+        } catch (SocketException e) {
+            // TODO: Error! do something
+        } catch (IOException e) {
+            // TODO: Error! do something else
+        }
     }
     
     /**
@@ -301,7 +316,14 @@ public class UdpServer {
      * @param response the response to be sent
      */
     public void send(Response response) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        try {
+            DatagramPacket packet = response.toQueuedResponse().toPacket();
+            _socket.send(packet);
+        } catch (SocketException e) {
+            // TODO: Error! do something
+        } catch (IOException e) {
+            // TODO: Error! do something else
+        }
     }
 
     /**
