@@ -16,7 +16,8 @@ import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Just some sketches of helper functions, don't use these for anything.
+ * Core implementation of UDP messaging server.  Used within both client and
+ * server RPC mechanisms.
  *
  * Assumptions:
  * - Server function calls are FAST w.r.t. RPC timeouts
@@ -43,7 +44,42 @@ import java.util.concurrent.TimeUnit;
  */
 public class UdpServer {
 
-    DelayQueue<QueuedResponse> responses = new DelayQueue<QueuedResponse>();
+    final DatagramSocket _socket;
+    final DelayQueue<QueuedResponse> _responses;
+    RequestHandler _handler;
+    
+    public UdpServer() {
+        
+        DatagramSocket socket = null;
+        try {
+            socket = new DatagramSocket();
+        } catch (SocketException e) {
+            // TODO: log something here;
+        }
+        
+        _socket = socket;
+        _responses = new DelayQueue<QueuedResponse>();
+        
+    }
+    
+    public void start() {
+        new Thread(new Responder()).start();
+        new Thread(new Receiver()).start();
+    }
+    
+    public void stop() {
+        if (_socket != null) {
+            _socket.close();
+        }
+    }
+    
+    public void setHandler(RequestHandler handler) {
+        _handler = handler;
+    }
+    
+    public interface RequestHandler {
+        public void received(Request req);
+    }
 
     public class Request {
         private final ByteArrayInputStream _buffer;
@@ -71,6 +107,11 @@ public class UdpServer {
 
         public void reset() {
             _buffer.reset();
+            try {
+                stream.readLong(); // Clear ticket from start of buffer
+            } catch (IOException e) {
+                // TODO: report some sort of error here
+            }
         }
     }
 
@@ -85,7 +126,7 @@ public class UdpServer {
         }
 
         public Response(long t, SocketAddress d) {
-             _buffer = new ByteArrayOutputStream(UdpConstants.INITIAL_PACKET_SIZE);
+             _buffer = new ByteArrayOutputStream(UdpConstants.MAX_PACKET_SIZE);
              stream = new DataOutputStream(_buffer);
 
              ticket = t;
@@ -140,9 +181,63 @@ public class UdpServer {
         }
     }
 
-    public class Responder implements Runnable {
-        private final DatagramSocket _socket = null;  // TODO: fix me
+    class Receiver implements Runnable {
 
+        byte[] _buffer = new byte[UdpConstants.MAX_PACKET_SIZE];
+        DatagramPacket _packet = new DatagramPacket(_buffer, _buffer.length);
+        
+        @Override
+        public void run() {
+            while(_socket.isBound() && !_socket.isClosed()) {
+                
+                // Get the next packet from the socket
+                try {
+                    _socket.receive(_packet);
+                } catch (IOException e) {
+                    // TODO: error handling, but for now return
+                    return;
+                }
+                
+                // Decode it into a request
+                Request request = new Request(_packet);
+                
+                // Extract the command string (to check if this is an ACK)
+                String cmd = null;
+                try {
+                    cmd = request.stream.readUTF();
+                    request.reset();
+                } catch (IOException e) {
+                    // TODO: add error handling (failed to decode message)
+                }
+                
+                // If it is an ACK, remove the corresponding outgoing messages,
+                // otherwise, send out an ACK and handle the message
+                if (cmd.equals(UdpConstants.COMMAND.CMD_ACKNOWLEDGE)) {
+                    acknowledge(request.ticket);
+                } else {
+                    Response response = new Response(request);
+
+                    // Construct an ack and send it out
+                    try {
+                        response.stream.writeUTF(UdpConstants.COMMAND.CMD_ACKNOWLEDGE.str);
+                        send(response);
+                    } catch (IOException e) {
+                        // TODO: more elegant error message
+                        throw new RuntimeException("This shouldn't happen.", e);
+                    }
+                    
+                    // Pass this request along to the handler
+                    if (_handler != null) {
+                        _handler.received(request);
+                    }
+                }
+            }
+        }
+        
+    }
+    
+    class Responder implements Runnable {
+        
         @Override
         public void run() {
             QueuedResponse response = null;
@@ -150,7 +245,7 @@ public class UdpServer {
             while(_socket.isBound() && !_socket.isClosed()) {
                 // Wait for next response that has timed out or requires transmission
                 try {
-                    response = responses.take();
+                    response = _responses.take();
                 } catch (InterruptedException e) {
                     // TODO: is this right?
                     // Assume that interruption means we are supposed to be stopping
@@ -171,7 +266,7 @@ public class UdpServer {
                 if (response.ttl > 0) {
                     response.ttl--;
                     response.resetDelay();
-                    responses.offer(response);
+                    _responses.offer(response);
                 }
             }
         }
@@ -198,6 +293,16 @@ public class UdpServer {
     public void bcast(Response response, List<SocketAddress> destinations) {
         throw new UnsupportedOperationException("Not implemented yet");
     }
+    
+    /**
+     * Send out a function response that is unicast to the specified address.
+     * No retransmission will be done on these messages.
+     *
+     * @param response the response to be sent
+     */
+    public void send(Response response) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
 
     /**
      * Removes all responses that have the corresponding ticket to an already
@@ -206,7 +311,7 @@ public class UdpServer {
      * @param ticket
      */
     public void acknowledge(long ticket) {
-        Iterator<QueuedResponse> itr = responses.iterator();
+        Iterator<QueuedResponse> itr = _responses.iterator();
 
         while(itr.hasNext()) {
             if (itr.next().ticket == ticket) {
