@@ -298,6 +298,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
         _udpServer.stop();
     }
     
+    // TODO: Clean up old streams!!
     private final StreamHandler _handler = new StreamHandler();
     
     private class StreamHandler implements PoseListener, ImageListener, CameraListener, SensorListener, VelocityListener, WaypointListener {
