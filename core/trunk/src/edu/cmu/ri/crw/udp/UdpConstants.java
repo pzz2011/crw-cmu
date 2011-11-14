@@ -6,6 +6,7 @@ import edu.cmu.ri.crw.data.UtmPose;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.TreeMap;
 import robotutils.Pose3D;
 
 /**
@@ -32,6 +33,7 @@ public class UdpConstants {
      * to represent them.
      */
     public enum COMMAND {
+        UNKNOWN(""),
         CMD_REGISTER_STATE_LISTENER("RSTL"),
         CMD_SET_STATE("SS"),
         CMD_GET_STATE("GS"),
@@ -64,6 +66,18 @@ public class UdpConstants {
         }
 
         public final String str;
+        
+        static final TreeMap<String, COMMAND> _lookups = new TreeMap<String, COMMAND>();
+        static {
+            for (COMMAND cmd : COMMAND.values()) {
+                _lookups.put(cmd.str, cmd);
+            }
+        }
+        
+        public static COMMAND fromStr(String str) {
+            COMMAND result = _lookups.get(str);
+            return (result == null) ? UNKNOWN : result;
+        }
     }
 
     public static void writeTwist(DataOutputStream out, Twist twist) throws IOException {
