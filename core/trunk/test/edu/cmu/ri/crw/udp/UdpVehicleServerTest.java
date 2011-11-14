@@ -541,38 +541,30 @@ public class UdpVehicleServerTest {
     @Test
     public void testIsConnected() {
         System.out.println("isConnected");
-        FunctionObserver<Boolean> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.isConnected(obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        
+        // Since we are using a test server, it should always be connected
+        assertTrue("Server claimed it was not connected", server.isConnected());
     }
 
     /**
-     * Test of isAutonomous method, of class UdpVehicleServer.
+     * Test of set/isAutonomous method, of class UdpVehicleServer.
      */
     @Test
-    public void testIsAutonomous() {
-        System.out.println("isAutonomous");
-        FunctionObserver<Boolean> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.isAutonomous(obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of setAutonomous method, of class UdpVehicleServer.
-     */
-    @Test
-    public void testSetAutonomous() {
-        System.out.println("setAutonomous");
-        boolean auto = false;
-        FunctionObserver<Void> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.setAutonomous(auto, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void testSetIsAutonomous() {
+        System.out.println("set/isAutonomous");
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        
+        // Set to autonomous and back
+        server.setAutonomous(true);
+        assertTrue("setAutonomy failed to turn on.", server.isAutonomous());
+        
+        server.setAutonomous(false);
+        assertFalse("setAutonomy failed to turn off.", server.isAutonomous());
+        
+        instance.shutdown();
     }
 
     /**
