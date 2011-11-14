@@ -20,6 +20,8 @@ import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
 import edu.cmu.ri.crw.udp.UdpServer.Request;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -86,62 +88,38 @@ public class UdpVehicleServerTest {
     }*/
 
     /**
-     * Test of setVehicleServer method, of class UdpVehicleServer.
+     * Test of setVehicleService method, of class UdpVehicleServer.
      */
     @Test
-    public void testSetVehicleServer() {
-        System.out.println("setVehicleServer");
+    public void testSetVehicleService() {
+        System.out.println("setVehicleService");
         
         UdpVehicleServer instance = new UdpVehicleServer();
         
         VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
-        assertEquals(false, server.isConnected());
+        assertEquals("Server reports connected to null service", 
+                false, server.isConnected());
         
-        instance.setVehicleServer(service.getSocketAddress());
-        assertEquals(true, server.isConnected());
+        instance.setVehicleService(service.getSocketAddress());
+        assertEquals("Server resports not connected to service",
+                true, server.isConnected());
         
         instance.shutdown();
     }
 
     /**
-     * Test of getVehicleServer method, of class UdpVehicleServer.
+     * Test of getVehicleService method, of class UdpVehicleServer.
      */
     @Test
-    public void testGetVehicleServer() {
-        System.out.println("getVehicleServer");
+    public void testGetVehicleService() {
+        System.out.println("getVehicleService");
         UdpVehicleServer instance = new UdpVehicleServer();
         
-        instance.setVehicleServer(service.getSocketAddress());
-        assertEquals(service.getSocketAddress(), instance.getVehicleServer());
+        instance.setVehicleService(service.getSocketAddress());
+        assertEquals("SocketAddress was not set correctly", 
+                service.getSocketAddress(), instance.getVehicleService());
         
         instance.shutdown();
-    }
-
-    /**
-     * Test of received method, of class UdpVehicleServer.
-     */
-    @Test
-    public void testReceived() {
-        System.out.println("received");
-        Request req = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.received(req);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of timeout method, of class UdpVehicleServer.
-     */
-    @Test
-    public void testTimeout() {
-        System.out.println("timeout");
-        long ticket = 0L;
-        //SocketAddress destination = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.timeout(ticket, destination);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
     }
 
     /**
@@ -150,12 +128,26 @@ public class UdpVehicleServerTest {
     @Test
     public void testAddStateListener() {
         System.out.println("addStateListener");
-        PoseListener l = null;
-        FunctionObserver<Void> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.addStateListener(l, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        final CountDownLatch latch = new CountDownLatch(1);
+        
+        // Register a new pose listener on this server
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        server.addStateListener(new PoseListener() {
+            @Override
+            public void receivedState(UtmPose state) {
+                latch.countDown();
+            }
+        });
+        
+        // If we haven't received a pose in a full second, something is wrong
+        try {
+            assertTrue("Did not receive pose update.", latch.await(1, TimeUnit.SECONDS));
+        } catch(InterruptedException e) {
+            fail("Did not receive pose update.");
+        }
+        
+        instance.shutdown();
     }
 
     /**
