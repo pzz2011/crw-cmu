@@ -10,11 +10,17 @@ import robotutils.Pose3D;
  */
 public class UtmPose implements Serializable, Cloneable {
  
+    public static final Pose3D DEFAULT_POSE = new Pose3D(0.0,0.0,0.0,0.0,0.0,0.0);
+    public static final Utm DEFAULT_ORIGIN = new Utm(17, true);
+    
     // TODO: make this externalizable and cloneable
     public Pose3D pose;
     public Utm origin;
     
-    public UtmPose() {};
+    public UtmPose() {
+        this.pose = DEFAULT_POSE;
+        this.origin = DEFAULT_ORIGIN;
+    }
     
     public UtmPose(Pose3D pose, Utm origin) {
         this.pose = pose;

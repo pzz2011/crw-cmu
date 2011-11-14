@@ -36,7 +36,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     public static final int UPDATE_INTERVAL_MS = 100;
     
     public final SensorType[] _sensorTypes = new SensorType[3];
-    public UtmPose _pose = new UtmPose();
+    public UtmPose _utmPose = new UtmPose();
     public Twist _velocity = new Twist();
     public UtmPose[] _waypoints = new UtmPose[0];
     
@@ -56,14 +56,14 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
         public void run() {
             
             // Move in an arc with given velocity over time interval
-            double yaw = _pose.pose.getRotation().toYaw();
-            double x = _pose.pose.getX() + _velocity.dx() * Math.cos(yaw) * dt;
-            double y = _pose.pose.getY() + _velocity.dx() * Math.sin(yaw) * dt;
+            double yaw = _utmPose.pose.getRotation().toYaw();
+            double x = _utmPose.pose.getX() + _velocity.dx() * Math.cos(yaw) * dt;
+            double y = _utmPose.pose.getY() + _velocity.dx() * Math.sin(yaw) * dt;
             Quaternion q = Quaternion.fromEulerAngles(0, 0, yaw + _velocity.drz() * dt);
-            _pose.pose = new Pose3D(x, y, _pose.pose.getZ(), q);
+            _utmPose.pose = new Pose3D(x, y, _utmPose.pose.getZ(), q);
 
             // Send out pose updates
-            UtmPose pose = _pose.clone();
+            UtmPose pose = _utmPose.clone();
             sendState(pose);
 
             // Send out velocity updates
@@ -76,9 +76,9 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
             reading.type = SensorType.TE;
 
             Random random = new Random();
-            reading.data[0] = (_pose.pose.getX()) + 10 * random.nextGaussian();
-            reading.data[1] = (_pose.pose.getY());
-            reading.data[2] = (_pose.pose.getZ());
+            reading.data[0] = (_utmPose.pose.getX()) + 10 * random.nextGaussian();
+            reading.data[1] = (_utmPose.pose.getY());
+            reading.data[2] = (_utmPose.pose.getZ());
 
             sendSensor(0, reading);
         }
@@ -121,7 +121,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
     @Override
     public void setState(UtmPose state) {
-        _pose = state.clone();
+        _utmPose = state.clone();
     }
 
     @Override
@@ -261,7 +261,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
     @Override
     public UtmPose getState() {
-        return _pose.clone();
+        return _utmPose.clone();
     }
 
     @Override
