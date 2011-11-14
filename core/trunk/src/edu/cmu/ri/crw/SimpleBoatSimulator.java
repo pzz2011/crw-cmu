@@ -84,11 +84,6 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
         }
     };
     
-    /**
-     * Current navigation controller
-     */
-    SimpleBoatController _controller = SimpleBoatController.POINT_AND_SHOOT;
-
     public SimpleBoatSimulator() {
         // Start the internal update process
         _timer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
@@ -144,7 +139,17 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
             // Create a waypoint navigation task
             _navigationTask = new TimerTask() {
                 final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
-
+                VehicleController vc = SimpleBoatController.STOP.controller;
+                
+                // Retrieve the appropriate controller in initializer
+                {
+                    try {
+                        vc = SimpleBoatController.valueOf(controller).controller;
+                    } catch (IllegalArgumentException e) {
+                        logger.log(Level.WARNING, "Unknown controller specified (using STOP instead): {0}", controller);
+                    }
+                }
+                
                 @Override
                 public void run() {
                     synchronized (_navigationLock) {
@@ -161,7 +166,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
                             // If we are still executing waypoints, use a 
                             // controller to figure out how to get to waypoint
                             // TODO: measure dt directly instead of approximating
-                            _controller.controller.update(SimpleBoatSimulator.this, dt);
+                            vc.update(SimpleBoatSimulator.this, dt);
                         }
                     }
                 }
