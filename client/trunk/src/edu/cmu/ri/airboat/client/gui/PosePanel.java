@@ -158,7 +158,7 @@ public class PosePanel extends AbstractAirboatPanel {
             Utm origin = new Utm(wpUtm.getZone(), wpUtm.getHemisphere().contains("North"));
             UtmPose utmPose = new UtmPose(pose, origin);
 
-            _vehicle.setState(utmPose);
+            _vehicle.setPose(utmPose);
         }
     }//GEN-LAST:event_setPoseButtonActionPerformed
 
@@ -201,15 +201,15 @@ public class PosePanel extends AbstractAirboatPanel {
     @Override
     public void setVehicle(VehicleServer vehicle) {
         if (_vehicle != null)
-            _vehicle.removeStateListener(_stateListener);
+            _vehicle.removePoseListener(_poseListener);
 
         super.setVehicle(vehicle);
-        vehicle.addStateListener(_stateListener);
+        vehicle.addPoseListener(_poseListener);
     }
 
-    private final PoseListener _stateListener = new PoseListener() {
+    private final PoseListener _poseListener = new PoseListener() {
 
-        public void receivedState(UtmPose upwcs) {
+        public void receivedPose(UtmPose upwcs) {
             int longZone = upwcs.origin.zone;
             String latZone = (upwcs.origin.isNorth ? "North" : "South");
             Pose3D pose = upwcs.pose;
