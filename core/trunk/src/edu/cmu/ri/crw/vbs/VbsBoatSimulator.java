@@ -1,11 +1,10 @@
 package edu.cmu.ri.crw.vbs;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
-import edu.cmu.ri.crw.ImagingObserver;
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.WaypointObserver;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
@@ -26,11 +25,9 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
     public static final int DEFAULT_RPC_PORT = 5000;
     protected final Vbs2Unit _vbsServer;
     protected final ImageServerLink _imageServer;
-    UtmPose _waypoint = null;
+    UtmPose[] _waypoints = new UtmPose[0];
     UtmPose _offset = new UtmPose();
-    private volatile boolean _isCapturing = false;
-    private volatile boolean _isNavigating = false;
-
+    
     public VbsBoatSimulator(String vbsServerName, double[] position) {
 
         // Spawn the new vehicle
@@ -59,7 +56,7 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 
     @Override
     public byte[] captureImage(int width, int height) {
-        logger.info("Took image @ (" + width + " x " + height + ")");
+        logger.log(Level.INFO, "Took image @ ({0}x{1})", new Object[]{width, height});
         _imageServer.takePicture();
         return _imageServer.getDirectImage();
     }
@@ -91,7 +88,7 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 
     @Override
     public void setState(UtmPose state) {
-        logger.info("Ignored setState: " + state);
+        logger.log(Level.INFO, "Ignored setState: {0}", state);
     }
 
     @Override
@@ -101,160 +98,42 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
 
     @Override
     public void setVelocity(Twist velocity) {
-        logger.info("Ignored setVelocity: " + velocity);
+        logger.log(Level.INFO, "Ignored setVelocity: {0}", velocity);
     }
 
     @Override
-    public void startCamera(final long numFrames, final double interval, final int width,
-            final int height, final ImagingObserver obs) {
-
-        final long captureInterval = (long) (interval * 1000.0);
-        _isCapturing = true;
-
-        new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                int iFrame = 0;
-
-                while (_isCapturing && (iFrame < numFrames)) {
-
-                    // Every so often, take a picture 
-                    _imageServer.takePicture();
-                    iFrame++;
-
-                    // Alert observer that status might have changed
-                    if (obs != null) {
-                        obs.imagingUpdate(CameraState.CAPTURING);
-                    }
-
-                    // Wait for a while
-                    try {
-                        Thread.sleep(captureInterval);
-                    } catch (InterruptedException ex) {
-                        obs.imagingUpdate(CameraState.CANCELLED);
-                        _isCapturing = false;
-                        return;
-                    }
-                }
-
-                if (_isCapturing) {
-                    _isCapturing = false;
-                    obs.imagingUpdate(CameraState.DONE);
-                } else {
-                    obs.imagingUpdate(CameraState.CANCELLED);
-                }
-            }
-        }).start();
-
+    public void startCamera(final int numFrames, final double interval, final int width, final int height) {
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
     public void stopCamera() {
-        _isCapturing = false;
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
-    public void startWaypoint(final UtmPose waypoint, final String controller, final WaypointObserver obs) {
-
-        // Tell VBS boat to go to specified waypoint
-        double[] dest = new double[3];
-        dest[0] = waypoint.pose.getX();
-        dest[1] = waypoint.pose.getY();
-        dest[2] = waypoint.pose.getZ();
-
-        // TODO: handle different UTM zones
-        _vbsServer.waypoints().set(0, dest);
-        _vbsServer.gotoWaypoint(0);
-
-        // Spawn monitoring thread
-        new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-
-                // Loop until stopped or waypoint is reached
-                while (_isNavigating && getWaypointStatus() != WaypointState.DONE) {
-
-                    // Alert that there might be a status change
-                    if (obs != null) {
-                        obs.waypointUpdate(WaypointState.GOING);
-                    }
-
-                    // Wait for a while
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException ex) {
-                        obs.waypointUpdate(WaypointState.CANCELLED);
-                        _isNavigating = false;
-                        return;
-                    }
-                }
-
-                if (_isNavigating) {
-                    obs.waypointUpdate(WaypointState.DONE);
-                    _isNavigating = false;
-                } else {
-                    obs.waypointUpdate(WaypointState.CANCELLED);
-                }
-
-            }
-        }).start();
+    public void startWaypoints(final UtmPose[] waypoint, final String controller) {
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
-    public void stopWaypoint() {
-
-        // Tell VBS2 to stop by setting waypoint to current position
-        _vbsServer.waypoints().set(0, _vbsServer.position());
-        _vbsServer.gotoWaypoint(0);
-
-        _isNavigating = false;
+    public void stopWaypoints() {
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
     public WaypointState getWaypointStatus() {
-
-        // Copy position of current waypoint
-        double[] wpt = _vbsServer.waypoints().get(0);
-        double[] pos = _vbsServer.position();
-
-        // Measure distance to waypoint 
-        double dx = wpt[0] - pos[0];
-        double dy = wpt[1] - pos[1];
-        double dz = wpt[2] - pos[2];
-
-        double d = dx * dx + dy * dy + dz * dz;
-
-        // Use distance threshold to determine if waypoint is complete
-        if (d > 0.5) {
-            return WaypointState.GOING;
-        } else {
-            return WaypointState.DONE;
-        }
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
-    public UtmPose getWaypoint() {
-
-        // Get current waypoint from list
-        double[] dest = _vbsServer.waypoints().get(0);
-
-        // Pack as data structure
-        UtmPose waypoint = new UtmPose();
-        waypoint.origin = _offset.origin.clone();
-        waypoint.pose = new Pose3D(dest[0], dest[1], dest[2], 0.0, 0.0, 0.0);
-
-        return waypoint;
+    public UtmPose[] getWaypoints() {
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
     public CameraState getCameraStatus() {
-        if (this._isCapturing) {
-            return CameraState.CAPTURING;
-        } else {
-            return CameraState.OFF;
-        }
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
@@ -265,5 +144,10 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
     @Override
     public void setAutonomous(boolean auto) {
         // This implementation does not support non-autonomy!
+    }
+
+    @Override
+    public boolean isConnected() {
+        return (_vbsServer.isConnected() && _imageServer.isConnected());
     }
 }
