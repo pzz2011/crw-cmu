@@ -21,4 +21,9 @@ public class Utm implements Serializable, Cloneable {
     public Utm clone() {
         return new Utm(zone, isNorth);
     }
+    
+    @Override
+    public String toString() {
+        return zone + (isNorth ? "North" : "South");
+    }
 }

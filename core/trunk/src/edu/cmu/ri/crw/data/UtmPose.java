@@ -31,4 +31,9 @@ public class UtmPose implements Serializable, Cloneable {
     public UtmPose clone() {
         return new UtmPose(pose, origin);
     }
+    
+    @Override
+    public String toString() {
+        return pose.toString() + " @ " + origin.toString();
+    }
 }

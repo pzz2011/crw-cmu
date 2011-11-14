@@ -1,6 +1,7 @@
 package edu.cmu.ri.crw.data;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * Implements a mutable class for representing velocity in 6D space.
@@ -33,5 +34,10 @@ public class Twist implements Cloneable, Serializable {
     @Override
     public Twist clone() {
         return new Twist(velocity);
+    }
+    
+    @Override
+    public String toString() {
+        return "Twist" + Arrays.toString(velocity);
     }
 }
