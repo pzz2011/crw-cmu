@@ -9,11 +9,14 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Core implementation of UDP messaging server.  Used within both client and
@@ -43,6 +46,7 @@ import java.util.concurrent.TimeUnit;
  * @author Pras Velagapudi <psigen@gmail.com>
  */
 public class UdpServer {
+    private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
 
     final DatagramSocket _socket;
     final DelayQueue<QueuedResponse> _responses;
@@ -106,7 +110,7 @@ public class UdpServer {
             try {
                 t = stream.readLong();
             } catch (IOException e) {
-                // TODO: report some sort of error here
+                logger.log(Level.WARNING, "Failed to get valid ticket", e);
             }
             ticket = t;
         }
@@ -116,7 +120,7 @@ public class UdpServer {
             try {
                 stream.readLong(); // Clear ticket from start of buffer
             } catch (IOException e) {
-                // TODO: report some sort of error here
+                logger.log(Level.WARNING, "Failed to get valid ticket", e);
             }
         }
     }
@@ -132,20 +136,42 @@ public class UdpServer {
         }
 
         public Response(long t, SocketAddress d) {
-             _buffer = new ByteArrayOutputStream(UdpConstants.MAX_PACKET_SIZE);
-             stream = new DataOutputStream(_buffer);
+            _buffer = new ByteArrayOutputStream(UdpConstants.MAX_PACKET_SIZE);
+            stream = new DataOutputStream(_buffer);
 
-             ticket = t;
-             destination = d;
+            ticket = t;
+            destination = d;
+
+            try {
+                stream.writeLong(ticket);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to write ticket to response buffer", e);
+            }
         }
 
         public void reset() {
             try {
                 stream.flush();
             } catch (IOException e) {
-                // Shouldn't happen, but resetting stream anyway
+                // Shouldn't happen, but this is just resetting the stream anyway
             }
             _buffer.reset();
+            
+            // Reinsert ticket into stream
+            try {
+                stream.writeLong(ticket);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to write ticket to response buffer", e);
+            }
+        }
+        
+        public byte[] getBytes() {
+            try {
+                stream.flush();
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to write to response buffer", e);
+            }
+            return _buffer.toByteArray();
         }
     }
 
@@ -154,16 +180,16 @@ public class UdpServer {
         public final byte[] bytes;
         public final long ticket;
         public int ttl = UdpConstants.RETRY_COUNT;
-        public long timeout = System.nanoTime() + UdpConstants.TIMEOUT_NS;
+        public long timeout = System.nanoTime() + UdpConstants.RETRY_RATE_NS;
         
         public QueuedResponse(Response resp) {
             destination = resp.destination;
-            bytes = resp._buffer.toByteArray();
+            bytes = resp.getBytes();
             ticket = resp.ticket;
         }
 
         public void resetDelay() {
-            timeout = System.nanoTime() + UdpConstants.TIMEOUT_NS;
+            timeout = System.nanoTime() + UdpConstants.RETRY_RATE_NS;
         }
 
         @Override
@@ -198,7 +224,7 @@ public class UdpServer {
                 try {
                     _socket.receive(_packet);
                 } catch (IOException e) {
-                    // TODO: error handling, but for now return
+                    logger.log(Level.WARNING, "Failed to receive packet, exiting receiver", e);
                     return;
                 }
                 
@@ -208,10 +234,11 @@ public class UdpServer {
                 // Extract the command string (to check if this is an ACK)
                 String cmd = null;
                 try {
-                    cmd = request.stream.readUTF();
+                    cmd = request.stream.readUTF().trim();
                     request.reset();
                 } catch (IOException e) {
-                    // TODO: add error handling (failed to decode message)
+                    logger.log(Level.WARNING, "Failed to decode message (perhaps it is ill-formed?)", e);
+                    continue;
                 }
                 
                 // If it is an ACK, remove the corresponding outgoing messages,
@@ -224,6 +251,7 @@ public class UdpServer {
                     // Construct an ack and send it out
                     try {
                         response.stream.writeUTF(UdpConstants.CMD_ACKNOWLEDGE);
+                        System.out.println("ACKING " + cmd + " : " + response.ticket + " from " + request.source);
                         send(response);
                     } catch (IOException e) {
                         // TODO: more elegant error message
@@ -259,6 +287,7 @@ public class UdpServer {
 
                 // Send the response to the requestor
                 try {
+                    System.out.println("RESENDING [" + response.ttl + "]: " + response.ticket + " to " + response.destination);
                     _socket.send(response.toPacket());
                 } catch (IOException e) {
                     // TODO: figure out which errors we need to return on or ignore here
@@ -292,6 +321,7 @@ public class UdpServer {
             QueuedResponse qr = new QueuedResponse(response);
             _responses.add(qr);
             _socket.send(qr.toPacket());
+            System.out.println("RESPOND " + qr.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + qr.destination);
         } catch (SocketException e) {
             // TODO: Error! do something
         } catch (IOException e) {
@@ -316,6 +346,8 @@ public class UdpServer {
                 packet.setSocketAddress(dest);
                 _socket.send(packet);
             }
+            
+            System.out.println("BCAST " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
         } catch (SocketException e) {
             // TODO: Error! do something
         } catch (IOException e) {
@@ -334,6 +366,8 @@ public class UdpServer {
             // TODO: this shouldn't generate a ticket!
             DatagramPacket packet = new QueuedResponse(response).toPacket();
             _socket.send(packet);
+            
+            System.out.println("SEND " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
         } catch (SocketException e) {
             // TODO: Error! do something
         } catch (IOException e) {
@@ -343,7 +377,7 @@ public class UdpServer {
 
     /**
      * Removes all responses that have the corresponding ticket to an already
-     * acknowledged response.
+     * acknowledged response 
      *
      * @param ticket
      */

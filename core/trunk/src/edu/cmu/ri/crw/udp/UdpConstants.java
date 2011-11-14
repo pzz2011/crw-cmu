@@ -22,8 +22,9 @@ public class UdpConstants {
     public static final int REGISTRATION_TIMEOUT_MS = 5000;
 
     public static final int RETRY_RATE_MS = 1000;
+    public static final long RETRY_RATE_NS = TimeUnit.NANOSECONDS.convert(RETRY_RATE_MS, TimeUnit.MILLISECONDS);
     public static final int RETRY_COUNT = 3;
-    public static final long TIMEOUT_NS = TimeUnit.NANOSECONDS.convert(RETRY_RATE_MS, TimeUnit.MILLISECONDS);
+    public static final long TIMEOUT_NS = (RETRY_COUNT + 1) * RETRY_RATE_NS;
     public static final int NO_TICKET = -1;
 
     public static final int MAX_PACKET_SIZE = 512;
