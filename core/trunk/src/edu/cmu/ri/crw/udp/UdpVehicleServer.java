@@ -72,6 +72,19 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         // Start a task to periodically register for stream updates
         _registrationTimer.scheduleAtFixedRate(new RegistrationTask(), 0, UdpConstants.REGISTRATION_RATE_MS);
     }
+    
+    public UdpVehicleServer(SocketAddress addr) {
+        this();
+        _vehicleServer = addr;
+    }
+    
+    public void setVehicleServer(SocketAddress addr) {
+        _vehicleServer = addr;
+    }
+    
+    public SocketAddress getVehicleServer() {
+        return _vehicleServer;
+    }
 
     private void registerListener(List listenerList, UdpConstants.COMMAND registerCommand) {
         synchronized(listenerList) {
