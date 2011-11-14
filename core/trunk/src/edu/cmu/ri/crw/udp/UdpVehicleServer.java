@@ -110,12 +110,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     private class RegistrationTask extends TimerTask {
         @Override
         public void run() {
+            // Don't need to register if we don't know the server
+            if (_vehicleServer == null)
+                return;
+            
+            // Check the lists for listeners, register if there are any
             registerListener(_imageListeners, UdpConstants.COMMAND.CMD_REGISTER_IMAGE_LISTENER);
             registerListener(_velocityListeners, UdpConstants.COMMAND.CMD_REGISTER_VELOCITY_LISTENER);
             registerListener(_stateListeners, UdpConstants.COMMAND.CMD_REGISTER_STATE_LISTENER);
             registerListener(_cameraListeners, UdpConstants.COMMAND.CMD_REGISTER_CAMERA_LISTENER);
             registerListener(_waypointListeners, UdpConstants.COMMAND.CMD_REGISTER_WAYPOINT_LISTENER);
 
+            // Special case to handle sensor listener channels
             synchronized (_sensorListeners) {
                 for (Integer i : _sensorListeners.keySet()) {
                     try {
@@ -233,6 +239,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void setState(UtmPose state, FunctionObserver<Void> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -252,6 +263,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void getState(FunctionObserver<UtmPose> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -290,6 +306,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void captureImage(int width, int height, FunctionObserver<byte[]> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -330,6 +351,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void startCamera(int numFrames, double interval, int width, int height, FunctionObserver<Void> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -352,6 +378,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void stopCamera(FunctionObserver<Void> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -370,6 +401,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void getCameraStatus(FunctionObserver<CameraState> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -425,6 +461,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void setSensorType(int channel, SensorType type, FunctionObserver<Void> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -445,6 +486,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void getSensorType(int channel, FunctionObserver<SensorType> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -464,6 +510,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void getNumSensors(FunctionObserver<Integer> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -502,6 +553,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void setVelocity(Twist velocity, FunctionObserver<Void> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -521,6 +577,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void getVelocity(FunctionObserver<Twist> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -559,6 +620,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void startWaypoints(UtmPose[] waypoints, String controller, FunctionObserver<Void> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -582,6 +648,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void stopWaypoints(FunctionObserver<Void> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -600,6 +671,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void getWaypoints(FunctionObserver<UtmPose[]> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -618,6 +694,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void getWaypointStatus(FunctionObserver<WaypointState> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -636,6 +717,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void isConnected(FunctionObserver<Boolean> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -654,6 +740,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void isAutonomous(FunctionObserver<Boolean> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -672,6 +763,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void setAutonomous(boolean auto, FunctionObserver<Void> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -691,6 +787,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void setGains(int axis, double[] gains, FunctionObserver<Void> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
@@ -714,6 +815,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void getGains(int axis, FunctionObserver<double[]> obs) {
+        if (_vehicleServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
