@@ -24,7 +24,6 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -54,9 +53,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     protected SocketAddress _vehicleServer;
 
     final Timer _timer = new Timer(true);
-    final ConcurrentHashMap<Long, FunctionObserver> _tickets = new ConcurrentHashMap<Long, FunctionObserver>();
     final AtomicLong _ticketCounter = new AtomicLong(new Random().nextLong() << 32); // Start ticket with random offset to prevent collisions across multiple clients
-
+    final TimeoutMap _ticketMap = new TimeoutMap();
+    
     protected final Map<Integer, List<SensorListener>> _sensorListeners = new TreeMap<Integer, List<SensorListener>>();
     protected final List<ImageListener> _imageListeners = new ArrayList<ImageListener>();
     protected final List<VelocityListener> _velocityListeners = new ArrayList<VelocityListener>();
@@ -81,6 +80,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     
     public void shutdown() {
         _timer.cancel();
+        _ticketMap.shutdown();
         _udpServer.stop();
     }
     
@@ -146,7 +146,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             // TODO: remove me
             logger.log(Level.INFO, "Received command {0}:{1}", new Object[]{req.ticket, command});
             
-            FunctionObserver obs = _tickets.get(req.ticket);
+            FunctionObserver obs = _ticketMap.get(req.ticket);
             if (obs == null) return;
 
             switch (UdpConstants.COMMAND.fromStr(command)) {
@@ -213,7 +213,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void timeout(long ticket, SocketAddress destination) {
-        FunctionObserver obs = _tickets.get(ticket);
+        FunctionObserver obs = _ticketMap.get(ticket);
         if (obs != null) {
             obs.failed(FunctionObserver.FunctionError.TIMEOUT);
         }
@@ -255,7 +255,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -278,7 +278,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -323,7 +323,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -370,7 +370,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -393,7 +393,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -416,7 +416,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -478,7 +478,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -502,7 +502,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -525,7 +525,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -569,7 +569,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -592,7 +592,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -640,7 +640,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -663,7 +663,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -686,7 +686,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -709,7 +709,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -732,7 +732,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -755,7 +755,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -779,7 +779,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -807,7 +807,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -830,7 +830,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
 
             if (obs != null)
-                _tickets.put(ticket, obs);
+                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
