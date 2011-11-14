@@ -8,14 +8,14 @@ package edu.cmu.ri.airboat.client;
 import edu.cmu.ri.airboat.client.gui.PidPanel;
 import edu.cmu.ri.airboat.client.gui.DrivePanel;
 import edu.cmu.ri.crw.AsyncVehicleServer;
+import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.CrwSecurityManager;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.udp.UdpVehicleServer;
 import edu.cmu.ri.crw.udp.UdpVehicleService;
 import java.awt.BorderLayout;
-import java.net.URI;
-import java.util.Random;
+import java.net.SocketAddress;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,7 +41,7 @@ public class BoatConfig {
         // Create a simulated boat and run a ROS server around it
         VehicleServer server = new SimpleBoatSimulator();
         UdpVehicleService testServer = new UdpVehicleService(server);
-        System.out.println("Local dummy server started: " + testServer);
+        System.out.println("Local dummy server started: " + testServer.getSocketAddress());
         
         // Create components for controlling the boat
         final DrivePanel drivePanel = new DrivePanel();
@@ -70,8 +70,8 @@ public class BoatConfig {
 
             // Create a ROS proxy server that accesses the same object
             try {
-                URI masterUri = new URI(ipAddrStr);
-                final VehicleServer vehicle = AsyncVehicleServer.Util.toSync(new UdpVehicleServer());
+                SocketAddress serverAddr = CrwNetworkUtils.toInetSocketAddress(ipAddrStr);
+                final VehicleServer vehicle = AsyncVehicleServer.Util.toSync(new UdpVehicleServer(serverAddr));
 
                 // Connect the new controller to the GUI panels
                 thrustPanel.setVehicle(vehicle);

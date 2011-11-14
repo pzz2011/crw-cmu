@@ -201,7 +201,7 @@ public class PidPanel extends AbstractAirboatPanel {
         if (_vehicle != null) {
 
             double[] pids = _vehicle.getGains(_axis);
-            if (pids.length < 3) {
+            if (pids == null || pids.length < 3) {
                 return;
             }
 
