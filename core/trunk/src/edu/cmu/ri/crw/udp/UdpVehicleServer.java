@@ -234,7 +234,20 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void getState(FunctionObserver<UtmPose> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_STATE.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
@@ -259,7 +272,22 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void captureImage(int width, int height, FunctionObserver<byte[]> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_CAPTURE_IMAGE.str);
+            response.stream.writeInt(width);
+            response.stream.writeInt(height);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
@@ -284,17 +312,60 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void startCamera(int numFrames, double interval, int width, int height, FunctionObserver<Void> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_START_CAMERA.str);
+            response.stream.writeInt(numFrames);
+            response.stream.writeDouble(interval);
+            response.stream.writeInt(width);
+            response.stream.writeInt(height);           
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void stopCamera(FunctionObserver<Void> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_STOP_CAMERA.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void getCameraStatus(FunctionObserver<CameraState> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_CAMERA_STATUS.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
@@ -336,17 +407,59 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void setSensorType(int channel, SensorType type, FunctionObserver<Void> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_SENSOR_TYPE.str);
+            response.stream.writeInt(channel);
+            response.stream.writeByte(type.ordinal());
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void getSensorType(int channel, FunctionObserver<Void> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_SENSOR_TYPE.str);
+            response.stream.writeInt(channel);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void getNumSensors(FunctionObserver<Integer> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_NUM_SENSORS.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
@@ -371,12 +484,39 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void setVelocity(Twist velocity, FunctionObserver<Void> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_VELOCITY.str);
+            UdpConstants.writeTwist(response.stream, velocity);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void getVelocity(FunctionObserver<Twist> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_VELOCITY.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
@@ -400,47 +540,175 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     }
 
     @Override
-    public void startWaypoints(UtmPose[] waypoint, String controller, FunctionObserver<Void> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public void startWaypoints(UtmPose[] waypoints, String controller, FunctionObserver<Void> obs) {
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_START_WAYPOINTS.str);
+            response.stream.writeInt(waypoints.length);
+            for (int i = 0; i < waypoints.length; ++i) {
+                UdpConstants.writePose(response.stream, waypoints[i]);
+            }
+            response.stream.writeUTF(controller);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void stopWaypoints(FunctionObserver<Void> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_STOP_WAYPOINTS.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void getWaypoints(FunctionObserver<UtmPose[]> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_WAYPOINTS.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void getWaypointStatus(FunctionObserver<WaypointState> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_WAYPOINT_STATUS.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void isConnected(FunctionObserver<Boolean> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_IS_CONNECTED.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void isAutonomous(FunctionObserver<Boolean> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_IS_AUTONOMOUS.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void setAutonomous(boolean auto, FunctionObserver<Void> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_AUTONOMOUS.str);
+            response.stream.writeBoolean(auto);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void setGains(int axis, double[] gains, FunctionObserver<Void> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_GAINS.str);
+            response.stream.writeInt(axis);
+            response.stream.writeInt(gains.length);
+            for (int i = 0; i < gains.length; ++i) {
+                response.stream.writeDouble(gains[i]);
+            }
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 
     @Override
     public void getGains(int axis, FunctionObserver<double[]> obs) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _vehicleServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_GAINS.str);
+            _udpServer.send(response);
+
+            if (obs != null)
+                _tickets.put(ticket, obs);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
     }
 }
