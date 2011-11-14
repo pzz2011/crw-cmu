@@ -134,7 +134,8 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
             _waypoints = Arrays.copyOf(waypoints, waypoints.length);
 
             // Cancel any previous navigation tasks
-            _navigationTask.cancel();
+            if (_navigationTask != null)
+                _navigationTask.cancel();
             
             // Create a waypoint navigation task
             _navigationTask = new TimerTask() {
@@ -208,7 +209,8 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
         
         synchronized (_captureLock) {
             // Cancel any previous capture tasks
-            _captureTask.cancel();
+            if (_captureTask != null)
+                _captureTask.cancel();
             
             // Create a camera capture task
             _captureTask = new TimerTask() {
