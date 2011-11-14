@@ -250,14 +250,16 @@ public class UdpServer {
                 } else {
                     Response response = new Response(request);
 
-                    // Construct an ack and send it out
-                    try {
-                        response.stream.writeUTF(UdpConstants.CMD_ACKNOWLEDGE);
-                        System.out.println("ACKING " + cmd + " : " + response.ticket + " from " + request.source);
-                        send(response);
-                    } catch (IOException e) {
-                        // TODO: more elegant error message
-                        throw new RuntimeException("This shouldn't happen.", e);
+                    // Construct an ack and send it out if there was a valid ticket
+                    if (request.ticket != UdpConstants.NO_TICKET) {
+                        try {
+                            response.stream.writeUTF(UdpConstants.CMD_ACKNOWLEDGE);
+                            System.out.println("ACKING " + cmd + " : " + response.ticket + " from " + request.source);
+                            send(response);
+                        } catch (IOException e) {
+                            // TODO: more elegant error message
+                            throw new RuntimeException("This shouldn't happen.", e);
+                        }
                     }
                     
                     // Pass this request along to the handler
