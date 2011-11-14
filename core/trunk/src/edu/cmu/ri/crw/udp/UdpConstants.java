@@ -7,6 +7,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import robotutils.Pose3D;
 
 /**
@@ -22,7 +23,7 @@ public class UdpConstants {
 
     public static final int RETRY_RATE_MS = 1000;
     public static final int RETRY_COUNT = 3;
-    public static final int TIMEOUT_NS = RETRY_RATE_MS * (RETRY_COUNT + 1) * 1000;
+    public static final long TIMEOUT_NS = TimeUnit.NANOSECONDS.convert(RETRY_RATE_MS, TimeUnit.NANOSECONDS);
     public static final int NO_TICKET = -1;
 
     public static final int MAX_PACKET_SIZE = 512;
