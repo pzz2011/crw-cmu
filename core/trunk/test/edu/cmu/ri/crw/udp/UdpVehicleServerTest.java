@@ -19,7 +19,7 @@ import edu.cmu.ri.crw.VelocityListener;
 import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
-import edu.cmu.ri.crw.udp.UdpServer.Request;
+import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
@@ -64,7 +64,7 @@ public class UdpVehicleServerTest {
     /**
      * Test of shutdown method, of class UdpVehicleServer.
      */
-    /*@Test
+    @Test
     public void testShutdown() {
         System.out.println("shutdown");
         UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
@@ -85,8 +85,8 @@ public class UdpVehicleServerTest {
         } catch (IllegalStateException e) {
             
         }
-    }*/
-
+    }
+    
     /**
      * Test of setVehicleService method, of class UdpVehicleServer.
      */
@@ -123,19 +123,19 @@ public class UdpVehicleServerTest {
     }
 
     /**
-     * Test of addStateListener method, of class UdpVehicleServer.
+     * Test of addPoseListener method, of class UdpVehicleServer.
      */
     @Test
-    public void testAddStateListener() {
-        System.out.println("addStateListener");
+    public void testAddPoseListener() {
+        System.out.println("addPoseListener");
         final CountDownLatch latch = new CountDownLatch(1);
         
         // Register a new pose listener on this server
         UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
         VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
-        server.addStateListener(new PoseListener() {
+        server.addPoseListener(new PoseListener() {
             @Override
-            public void receivedState(UtmPose state) {
+            public void receivedPose(UtmPose pose) {
                 latch.countDown();
             }
         });
@@ -151,42 +151,42 @@ public class UdpVehicleServerTest {
     }
 
     /**
-     * Test of removeStateListener method, of class UdpVehicleServer.
+     * Test of removePoseListener method, of class UdpVehicleServer.
      */
     @Test
-    public void testRemoveStateListener() {
-        System.out.println("removeStateListener");
+    public void testRemovePoseListener() {
+        System.out.println("removePoseListener");
         PoseListener l = null;
         //FunctionObserver<Void> obs = null;
         //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.removeStateListener(l, obs);
+        //instance.removePoseListener(l, obs);
         // TODO review the generated test code and remove the default call to fail.
         fail("The test case is a prototype.");
     }
 
     /**
-     * Test of setState method, of class UdpVehicleServer.
+     * Test of setPose method, of class UdpVehicleServer.
      */
     @Test
-    public void testSetState() {
-        System.out.println("setState");
-        UtmPose state = null;
+    public void testSetPose() {
+        System.out.println("setPose");
+        UtmPose utmPose = null;
         //FunctionObserver<Void> obs = null;
         //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.setState(state, obs);
+        //instance.setPose(Pose, obs);
         // TODO review the generated test code and remove the default call to fail.
         fail("The test case is a prototype.");
     }
 
     /**
-     * Test of getState method, of class UdpVehicleServer.
+     * Test of getPose method, of class UdpVehicleServer.
      */
     @Test
-    public void testGetState() {
-        System.out.println("getState");
+    public void testGetPose() {
+        System.out.println("getPose");
         //FunctionObserver<UtmPose> obs = null;
         //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.getState(obs);
+        //instance.getPose(obs);
         // TODO review the generated test code and remove the default call to fail.
         fail("The test case is a prototype.");
     }
