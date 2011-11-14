@@ -52,7 +52,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     protected final UdpServer _udpServer;
     protected SocketAddress _vehicleServer;
 
-    final Timer _registrationTimer = new Timer(true);
+    final Timer _timer = new Timer(true);
     final ConcurrentHashMap<Long, FunctionObserver> _tickets = new ConcurrentHashMap<Long, FunctionObserver>();
     final AtomicLong _ticketCounter = new AtomicLong(new Random().nextLong() << 32); // Start ticket with random offset to prevent collisions across multiple clients
 
@@ -70,12 +70,17 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         _udpServer.start();
 
         // Start a task to periodically register for stream updates
-        _registrationTimer.scheduleAtFixedRate(new RegistrationTask(), 0, UdpConstants.REGISTRATION_RATE_MS);
+        _timer.scheduleAtFixedRate(new RegistrationTask(), 0, UdpConstants.REGISTRATION_RATE_MS);
     }
     
     public UdpVehicleServer(SocketAddress addr) {
         this();
         _vehicleServer = addr;
+    }
+    
+    public void shutdown() {
+        _timer.cancel();
+        _udpServer.stop();
     }
     
     public void setVehicleServer(SocketAddress addr) {
