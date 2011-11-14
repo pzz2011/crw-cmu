@@ -68,29 +68,29 @@ public class ConnectionPanel extends javax.swing.JPanel {
                     connectedBox.setSelected(false);
                     autonomousBox.setSelected(false);
                     connectButton.setBackground(Color.PINK);
+                } else {
+                    _vehicle.isConnected(new FunctionObserver<Boolean>() {
+
+                        public void completed(Boolean v) {
+                            connectedBox.setSelected(v);
+                        }
+
+                        public void failed(FunctionError fe) {
+                            connectButton.setBackground(Color.PINK);
+                        }
+                    });
+
+                    _vehicle.isAutonomous(new FunctionObserver<Boolean>() {
+
+                        public void completed(Boolean v) {
+                            autonomousBox.setSelected(v);
+                        }
+
+                        public void failed(FunctionError fe) {
+                            connectButton.setBackground(Color.PINK);
+                        }
+                    });
                 }
-                
-                _vehicle.isConnected(new FunctionObserver<Boolean>() {
-
-                    public void completed(Boolean v) {
-                        connectedBox.setSelected(v);
-                    }
-
-                    public void failed(FunctionError fe) {
-                        connectButton.setBackground(Color.PINK);
-                    }
-                });
-                
-                _vehicle.isAutonomous(new FunctionObserver<Boolean>() {
-
-                    public void completed(Boolean v) {
-                        autonomousBox.setSelected(v);
-                    }
-
-                    public void failed(FunctionError fe) {
-                        connectButton.setBackground(Color.PINK);
-                    }
-                });
             }
         }, 0, UPDATE_PERIOD_MS);
     }
@@ -110,7 +110,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
         autonomousBox = new ReadOnlyCheckBox();
 
         connectCombo.setEditable(true);
-        connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "http://localhost:11411" }));
+        connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "localhost:11411" }));
 
         connectButton.setText("Connect");
         connectButton.setOpaque(true);
