@@ -2,6 +2,7 @@ package edu.cmu.ri.crw;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -105,4 +106,25 @@ public class CrwNetworkUtils {
 		// If THAT fails, we are done here
 		return (addr == null) ? null : addr.getHostAddress();
 	}
+        
+        /**
+         * Takes a string in the form of "hostname:port" (e.g. "google.com:80")
+         * and converts it into the corresponding InetSocketAddress. Returns 
+         * null if the string cannot be converted.
+         * 
+         * @param addr the corresponding socket address, or null on failure
+         */
+        public static InetSocketAddress toInetSocketAddress(String addr) {
+            String[] addrParts = addr.split(":");
+            if (addrParts.length != 2) return null;
+            
+            try {
+                int port = Integer.parseInt(addrParts[1]);
+                return new InetSocketAddress(addrParts[0], port);
+            } catch (NumberFormatException e) {
+                return null;
+            } catch (IllegalArgumentException e) {
+                return null;
+            }
+        }
 }
