@@ -36,4 +36,30 @@ public class UtmPose implements Serializable, Cloneable {
     public String toString() {
         return pose.toString() + " @ " + origin.toString();
     }
+    
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 53 * hash + (this.pose != null ? this.pose.hashCode() : 0);
+        hash = 53 * hash + (this.origin != null ? this.origin.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final UtmPose other = (UtmPose) obj;
+        if (this.pose != other.pose && (this.pose == null || !this.pose.equals(other.pose))) {
+            return false;
+        }
+        if (this.origin != other.origin && (this.origin == null || !this.origin.equals(other.origin))) {
+            return false;
+        }
+        return true;
+    }
 }
