@@ -26,6 +26,7 @@ import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 // TODO: finish this class!
@@ -99,8 +100,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                     response.stream.writeUTF(registerCommand.str);
                     _udpServer.send(response);
                 } catch (IOException e) {
-                    // TODO: not sure what to do here?
-                    System.err.println("HELP: IMPLEMENTATION NOT COMPLETE: WHAT DO I DO?");
+                    // TODO: should probably change state or something
+                    logger.log(Level.WARNING, "Failed to transmit listener registration: {0}", registerCommand);
                 }
             }
         }
@@ -123,8 +124,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                         response.stream.writeInt(i);
                         _udpServer.send(response);
                     } catch (IOException e) {
-                        // TODO: not sure what to do here?
-                        System.err.println("HELP: IMPLEMENTATION NOT COMPLETE: WHAT DO I DO?");
+                        // TODO: should probably change state or something
+                        logger.log(Level.WARNING, "Failed to transmit listener registration: {0}", 
+                                UdpConstants.COMMAND.CMD_REGISTER_SENSOR_LISTENER.str);
                     }
                 }
             }
@@ -194,12 +196,10 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                     obs.completed(null);
                     break;
                 default:
-                    throw new IllegalStateException("Unknown command received: " + command);
+                    logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
             }
-        } catch (IllegalArgumentException e) {
-            // TODO: error handling
         } catch (IOException e) {
-            // TODO: error handling
+            logger.log(Level.WARNING, "Failed to parse request: {0}", req.ticket);
         }
     }
 
