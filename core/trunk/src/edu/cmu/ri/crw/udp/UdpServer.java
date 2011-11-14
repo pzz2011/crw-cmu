@@ -9,7 +9,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.DelayQueue;
@@ -223,6 +222,9 @@ public class UdpServer {
                 // Get the next packet from the socket
                 try {
                     _socket.receive(_packet);
+                } catch (SocketException e) {
+                    // The socket was closed, as per normal shutdown
+                    return;
                 } catch (IOException e) {
                     logger.log(Level.WARNING, "Failed to receive packet, exiting receiver", e);
                     return;
