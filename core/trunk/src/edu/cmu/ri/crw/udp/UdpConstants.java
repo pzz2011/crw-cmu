@@ -19,7 +19,7 @@ import robotutils.Pose3D;
 public class UdpConstants {
 
     public static final int REGISTRATION_RATE_MS = 1000;
-    public static final int REGISTRATION_TIMEOUT_MS = 5000;
+    public static final int REGISTRATION_TIMEOUT_COUNT = 5;
 
     public static final int RETRY_RATE_MS = 1000;
     public static final long RETRY_RATE_NS = TimeUnit.NANOSECONDS.convert(RETRY_RATE_MS, TimeUnit.MILLISECONDS);
@@ -37,22 +37,28 @@ public class UdpConstants {
     public enum COMMAND {
         UNKNOWN(""),
         CMD_REGISTER_STATE_LISTENER("RSTL"),
+        CMD_SEND_STATE("_P"),
         CMD_SET_STATE("SS"),
         CMD_GET_STATE("GS"),
         CMD_REGISTER_IMAGE_LISTENER("RIL"),
+        CMD_SEND_IMAGE("_I"),
         CMD_CAPTURE_IMAGE("CI"),
         CMD_REGISTER_CAMERA_LISTENER("CIL"),
+        CMD_SEND_CAMERA("_C"),
         CMD_START_CAMERA("STC"),
         CMD_STOP_CAMERA("SPC"),
         CMD_GET_CAMERA_STATUS("CS"),
         CMD_REGISTER_SENSOR_LISTENER("RSEL"),
+        CMD_SEND_SENSOR("_S"),
         CMD_SET_SENSOR_TYPE("SST"),
         CMD_GET_SENSOR_TYPE("GST"),
         CMD_GET_NUM_SENSORS("GNS"),
         CMD_REGISTER_VELOCITY_LISTENER("RVL"),
+        CMD_SEND_VELOCITY("_V"),
         CMD_SET_VELOCITY("SV"),
         CMD_GET_VELOCITY("GV"),
         CMD_REGISTER_WAYPOINT_LISTENER("RWL"),
+        CMD_SEND_WAYPOINT("_W"),
         CMD_START_WAYPOINTS("STW"),
         CMD_STOP_WAYPOINTS("SPW"),
         CMD_GET_WAYPOINTS("GW"),
