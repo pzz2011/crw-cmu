@@ -4,6 +4,9 @@
  */
 package edu.cmu.ri.crw.udp;
 
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.util.Random;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.AsyncVehicleServer;
 import edu.cmu.ri.crw.CameraListener;
@@ -18,7 +21,9 @@ import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.VelocityListener;
 import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.Twist;
+import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
+import java.io.IOException;
 import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +32,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import robotutils.Pose3D;
 import static org.junit.Assert.*;
 
 /**
@@ -37,6 +43,7 @@ public class UdpVehicleServerTest {
     
     UdpVehicleService service;
     SimpleBoatSimulator sbs;
+    Random rnd;
     
     public UdpVehicleServerTest() {
     }
@@ -53,6 +60,7 @@ public class UdpVehicleServerTest {
     public void setUp() {
         sbs = new SimpleBoatSimulator();
         service = new UdpVehicleService(sbs);
+        rnd = new Random();
     }
     
     @After
@@ -101,7 +109,7 @@ public class UdpVehicleServerTest {
                 false, server.isConnected());
         
         instance.setVehicleService(service.getSocketAddress());
-        assertEquals("Server resports not connected to service",
+        assertEquals("Server reports not connected to service",
                 true, server.isConnected());
         
         instance.shutdown();
@@ -165,30 +173,27 @@ public class UdpVehicleServerTest {
     }
 
     /**
-     * Test of setPose method, of class UdpVehicleServer.
+     * Test of setPose and getPose method, of class UdpVehicleServer.
      */
     @Test
-    public void testSetPose() {
-        System.out.println("setPose");
-        UtmPose utmPose = null;
-        //FunctionObserver<Void> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.setPose(Pose, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of getPose method, of class UdpVehicleServer.
-     */
-    @Test
-    public void testGetPose() {
-        System.out.println("getPose");
-        //FunctionObserver<UtmPose> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.getPose(obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void testSetGetPose() {
+        System.out.println("set/getPose");
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        
+        // Generate a random pose
+        UtmPose pose = new UtmPose(
+                new Pose3D(rnd.nextDouble(), rnd.nextDouble(), rnd.nextDouble(), 
+                        rnd.nextDouble(), rnd.nextDouble(), rnd.nextDouble()),
+                new Utm(12, rnd.nextBoolean()));
+        
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        instance.setPose(pose, null);
+        UtmPose gp = server.getPose();
+        
+        assertTrue("Poses didn't match enough.", pose.pose.getEuclideanDistance(gp.pose) < 1e-6);
+        assertEquals(pose.origin, gp.origin);
+        
+        instance.shutdown();
     }
 
     /**
@@ -223,15 +228,26 @@ public class UdpVehicleServerTest {
      * Test of captureImage method, of class UdpVehicleServer.
      */
     @Test
-    public void testCaptureImage() {
+    public void testCaptureImage() throws IOException {
         System.out.println("captureImage");
-        int width = 0;
-        int height = 0;
-        FunctionObserver<byte[]> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.captureImage(width, height, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        
+        // Generate a random image size
+        int width = rnd.nextInt(256);
+        int height = rnd.nextInt(256);
+        
+        // Check that we got an image of this size
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        byte[] bytes = server.captureImage(width, height);
+        try {
+            BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(bytes));
+            assertEquals("Width is wrong.", image.getWidth(), width);
+            assertEquals("Height is wrong.", image.getHeight(), height);
+        } catch (IOException e) {
+            fail("Did not receive valid image.");
+        }
+        
+        instance.shutdown();
     }
 
     /**
