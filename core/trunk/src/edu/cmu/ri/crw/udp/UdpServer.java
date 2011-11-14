@@ -9,8 +9,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
@@ -341,7 +341,7 @@ public class UdpServer {
      * @param response the response to be sent
      * @param destinations the destination addresses to which it will be sent
      */
-    public void bcast(Response response, List<SocketAddress> destinations) {
+    public void bcast(Response response, Collection<SocketAddress> destinations) {
         try {
             // TODO: this shouldn't generate a ticket!
             DatagramPacket packet = new QueuedResponse(response).toPacket();
