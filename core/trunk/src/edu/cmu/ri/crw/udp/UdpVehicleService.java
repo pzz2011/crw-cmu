@@ -11,6 +11,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -85,8 +86,11 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
         try {
             final String command = req.stream.readUTF();
             Response resp = new Response(req);
+            
+            // TODO: remove me
+            logger.log(Level.INFO, "Received command {0}:{1}", new Object[]{req.ticket, command});
 
-            switch (UdpConstants.COMMAND.valueOf(command)) {
+            switch (UdpConstants.COMMAND.fromStr(command)) {
                 case CMD_REGISTER_STATE_LISTENER:
                     // TODO: registration
                     // TODO: response
@@ -213,19 +217,17 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     }
                     _udpServer.respond(resp);
                 default:
-                    throw new IllegalStateException("Unknown command received.");
+                    logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
             }
-        } catch (IllegalArgumentException e) {
-            // TODO: error handling
         } catch (IOException e) {
-            // TODO: error handling
+            logger.log(Level.WARNING, "Failed to parse request: {0}", req.ticket);
         }
 
     }
 
     @Override
     public void timeout(long ticket, SocketAddress destination) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        logger.log(Level.WARNING, "No response for: {0} @ {1}", new Object[]{ticket, destination});
     }
 
     /**
