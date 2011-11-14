@@ -248,16 +248,17 @@ public interface AsyncVehicleServer {
                      */
                     class Delayer<V> implements FunctionObserver<V> {
                         final CountDownLatch _latch = new CountDownLatch(1);
-                        V result = null;
+                        private V _result = null;
                         
                         public V awaitResult() {
                             try { _latch.await(); } catch (InterruptedException e) {}
-                            return result;
+                            return _result;
                         }
                         
                         @Override
                         public void completed(V result) {
                             _latch.countDown();
+                            _result = result;
                         }
 
                         @Override
