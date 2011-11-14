@@ -248,11 +248,10 @@ public class UdpServer {
                 if (cmd.equals(UdpConstants.CMD_ACKNOWLEDGE)) {
                     acknowledge(request.ticket);
                 } else {
-                    Response response = new Response(request);
-
                     // Construct an ack and send it out if there was a valid ticket
                     if (request.ticket != UdpConstants.NO_TICKET) {
                         try {
+                            Response response = new Response(request);
                             response.stream.writeUTF(UdpConstants.CMD_ACKNOWLEDGE);
                             System.out.println("ACKING " + cmd + " : " + response.ticket + " from " + request.source);
                             send(response);
