@@ -57,7 +57,7 @@ public class TimeoutMap {
         
         @Override
         public long getDelay(TimeUnit tu) {
-            return tu.convert(_timeout_ns, TimeUnit.NANOSECONDS);
+            return tu.convert(_timeout_ns - System.nanoTime(), TimeUnit.NANOSECONDS);
         }
 
         @Override
@@ -71,11 +71,13 @@ public class TimeoutMap {
     }
     
     public synchronized void put(long ticket, FunctionObserver obs) {
+        System.out.println("PUT " + ticket);
         _tickets.put(ticket, obs);
         _ticketTimeouts.put(new Timeout(ticket));
     }
     
     public synchronized FunctionObserver get(long ticket) {
+        System.out.println("GOT " + ticket);
         return _tickets.get(ticket);
     }
     
@@ -86,6 +88,7 @@ public class TimeoutMap {
      * @param ticket the ticket that should be removed
      */
     private synchronized void timeout(long ticket) {
+        System.out.println("TIMEOUT " + ticket);
         FunctionObserver obs = _tickets.remove(ticket);
         obs.failed(FunctionObserver.FunctionError.TIMEOUT);
     }
