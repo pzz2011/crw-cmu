@@ -64,7 +64,33 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
     
     public void setServer(VehicleServer server) {
         synchronized(_serverLock) {
+            unregister();
             _vehicleServer = server;
+            register();
+        }
+    }
+    
+    private void register() {
+        _vehicleServer.addCameraListener(_handler);
+        _vehicleServer.addImageListener(_handler);
+        _vehicleServer.addPoseListener(_handler);
+        _vehicleServer.addVelocityListener(_handler);
+        _vehicleServer.addWaypointListener(_handler);
+        
+        for (int i = 0; i < _vehicleServer.getNumSensors(); ++i) {
+            _vehicleServer.addSensorListener(i, _handler);
+        }
+    }
+    
+    private void unregister() {
+        _vehicleServer.removeCameraListener(_handler);
+        _vehicleServer.removeImageListener(_handler);
+        _vehicleServer.removePoseListener(_handler);
+        _vehicleServer.removeVelocityListener(_handler);
+        _vehicleServer.removeWaypointListener(_handler);
+        
+        for (int i = 0; i < _vehicleServer.getNumSensors(); ++i) {
+            _vehicleServer.removeSensorListener(i, _handler);
         }
     }
     
