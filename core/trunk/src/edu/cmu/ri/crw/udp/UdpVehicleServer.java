@@ -84,11 +84,11 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         _udpServer.stop();
     }
     
-    public void setVehicleServer(SocketAddress addr) {
+    public void setVehicleService(SocketAddress addr) {
         _vehicleServer = addr;
     }
     
-    public SocketAddress getVehicleServer() {
+    public SocketAddress getVehicleService() {
         return _vehicleServer;
     }
 
@@ -220,7 +220,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     }
     
     @Override
-    public void addStateListener(PoseListener l, FunctionObserver<Void> obs) {
+    public void addPoseListener(PoseListener l, FunctionObserver<Void> obs) {
         synchronized (_stateListeners) {
             _stateListeners.add(l);
         }
@@ -230,7 +230,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     }
 
     @Override
-    public void removeStateListener(PoseListener l, FunctionObserver<Void> obs) {
+    public void removePoseListener(PoseListener l, FunctionObserver<Void> obs) {
         synchronized (_stateListeners) {
             _stateListeners.remove(l);
         }
@@ -240,7 +240,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     }
 
     @Override
-    public void setState(UtmPose state, FunctionObserver<Void> obs) {
+    public void setPose(UtmPose state, FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
             obs.failed(FunctionObserver.FunctionError.ERROR);
             return;
@@ -264,7 +264,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     }
 
     @Override
-    public void getState(FunctionObserver<UtmPose> obs) {
+    public void getPose(FunctionObserver<UtmPose> obs) {
         if (_vehicleServer == null) {
             obs.failed(FunctionObserver.FunctionError.ERROR);
             return;

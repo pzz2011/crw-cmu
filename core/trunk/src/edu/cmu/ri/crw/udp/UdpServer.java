@@ -245,6 +245,7 @@ public class UdpServer {
                 
                 // If it is an ACK, remove the corresponding outgoing messages,
                 // otherwise, send out an ACK and handle the message
+                System.out.println("GOT PACKET " + _socket.getLocalSocketAddress() + " CMD " + cmd);
                 if (cmd.equals(UdpConstants.CMD_ACKNOWLEDGE)) {
                     acknowledge(request.ticket);
                 } else {
