@@ -439,7 +439,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     }
 
     @Override
-    public void getSensorType(int channel, FunctionObserver<Void> obs) {
+    public void getSensorType(int channel, FunctionObserver<SensorType> obs) {
         long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
         
         try {
