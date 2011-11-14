@@ -11,13 +11,15 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
+import edu.cmu.ri.crw.AsyncVehicleServer;
+import edu.cmu.ri.crw.FunctionObserver;
+import edu.cmu.ri.crw.FunctionObserver.FunctionError;
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.ros.RosVehicleProxy;
+import edu.cmu.ri.crw.udp.UdpVehicleServer;
 import java.awt.Color;
-import java.net.URI;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.prefs.Preferences;
@@ -32,7 +34,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
     public static int UPDATE_PERIOD_MS = 1000;
 
     private Timer _timer = new Timer();
-    private RosVehicleProxy _vehicle = null;
+    private UdpVehicleServer _vehicle = null;
     
     /** Creates new form ConnectionPanel */
     public ConnectionPanel() {
@@ -62,16 +64,33 @@ public class ConnectionPanel extends javax.swing.JPanel {
         _timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                if (_vehicle != null && (_vehicle.getNumSensors() > 0)) {
-                    autonomousBox.setSelected(_vehicle.isAutonomous());
-                    connectedBox.setSelected(true);
-                    connectButton.setBackground(Color.GREEN);
-                } else {
-                    // TODO: make nicer colors
+                if (_vehicle == null) {
                     connectedBox.setSelected(false);
                     autonomousBox.setSelected(false);
                     connectButton.setBackground(Color.PINK);
                 }
+                
+                _vehicle.isConnected(new FunctionObserver<Boolean>() {
+
+                    public void completed(Boolean v) {
+                        connectedBox.setSelected(v);
+                    }
+
+                    public void failed(FunctionError fe) {
+                        connectButton.setBackground(Color.PINK);
+                    }
+                });
+                
+                _vehicle.isAutonomous(new FunctionObserver<Boolean>() {
+
+                    public void completed(Boolean v) {
+                        autonomousBox.setSelected(v);
+                    }
+
+                    public void failed(FunctionError fe) {
+                        connectButton.setBackground(Color.PINK);
+                    }
+                });
             }
         }, 0, UPDATE_PERIOD_MS);
     }
@@ -134,12 +153,13 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
         synchronized(this) {
             // Create a new proxy server that accesses the vehicle
-            RosVehicleProxy vehicle = null;
+            UdpVehicleServer vehicle = null;
             try {
-                URI masterUri = new URI((String)connectCombo.getSelectedItem());
-                vehicle = new RosVehicleProxy(masterUri, "vehicle_client" + new Random().nextInt(1000000));
+                String addr = ((String)connectCombo.getSelectedItem());
+                String[] addrParts = addr.split(":");
+                vehicle = new UdpVehicleServer(new InetSocketAddress(addrParts[0], Integer.parseInt(addrParts[1])));
                 Preferences p = Preferences.userRoot();
-                p.put(LAST_URI_KEY, masterUri.toString());
+                p.put(LAST_URI_KEY, addr);
             } catch (Exception ex) {
                 System.err.println("Failed to open vehicle proxy: " + ex);
                 return;
@@ -178,9 +198,9 @@ public class ConnectionPanel extends javax.swing.JPanel {
         listeners.remove(l);
     }
 
-    protected void fireConnectionListener(VehicleServer vehicle){
+    protected void fireConnectionListener(AsyncVehicleServer vehicle){
         for(int i = 0; i < listeners.size(); i++)
-            (listeners.get(i)).connectionChanged(vehicle);
+            (listeners.get(i)).connectionChanged(AsyncVehicleServer.Util.toSync(vehicle)); // TODO: inefficient hack here
     }
 }
 

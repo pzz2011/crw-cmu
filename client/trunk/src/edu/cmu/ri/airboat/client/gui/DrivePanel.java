@@ -12,11 +12,10 @@
 package edu.cmu.ri.airboat.client.gui;
 
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.VehicleVelocityListener;
+import edu.cmu.ri.crw.VelocityListener;
+import edu.cmu.ri.crw.data.Twist;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.ros.message.geometry_msgs.Twist;
-import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
 
 /**
  *
@@ -182,8 +181,8 @@ public class DrivePanel extends AbstractAirboatPanel {
     protected void sendVelocity() {
         if (_vehicle != null) {
             Twist twist = new Twist();
-            twist.linear.x = fromProgressToRange(jThrust.getValue(), THRUST_MIN, THRUST_MAX);
-            twist.angular.z = fromProgressToRange(jRudder.getValue(), RUDDER_MIN, RUDDER_MAX);
+            twist.dx(fromProgressToRange(jThrust.getValue(), THRUST_MIN, THRUST_MAX));
+            twist.dz(fromProgressToRange(jRudder.getValue(), RUDDER_MIN, RUDDER_MAX));
             _vehicle.setVelocity(twist);
         }
     }
@@ -201,11 +200,11 @@ public class DrivePanel extends AbstractAirboatPanel {
     @Override
     public void setVehicle(VehicleServer vehicle) {
         super.setVehicle(vehicle);
-        vehicle.addVelocityListener(new VehicleVelocityListener() {
+        vehicle.addVelocityListener(new VelocityListener() {
 
-            public void receivedVelocity(TwistWithCovarianceStamped twcs) {
-                jThrustBar.setValue(fromRangeToProgress(twcs.twist.twist.linear.x, THRUST_MIN, THRUST_MAX));
-                jRudderBar.setValue(fromRangeToProgress(twcs.twist.twist.angular.z, RUDDER_MIN, RUDDER_MAX));
+            public void receivedVelocity(Twist twist) {
+                jThrustBar.setValue(fromRangeToProgress(twist.dx(), THRUST_MIN, THRUST_MAX));
+                jRudderBar.setValue(fromRangeToProgress(twist.dz(), RUDDER_MIN, RUDDER_MAX));
                 DrivePanel.this.repaint();
             }
         });

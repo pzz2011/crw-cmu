@@ -12,14 +12,15 @@
 package edu.cmu.ri.airboat.client.gui;
 
 import edu.cmu.ri.airboat.client.UtmUtils;
-import edu.cmu.ri.crw.QuaternionUtils;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
-import edu.cmu.ri.crw.WaypointObserver;
+import edu.cmu.ri.crw.WaypointListener;
+import edu.cmu.ri.crw.data.Utm;
+import edu.cmu.ri.crw.data.UtmPose;
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.event.MouseAdapter;
 import java.text.DecimalFormat;
-import org.ros.message.crwlib_msgs.UtmPose;
+import robotutils.Pose3D;
 
 /**
  *
@@ -128,10 +129,11 @@ public class WaypointPanel extends AbstractAirboatPanel {
             return;
 
         completedBox.setSelected(false);
-        _vehicle.startWaypoint(waypoint, null, new WaypointObserver() {
+        _vehicle.startWaypoints(new UtmPose[]{waypoint}, "POINT_AND_SHOOT");
+        _vehicle.addWaypointListener(new WaypointListener() {
 
             public void waypointUpdate(WaypointState ws) {
-                if (ws == WaypointState.DONE) {
+                if (ws == WaypointState.OFF) {
                     completedBox.setSelected(true);
                 }
             }
@@ -144,7 +146,7 @@ public class WaypointPanel extends AbstractAirboatPanel {
             return;
 
         completedBox.setSelected(false);
-        _vehicle.stopWaypoint();
+        _vehicle.stopWaypoints();
     }//GEN-LAST:event_cancelButtonActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -180,42 +182,40 @@ public class WaypointPanel extends AbstractAirboatPanel {
             // Convert out of zone for boat-local coordinates
             // TODO: figure out how to fix this!
             UtmUtils.UTM fakeUtm = UtmUtils.convertZone(boatUtm, wpUtm);
-            waypoint.pose.position.x = fakeUtm.easting;
-            waypoint.pose.position.y = fakeUtm.northing;
-
-            waypoint.utm.zone = (byte)fakeUtm.zone;
-            waypoint.utm.isNorth = fakeUtm.isNorth;
-
-            waypoint.pose.position.z = wpPos.getAltitude();
-            waypoint.pose.orientation = QuaternionUtils.fromEulerAngles(0.0, 0.0,
-                    (_worldPanel.waypoint.getHeading() != null) ? _worldPanel.waypoint.getHeading().getRadians() : 0.0);
+            Pose3D pose = new Pose3D(fakeUtm.easting, fakeUtm.northing, wpPos.getAltitude(), 
+                    0.0, 0.0, (_worldPanel.waypoint.getHeading() != null) ? _worldPanel.waypoint.getHeading().getRadians() : 0.0);
+            Utm origin = new Utm(fakeUtm.zone, fakeUtm.isNorth);
+            UtmPose waypoint = new UtmPose(pose, origin);
 
             selectedWaypointText.setText("[" + 
-                    UTM_FORMAT.format(waypoint.pose.position.x) + ", " +
-                    UTM_FORMAT.format(waypoint.pose.position.y) + ", " +
-                    UTM_FORMAT.format(waypoint.pose.position.z) + "] " +
-                    waypoint.utm.zone + " " + (waypoint.utm.isNorth ? "North" : "South"));
+                    UTM_FORMAT.format(waypoint.pose.getX()) + ", " +
+                    UTM_FORMAT.format(waypoint.pose.getY()) + ", " +
+                    UTM_FORMAT.format(waypoint.pose.getZ()) + "] " +
+                    waypoint.origin.zone + " " + (waypoint.origin.isNorth ? "North" : "South"));
         }
     };
 
     @Override
     protected void update() {
         if (_vehicle != null) {
-            UtmPose currWp = _vehicle.getWaypoint();
+            UtmPose[] currWps = _vehicle.getWaypoints();
+            if (currWps == null || currWps.length < 1)
+                return;
+            UtmPose currWp = currWps[0];
             if (currWp == null)
                 return;
 
             currWaypointText.setText("[" + 
-                    UTM_FORMAT.format(currWp.pose.position.x) + ", " +
-                    UTM_FORMAT.format(currWp.pose.position.y) + ", " +
-                    UTM_FORMAT.format(currWp.pose.position.z) + "] " +
-                    currWp.utm.zone + " " + (currWp.utm.isNorth ? "North" : "South"));
+                    UTM_FORMAT.format(currWp.pose.getX()) + ", " +
+                    UTM_FORMAT.format(currWp.pose.getY()) + ", " +
+                    UTM_FORMAT.format(currWp.pose.getZ()) + "] " +
+                    currWp.origin.zone + " " + (currWp.origin.isNorth ? "North" : "South"));
 
             // Set marker position on globe map
-            if (_worldPanel != null && currWp.utm.zone != 0) {
+            if (_worldPanel != null && currWp.origin.zone != 0) {
                 try {
-                    String wwHemi = (currWp.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
-                    UTMCoord boatPos = UTMCoord.fromUTM(currWp.utm.zone, wwHemi, currWp.pose.position.x, currWp.pose.position.y);
+                    String wwHemi = (currWp.origin.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
+                    UTMCoord boatPos = UTMCoord.fromUTM(currWp.origin.zone, wwHemi, currWp.pose.getX(), currWp.pose.getY());
                     _worldPanel.waypoint.getAttributes().setOpacity(1.0);
                     _worldPanel.waypoint.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), 0.0));
                 } catch (Exception e) {

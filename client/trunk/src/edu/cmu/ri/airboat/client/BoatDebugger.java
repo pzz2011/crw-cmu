@@ -16,7 +16,7 @@ import edu.cmu.ri.airboat.client.gui.WaypointPanel;
 import edu.cmu.ri.crw.CrwSecurityManager;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.ros.RosVehicleServer;
+import edu.cmu.ri.crw.udp.UdpVehicleService;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -26,9 +26,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
-import org.ros.RosCore;
-import org.ros.node.NodeConfiguration;
-import org.ros.node.NodeRunner;
 
 /**
  * Provides a comprehensive interface for directly connecting to and interacting
@@ -196,17 +193,10 @@ public class BoatDebugger extends javax.swing.JFrame {
         // Disable DNS lookups
         CrwSecurityManager.loadIfDNSIsSlow();
 
-        // Create a local loopback server for testing
-        // (Not a big deal if this fails)
-        // Start a local ros core
-        RosCore core = RosCore.newPublic(11411);
-        NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
-        core.awaitStart();
-
         // Create a simulated boat and run a ROS server around it
         VehicleServer server = new SimpleBoatSimulator();
-        RosVehicleServer testServer = new RosVehicleServer(core.getUri(), "testVehicle", server);
-        System.out.println("Local dummy server started: " + testServer);
+        UdpVehicleService testServer = new UdpVehicleService(server);
+        System.out.println("Local dummy server started: " + testServer.getSocketAddress());
 
         // Start up the debugger GUI
         java.awt.EventQueue.invokeLater(new Runnable() {
