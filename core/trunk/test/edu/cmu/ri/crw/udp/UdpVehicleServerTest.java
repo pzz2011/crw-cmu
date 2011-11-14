@@ -24,6 +24,7 @@ import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -177,6 +178,7 @@ public class UdpVehicleServerTest {
      */
     @Test
     public void testSetGetPose() {
+        fail("DISABLED TO TEST OTHER THINGS.");
         System.out.println("set/getPose");
         UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
         
@@ -239,6 +241,9 @@ public class UdpVehicleServerTest {
         // Check that we got an image of this size
         VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
         byte[] bytes = server.captureImage(width, height);
+        if (bytes == null)
+            fail("Did not receive an image.");
+        
         try {
             BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(bytes));
             assertEquals("Width is wrong.", image.getWidth(), width);
@@ -571,31 +576,27 @@ public class UdpVehicleServerTest {
     }
 
     /**
-     * Test of setGains method, of class UdpVehicleServer.
+     * Test of setGains and getGains method, of class UdpVehicleServer.
      */
     @Test
-    public void testSetGains() {
-        System.out.println("setGains");
-        int axis = 0;
-        double[] gains = null;
-        FunctionObserver<Void> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.setGains(axis, gains, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }
-
-    /**
-     * Test of getGains method, of class UdpVehicleServer.
-     */
-    @Test
-    public void testGetGains() {
-        System.out.println("getGains");
-        int axis = 0;
-        FunctionObserver<double[]> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.getGains(axis, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+    public void testSetGetGains() {
+        System.out.println("set/getGains");
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        
+        // Generate a random gain vector and channel
+        int axis = rnd.nextInt(6);
+        double[] gains = new double[3];
+        for (int i = 0; i < gains.length; ++i) {
+            gains[i] = rnd.nextDouble();
+        }
+        
+        // Set the gain vector
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        server.setGains(axis, gains);
+        double[] pg = server.getGains(axis);
+        
+        assertTrue("Gains do not match: expected " + Arrays.toString(gains) + ", actual " + Arrays.toString(pg), Arrays.equals(gains, pg));
+        
+        instance.shutdown();
     }
 }
