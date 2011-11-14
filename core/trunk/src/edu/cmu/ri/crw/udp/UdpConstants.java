@@ -1,5 +1,6 @@
 package edu.cmu.ri.crw.udp;
 
+import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 import java.io.DataInputStream;
@@ -16,6 +17,7 @@ import robotutils.Pose3D;
 public class UdpConstants {
 
     public static final int REGISTRATION_RATE_MS = 1000;
+    public static final int REGISTRATION_TIMEOUT_MS = 5000;
 
     public static final int RETRY_RATE_MS = 1000;
     public static final int RETRY_COUNT = 3;
@@ -64,6 +66,28 @@ public class UdpConstants {
         public final String str;
     }
 
+    public static void writeTwist(DataOutputStream out, Twist twist) throws IOException {
+        out.writeDouble(twist.dx());
+        out.writeDouble(twist.dy());
+        out.writeDouble(twist.dz());
+        
+        out.writeDouble(twist.drx());
+        out.writeDouble(twist.dry());
+        out.writeDouble(twist.drz());
+    }
+    
+    public static Twist readTwist(DataInputStream in) throws IOException {
+        double x = in.readDouble();
+        double y = in.readDouble();
+        double z = in.readDouble();
+
+        double rx = in.readDouble();
+        double ry = in.readDouble();
+        double rz = in.readDouble();
+        
+        return new Twist(x,y,z,rx,ry,rz);
+    }
+    
     public static void writePose(DataOutputStream out, UtmPose utmPose) throws IOException {
         out.writeDouble(utmPose.pose.getX());
         out.writeDouble(utmPose.pose.getY());

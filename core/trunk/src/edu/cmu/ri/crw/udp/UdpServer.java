@@ -73,6 +73,10 @@ public class UdpServer {
         }
     }
     
+    public SocketAddress getSocketAddress() {
+        return _socket.getLocalSocketAddress();
+    }
+    
     public void setHandler(RequestHandler handler) {
         _handler = handler;
     }
