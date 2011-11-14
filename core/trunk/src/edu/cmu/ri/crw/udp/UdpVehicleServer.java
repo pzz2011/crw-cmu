@@ -143,11 +143,13 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     public void received(Request req) {
         try {
             final String command = req.stream.readUTF();
+            // TODO: remove me
+            logger.log(Level.INFO, "Received command {0}:{1}", new Object[]{req.ticket, command});
             
             FunctionObserver obs = _tickets.get(req.ticket);
             if (obs == null) return;
 
-            switch (UdpConstants.COMMAND.valueOf(command)) {
+            switch (UdpConstants.COMMAND.fromStr(command)) {
                 case CMD_GET_STATE:
                     obs.completed(UdpConstants.readPose(req.stream));
                     break;
@@ -250,7 +252,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_STATE.str);
             UdpConstants.writePose(response.stream, state);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -273,7 +275,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_STATE.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -318,7 +320,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_CAPTURE_IMAGE.str);
             response.stream.writeInt(width);
             response.stream.writeInt(height);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -365,7 +367,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             response.stream.writeDouble(interval);
             response.stream.writeInt(width);
             response.stream.writeInt(height);           
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -388,7 +390,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_STOP_CAMERA.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -411,7 +413,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_CAMERA_STATUS.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -473,7 +475,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_SENSOR_TYPE.str);
             response.stream.writeInt(channel);
             response.stream.writeByte(type.ordinal());
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -497,7 +499,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_SENSOR_TYPE.str);
             response.stream.writeInt(channel);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -520,7 +522,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_NUM_SENSORS.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -564,7 +566,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_VELOCITY.str);
             UdpConstants.writeTwist(response.stream, velocity);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -587,7 +589,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_VELOCITY.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -635,7 +637,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                 UdpConstants.writePose(response.stream, waypoints[i]);
             }
             response.stream.writeUTF(controller);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -658,7 +660,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_STOP_WAYPOINTS.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -681,7 +683,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_WAYPOINTS.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -704,7 +706,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_WAYPOINT_STATUS.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -727,7 +729,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_IS_CONNECTED.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -750,7 +752,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_IS_AUTONOMOUS.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -774,7 +776,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_AUTONOMOUS.str);
             response.stream.writeBoolean(auto);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -802,7 +804,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             for (int i = 0; i < gains.length; ++i) {
                 response.stream.writeDouble(gains[i]);
             }
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
@@ -825,7 +827,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_GAINS.str);
-            _udpServer.send(response);
+            _udpServer.respond(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
