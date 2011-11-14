@@ -11,14 +11,13 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
-import edu.cmu.ri.crw.VehicleImageListener;
+import edu.cmu.ri.crw.ImageListener;
 import edu.cmu.ri.crw.VehicleServer;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
-import org.ros.message.sensor_msgs.CompressedImage;
 
 /**
  *
@@ -34,12 +33,12 @@ public class CameraPanel extends AbstractAirboatPanel {
     @Override
     public void setVehicle(VehicleServer vehicle) {
         super.setVehicle(vehicle);
-        vehicle.addImageListener(new VehicleImageListener() {
+        vehicle.addImageListener(new ImageListener() {
 
-            public void receivedImage(CompressedImage ci) {
+            public void receivedImage(byte[] imageData) {
                 // Take a picture, and put the resulting image into the panel
                 try {
-                    BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(ci.data));
+                    BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(imageData));
                     if (image != null) {
                         Image scaledImage = image.getScaledInstance(pictureLabel.getWidth(), pictureLabel.getHeight(), Image.SCALE_DEFAULT);
                         pictureLabel.setIcon(new ImageIcon(scaledImage));
@@ -119,7 +118,7 @@ public class CameraPanel extends AbstractAirboatPanel {
         startCaptureButton.setSelected(true);
 
         // TODO: rename this button
-        _vehicle.startCamera(10, 0.5, 640, 480, null);
+        _vehicle.startCamera(10, 0.5, 640, 480);
 
         startCaptureButton.setEnabled(true);
         startCaptureButton.setSelected(false);

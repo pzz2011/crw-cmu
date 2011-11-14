@@ -7,11 +7,12 @@ package edu.cmu.ri.airboat.client;
 
 import edu.cmu.ri.airboat.client.gui.PidPanel;
 import edu.cmu.ri.airboat.client.gui.DrivePanel;
+import edu.cmu.ri.crw.AsyncVehicleServer;
 import edu.cmu.ri.crw.CrwSecurityManager;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.ros.RosVehicleProxy;
-import edu.cmu.ri.crw.ros.RosVehicleServer;
+import edu.cmu.ri.crw.udp.UdpVehicleServer;
+import edu.cmu.ri.crw.udp.UdpVehicleService;
 import java.awt.BorderLayout;
 import java.net.URI;
 import java.util.Random;
@@ -22,9 +23,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
-import org.ros.RosCore;
-import org.ros.node.NodeConfiguration;
-import org.ros.node.NodeRunner;
 
 /**
  *
@@ -40,18 +38,9 @@ public class BoatConfig {
         // Disable DNS lookups
         CrwSecurityManager.loadIfDNSIsSlow();
 
-        // Start a local loopback server 
-        // (useful for testing, no big deal if this server fails to start)
-        // Create a local loopback server for testing
-        // (Not a big deal if this fails)
-        // Start a local ros core
-        RosCore core = RosCore.newPublic(11411);
-        NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
-        core.awaitStart();
-
         // Create a simulated boat and run a ROS server around it
         VehicleServer server = new SimpleBoatSimulator();
-        RosVehicleServer testServer = new RosVehicleServer(core.getUri(), "testVehicle", server);
+        UdpVehicleService testServer = new UdpVehicleService(server);
         System.out.println("Local dummy server started: " + testServer);
         
         // Create components for controlling the boat
@@ -71,17 +60,18 @@ public class BoatConfig {
 
         // Make XML-RPC connection to boat
         Timer timer = new Timer();
-        String ipAddrStr = "http://localhost:11411";
+        String ipAddrStr = testServer.getSocketAddress().toString();
         while (true) {
             
             // Query user for URL of boat, exit if cancel is pressed
             ipAddrStr = (String)JOptionPane.showInputDialog(null, "Enter URL of Server", "Connect to Airboat", JOptionPane.QUESTION_MESSAGE, null, null, ipAddrStr);
             if (ipAddrStr == null) System.exit(0);
+            // TODO: add socket parsing here
 
             // Create a ROS proxy server that accesses the same object
             try {
                 URI masterUri = new URI(ipAddrStr);
-                final VehicleServer vehicle = new RosVehicleProxy(masterUri, "vehicle_client" + new Random().nextInt(1000000));
+                final VehicleServer vehicle = AsyncVehicleServer.Util.toSync(new UdpVehicleServer());
 
                 // Connect the new controller to the GUI panels
                 thrustPanel.setVehicle(vehicle);

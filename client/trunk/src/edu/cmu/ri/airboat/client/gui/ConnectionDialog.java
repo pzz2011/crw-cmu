@@ -15,8 +15,8 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.URL;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,10 +32,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import org.ros.RosCore;
-import org.ros.exception.RosRuntimeException;
-import org.ros.node.NodeConfiguration;
-import org.ros.node.NodeRunner;
 
 /**
  * Implements a connection dialog that auto-verifies that a connection is 
@@ -48,9 +44,9 @@ public class ConnectionDialog extends JDialog {
     public static final String LAST_URI_KEY = "edu.cmu.ri.airboat.client.gui.LastConnection";
     private final ScheduledExecutorService _scheduler = Executors.newScheduledThreadPool(1);
 
-    private URI _rosCoreAddress = null;
+    private SocketAddress _vehicleAddress = null;
     final JOptionPane _optionPane;
-    final JTextField _rosCoreField;
+    final JTextField _vehicleAddressField;
     final AtomicBoolean _isScheduled = new AtomicBoolean(false);
 
     public ConnectionDialog(JFrame frame, boolean isModal) {
@@ -59,11 +55,11 @@ public class ConnectionDialog extends JDialog {
 
         // Load the last URI that has been used
         Preferences p = Preferences.userRoot();
-        _rosCoreField = new JTextField(p.get(LAST_URI_KEY, "http://localhost:11411"), 30);
+        _vehicleAddressField = new JTextField(p.get(LAST_URI_KEY, "localhost:11411"), 30);
 
         // Create an array of the text and components to be displayed.
         String message = "Enter the URI of a ROS Master";
-        Object[] array = {message, _rosCoreField};
+        Object[] array = {message, _vehicleAddressField};
 
         // Create the JOptionPane.
         _optionPane = new JOptionPane(array,
@@ -91,7 +87,7 @@ public class ConnectionDialog extends JDialog {
 
             @Override
             public void componentShown(ComponentEvent ce) {
-                _rosCoreField.requestFocusInWindow();
+                _vehicleAddressField.requestFocusInWindow();
             }
         });
 
@@ -99,8 +95,8 @@ public class ConnectionDialog extends JDialog {
         _optionPane.addPropertyChangeListener(_propListener);
 
         // Register to listen to text change events
-        _rosCoreField.getDocument().addDocumentListener(_docListener);
-        _rosCoreField.addActionListener(_actionListener);
+        _vehicleAddressField.getDocument().addDocumentListener(_docListener);
+        _vehicleAddressField.addActionListener(_actionListener);
         _scheduler.scheduleWithFixedDelay(new AddressChecker(), 0, 2, TimeUnit.SECONDS);
 
         // Show the dialog box
@@ -134,22 +130,23 @@ public class ConnectionDialog extends JDialog {
             // Did the user hit OK or cancel?
             if (value.equals(JOptionPane.OK_OPTION)) {
                 try {
-                    _rosCoreAddress = new URI(_rosCoreField.getText().toString());
+                    String[] addrParts = _vehicleAddressField.getText().toString().split(":");
+                    _vehicleAddress = new InetSocketAddress(addrParts[0], Integer.parseInt(addrParts[1]));
                     
                     Preferences p = Preferences.userRoot();
-                    p.put(LAST_URI_KEY, _rosCoreAddress.toString());
+                    p.put(LAST_URI_KEY, _vehicleAddress.toString());
                     try {
                         p.flush();
                     } catch (BackingStoreException ex) {
                         Logger.getLogger(ConnectionDialog.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                } catch (URISyntaxException ex) {
-                    _rosCoreAddress = null;
+                } catch (NumberFormatException ex) {
+                    _vehicleAddress = null;
                 }
             }
 
             // Hide the dialog box
-            _rosCoreField.setText(null);
+            _vehicleAddressField.setText(null);
             _scheduler.shutdownNow();
             dispose();
         }
@@ -198,7 +195,7 @@ public class ConnectionDialog extends JDialog {
     class AddressChecker implements Runnable {
 
         public void run() {
-            _rosCoreField.setBackground(checkAddress().color);
+            _vehicleAddressField.setBackground(checkAddress().color);
         }
     }
 
@@ -211,7 +208,7 @@ public class ConnectionDialog extends JDialog {
         try {
             // Try to open the URI in the text box, if it succeeds, make
             // the box change color accordingly
-            URL url = new URL(_rosCoreField.getText().toString());
+            URL url = new URL(_vehicleAddressField.getText().toString());
             if (InetAddress.getByName(url.getHost()).isReachable(500)) {
 
                 // Open a connection
@@ -239,34 +236,7 @@ public class ConnectionDialog extends JDialog {
         return result;
     }
 
-    public URI getAddress() {
-        return _rosCoreAddress;
-    }
-
-    /**
-     * Simple test that opens a connection dialog and returns the result.
-     *
-     * @param args
-     */
-    public static void main(String[] args) {
-
-        // Start a local ros core
-        // (Not a big deal if this fails)
-        RosCore core = null;
-        try {
-            core = RosCore.newPublic(11411);
-            NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
-            core.awaitStart();
-        } catch (RosRuntimeException e) {
-            System.err.println("Failed to start ROS core: " + e.getMessage());
-        }
-        
-        // Show the connection dialog
-        ConnectionDialog d = new ConnectionDialog(null, true);
-        System.out.println(d.getAddress());
-
-        // Terminate the sample RosCore
-        if (core != null)
-            core.shutdown();
+    public SocketAddress getAddress() {
+        return _vehicleAddress;
     }
 }
