@@ -120,7 +120,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     }
 
     @Override
-    public void setState(UtmPose state) {
+    public void setPose(UtmPose state) {
         _utmPose = state.clone();
     }
 
@@ -260,7 +260,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     }
 
     @Override
-    public UtmPose getState() {
+    public UtmPose getPose() {
         return _utmPose.clone();
     }
 

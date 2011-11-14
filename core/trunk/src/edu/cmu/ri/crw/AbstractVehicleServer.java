@@ -46,14 +46,14 @@ public abstract class AbstractVehicleServer implements VehicleServer {
     }
 
     @Override
-    public void addStateListener(PoseListener l) {
+    public void addPoseListener(PoseListener l) {
         synchronized (_stateListeners) {
             _stateListeners.add(l);
         }
     }
 
     @Override
-    public void removeStateListener(PoseListener l) {
+    public void removePoseListener(PoseListener l) {
         synchronized (_stateListeners) {
             _stateListeners.remove(l);
         }
@@ -64,7 +64,7 @@ public abstract class AbstractVehicleServer implements VehicleServer {
         // those that are interested in this event
         synchronized (_stateListeners) {
             for (PoseListener l : _stateListeners) {
-                l.receivedState(pose);
+                l.receivedPose(pose);
             }
         }
     }

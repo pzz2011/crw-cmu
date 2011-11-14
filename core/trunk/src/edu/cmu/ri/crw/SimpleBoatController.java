@@ -24,7 +24,7 @@ public enum SimpleBoatController {
             Twist twist = new Twist();
 
             // Get the position of the vehicle and the current waypoint
-            UtmPose state = server.getState();
+            UtmPose state = server.getPose();
             Pose3D pose = state.pose;
 
             UtmPose[] waypoints = server.getWaypoints();
@@ -87,7 +87,7 @@ public enum SimpleBoatController {
         public void update(VehicleServer server, double dt) {
             Twist twist = new Twist();
             // Get the position of the vehicle and the waypoint
-            UtmPose state = server.getState();
+            UtmPose state = server.getPose();
             Pose3D pose = state.pose;
 
             UtmPose[] waypoints = server.getWaypoints();
