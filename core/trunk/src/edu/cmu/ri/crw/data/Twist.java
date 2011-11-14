@@ -40,4 +40,26 @@ public class Twist implements Cloneable, Serializable {
     public String toString() {
         return "Twist" + Arrays.toString(velocity);
     }
+    
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 37 * hash + Arrays.hashCode(this.velocity);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Twist other = (Twist) obj;
+        if (!Arrays.equals(this.velocity, other.velocity)) {
+            return false;
+        }
+        return true;
+    }
 }
