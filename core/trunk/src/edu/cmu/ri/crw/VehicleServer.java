@@ -21,10 +21,10 @@ public interface VehicleServer {
 	public enum WaypointState { GOING, PAUSED, OFF, UNKNOWN };
 	public enum CameraState { CAPTURING, DONE, CANCELLED, OFF, UNKNOWN };
 
-	public void addStateListener(PoseListener l);
-	public void removeStateListener(PoseListener l);
-	public void setState(UtmPose state);
-	public UtmPose getState();
+	public void addPoseListener(PoseListener l);
+	public void removePoseListener(PoseListener l);
+	public void setPose(UtmPose pose);
+	public UtmPose getPose();
 	
 	public void addImageListener(ImageListener l);
 	public void removeImageListener(ImageListener l);

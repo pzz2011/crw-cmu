@@ -18,10 +18,10 @@ import java.util.concurrent.CountDownLatch;
  */
 public interface AsyncVehicleServer {
 	
-	public void addStateListener(PoseListener l, FunctionObserver<Void> obs);
-	public void removeStateListener(PoseListener l, FunctionObserver<Void> obs);
-	public void setState(UtmPose state, FunctionObserver<Void> obs);
-	public void getState(FunctionObserver<UtmPose> obs);
+	public void addPoseListener(PoseListener l, FunctionObserver<Void> obs);
+	public void removePoseListener(PoseListener l, FunctionObserver<Void> obs);
+	public void setPose(UtmPose pose, FunctionObserver<Void> obs);
+	public void getPose(FunctionObserver<UtmPose> obs);
 	
 	public void addImageListener(ImageListener l, FunctionObserver<Void> obs);
 	public void removeImageListener(ImageListener l, FunctionObserver<Void> obs);
@@ -72,22 +72,22 @@ public interface AsyncVehicleServer {
                 return new AsyncVehicleServer() {
 
                     @Override
-                    public void addStateListener(PoseListener l, FunctionObserver<Void> obs) {
+                    public void addPoseListener(PoseListener l, FunctionObserver<Void> obs) {
                         throw new UnsupportedOperationException("Not supported yet.");
                     }
 
                     @Override
-                    public void removeStateListener(PoseListener l, FunctionObserver<Void> obs) {
+                    public void removePoseListener(PoseListener l, FunctionObserver<Void> obs) {
                         throw new UnsupportedOperationException("Not supported yet.");
                     }
 
                     @Override
-                    public void setState(UtmPose state, FunctionObserver<Void> obs) {
+                    public void setPose(UtmPose state, FunctionObserver<Void> obs) {
                         throw new UnsupportedOperationException("Not supported yet.");
                     }
 
                     @Override
-                    public void getState(FunctionObserver<UtmPose> obs) {
+                    public void getPose(FunctionObserver<UtmPose> obs) {
                         throw new UnsupportedOperationException("Not supported yet.");
                     }
 
@@ -268,30 +268,30 @@ public interface AsyncVehicleServer {
                     }
                     
                     @Override
-                    public void addStateListener(PoseListener l) {
+                    public void addPoseListener(PoseListener l) {
                         final Delayer<Void> delayer = new Delayer<Void>();
-                        server.addStateListener(l, delayer);
+                        server.addPoseListener(l, delayer);
                         delayer.awaitResult();
                     }
 
                     @Override
-                    public void removeStateListener(PoseListener l) {
+                    public void removePoseListener(PoseListener l) {
                         final Delayer<Void> delayer = new Delayer<Void>();
-                        server.removeStateListener(l, delayer);
+                        server.removePoseListener(l, delayer);
                         delayer.awaitResult();
                     }
 
                     @Override
-                    public void setState(UtmPose state) {
+                    public void setPose(UtmPose state) {
                         final Delayer<Void> delayer = new Delayer<Void>();
-                        server.setState(state, delayer);
+                        server.setPose(state, delayer);
                         delayer.awaitResult();
                     }
 
                     @Override
-                    public UtmPose getState() {
+                    public UtmPose getPose() {
                         final Delayer<UtmPose> delayer = new Delayer<UtmPose>();
-                        server.getState(delayer);
+                        server.getPose(delayer);
                         return delayer.awaitResult();
                     }
 
