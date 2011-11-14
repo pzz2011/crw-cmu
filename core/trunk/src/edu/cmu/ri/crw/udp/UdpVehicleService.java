@@ -97,11 +97,11 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     // TODO: response
                     break;
                 case CMD_SET_STATE:
-                    _vehicleServer.setState(UdpConstants.readPose(req.stream));
+                    _vehicleServer.setPose(UdpConstants.readPose(req.stream));
                     _udpServer.respond(resp); // Send void response
                     break;
                 case CMD_GET_STATE:
-                    UdpConstants.writePose(resp.stream, _vehicleServer.getState());
+                    UdpConstants.writePose(resp.stream, _vehicleServer.getPose());
                     _udpServer.respond(resp);
                     break;
                 case CMD_REGISTER_IMAGE_LISTENER:

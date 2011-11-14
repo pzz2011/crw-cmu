@@ -77,7 +77,7 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
     }
 
     @Override
-    public UtmPose getState() {
+    public UtmPose getPose() {
         UtmPose poseMsg = new UtmPose();
         double[] pos = _vbsServer.position();
         double[] rot = _vbsServer.rotation();
@@ -87,7 +87,7 @@ public class VbsBoatSimulator extends AbstractVehicleServer {
     }
 
     @Override
-    public void setState(UtmPose state) {
+    public void setPose(UtmPose state) {
         logger.log(Level.INFO, "Ignored setState: {0}", state);
     }
 
