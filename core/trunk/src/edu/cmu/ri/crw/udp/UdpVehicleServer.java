@@ -16,12 +16,10 @@ import edu.cmu.ri.crw.data.UtmPose;
 import edu.cmu.ri.crw.udp.UdpServer.Request;
 import edu.cmu.ri.crw.udp.UdpServer.Response;
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -68,6 +66,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     public UdpVehicleServer() {
         // Create a UDP server that will handle RPC
         _server = new UdpServer();
+        _server.setHandler(this);
         _server.start();
 
         // Start a task to periodically register for stream updates
@@ -217,7 +216,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     }
 
     @Override
-    public void startCamera(long numFrames, double interval, int width, int height, FunctionObserver<Void> obs) {
+    public void startCamera(int numFrames, double interval, int width, int height, FunctionObserver<Void> obs) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
