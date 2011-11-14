@@ -49,7 +49,7 @@ import java.util.logging.Logger;
 public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHandler {
     private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
 
-    protected final UdpServer _server;
+    protected final UdpServer _udpServer;
     protected SocketAddress _vehicleServer;
 
     final Timer _registrationTimer = new Timer(true);
@@ -65,9 +65,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     public UdpVehicleServer() {
         // Create a UDP server that will handle RPC
-        _server = new UdpServer();
-        _server.setHandler(this);
-        _server.start();
+        _udpServer = new UdpServer();
+        _udpServer.setHandler(this);
+        _udpServer.start();
 
         // Start a task to periodically register for stream updates
         _registrationTimer.scheduleAtFixedRate(new RegistrationTask(), 0, UdpConstants.REGISTRATION_RATE_MS);
@@ -79,7 +79,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                 try {
                     Response response = new Response(UdpConstants.NO_TICKET, _vehicleServer);
                     response.stream.writeUTF(registerCommand.str);
-                    _server.send(response);
+                    _udpServer.send(response);
                 } catch (IOException e) {
                     // TODO: not sure what to do here?
                     System.err.println("HELP: IMPLEMENTATION NOT COMPLETE: WHAT DO I DO?");
@@ -103,7 +103,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                         Response response = new Response(UdpConstants.NO_TICKET, _vehicleServer);
                         response.stream.writeUTF(UdpConstants.COMMAND.CMD_REGISTER_SENSOR_LISTENER.str);
                         response.stream.writeInt(i);
-                        _server.send(response);
+                        _udpServer.send(response);
                     } catch (IOException e) {
                         // TODO: not sure what to do here?
                         System.err.println("HELP: IMPLEMENTATION NOT COMPLETE: WHAT DO I DO?");
@@ -115,7 +115,74 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     
     @Override
     public void received(Request req) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        try {
+            final String command = req.stream.readUTF();
+            
+            FunctionObserver obs = _tickets.get(req.ticket);
+            if (obs == null) return;
+
+            switch (UdpConstants.COMMAND.valueOf(command)) {
+                case CMD_GET_STATE:
+                    obs.completed(UdpConstants.readPose(req.stream));
+                    break;
+                case CMD_CAPTURE_IMAGE:
+                    byte[] image = new byte[req.stream.readInt()];
+                    req.stream.readFully(image);
+                    obs.completed(req);
+                    break;    
+                case CMD_GET_CAMERA_STATUS:
+                    obs.completed(CameraState.values()[req.stream.readByte()]);
+                    break;
+                case CMD_GET_SENSOR_TYPE:
+                    obs.completed(SensorType.values()[req.stream.readByte()]);
+                    break;
+                case CMD_GET_NUM_SENSORS:
+                    obs.completed(req.stream.readInt());
+                    break;
+                case CMD_GET_VELOCITY:
+                    obs.completed(UdpConstants.readTwist(req.stream));
+                    break;
+                case CMD_GET_WAYPOINTS:
+                    UtmPose[] poses = new UtmPose[req.stream.readInt()];
+                    for (int i = 0; i < poses.length; ++i) {
+                        poses[i] = UdpConstants.readPose(req.stream);
+                    }
+                    obs.completed(poses);
+                    break;
+                case CMD_GET_WAYPOINT_STATUS:
+                    obs.completed(WaypointState.values()[req.stream.readByte()]);
+                    break;
+                case CMD_IS_CONNECTED:
+                    obs.completed(req.stream.readBoolean());
+                    break;
+                case CMD_IS_AUTONOMOUS:
+                    obs.completed(req.stream.readBoolean());
+                    break;
+                case CMD_GET_GAINS:
+                    double[] gains = new double[req.stream.readInt()];
+                    for (int i = 0; i < gains.length; ++i) {
+                        gains[i] = req.stream.readDouble();
+                    }
+                    obs.completed(gains);
+                case CMD_SET_STATE:
+                case CMD_SET_SENSOR_TYPE:
+                case CMD_SET_VELOCITY:
+                case CMD_SET_AUTONOMOUS:
+                case CMD_SET_GAINS:
+                case CMD_START_CAMERA:
+                case CMD_STOP_CAMERA:
+                case CMD_START_WAYPOINTS:
+                case CMD_STOP_WAYPOINTS:
+                    obs.completed(null);
+                    break;
+                default:
+                    throw new IllegalStateException("Unknown command received: " + command);
+            }
+        } catch (IllegalArgumentException e) {
+            // TODO: error handling
+        } catch (IOException e) {
+            // TODO: error handling
+        }
     }
 
     @Override
@@ -154,7 +221,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_STATE.str);
             UdpConstants.writePose(response.stream, state);
-            _server.send(response);
+            _udpServer.send(response);
 
             if (obs != null)
                 _tickets.put(ticket, obs);
