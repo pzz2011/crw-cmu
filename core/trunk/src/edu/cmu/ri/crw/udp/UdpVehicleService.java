@@ -105,7 +105,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     break;
                 case CMD_CAPTURE_IMAGE:
                     byte[] image = _vehicleServer.captureImage(req.stream.readInt(), req.stream.readInt());
-                    resp.stream.writeLong(image.length);
+                    resp.stream.writeInt(image.length);
                     resp.stream.write(image);
                     _udpServer.respond(resp);
                     break;
