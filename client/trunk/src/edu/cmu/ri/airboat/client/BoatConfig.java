@@ -15,6 +15,7 @@ import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.udp.UdpVehicleServer;
 import edu.cmu.ri.crw.udp.UdpVehicleService;
 import java.awt.BorderLayout;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -60,7 +61,7 @@ public class BoatConfig {
 
         // Make XML-RPC connection to boat
         Timer timer = new Timer();
-        String ipAddrStr = testServer.getSocketAddress().toString();
+        String ipAddrStr = "localhost:" + ((InetSocketAddress)testServer.getSocketAddress()).getPort();
         while (true) {
             
             // Query user for URL of boat, exit if cancel is pressed
