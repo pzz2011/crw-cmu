@@ -86,6 +86,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
         try {
             final String command = req.stream.readUTF();
             Response resp = new Response(req);
+            resp.stream.writeUTF(command);
             
             // TODO: remove me
             logger.log(Level.INFO, "Received command {0}:{1}", new Object[]{req.ticket, command});
