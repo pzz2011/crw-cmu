@@ -122,7 +122,7 @@ public class UdpServer {
     }
 
     public static class Response {
-        private final ByteArrayOutputStream _buffer;
+        protected final ByteArrayOutputStream _buffer;
         public final DataOutputStream stream;
         public final SocketAddress destination;
         public final long ticket;
@@ -147,18 +147,20 @@ public class UdpServer {
             }
             _buffer.reset();
         }
-
-        public QueuedResponse toQueuedResponse() {
-            return null;
-        }
     }
 
     public static class QueuedResponse implements Delayed {
-        public final SocketAddress destination = null; // TODO: fix me
-        public final byte[] bytes = null; // TODO: fix me
-        public final int ticket = 0; // TODO: fix me
+        public final SocketAddress destination;
+        public final byte[] bytes;
+        public final long ticket;
         public int ttl = UdpConstants.RETRY_COUNT;
         public long timeout = System.nanoTime() + UdpConstants.TIMEOUT_NS;
+        
+        public QueuedResponse(Response resp) {
+            destination = resp.destination;
+            bytes = resp._buffer.toByteArray();
+            ticket = resp.ticket;
+        }
 
         public void resetDelay() {
             timeout = System.nanoTime() + UdpConstants.TIMEOUT_NS;
@@ -287,7 +289,7 @@ public class UdpServer {
      */
     public void respond(Response response) {
         try {
-            QueuedResponse qr = response.toQueuedResponse();
+            QueuedResponse qr = new QueuedResponse(response);
             _responses.add(qr);
             _socket.send(qr.toPacket());
         } catch (SocketException e) {
@@ -308,7 +310,7 @@ public class UdpServer {
     public void bcast(Response response, List<SocketAddress> destinations) {
         try {
             // TODO: this shouldn't generate a ticket!
-            DatagramPacket packet = response.toQueuedResponse().toPacket();
+            DatagramPacket packet = new QueuedResponse(response).toPacket();
             
             for (SocketAddress dest : destinations) {
                 packet.setSocketAddress(dest);
@@ -330,7 +332,7 @@ public class UdpServer {
     public void send(Response response) {
         try {
             // TODO: this shouldn't generate a ticket!
-            DatagramPacket packet = response.toQueuedResponse().toPacket();
+            DatagramPacket packet = new QueuedResponse(response).toPacket();
             _socket.send(packet);
         } catch (SocketException e) {
             // TODO: Error! do something
