@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -34,6 +35,7 @@ import java.util.logging.Logger;
  */
 public class UdpVehicleService implements UdpServer.RequestHandler {
     private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
+    private static final SocketAddress DUMMY_ADDRESS = new InetSocketAddress(0);
     
     protected VehicleServer _vehicleServer;
     protected final Object _serverLock = new Object();
@@ -44,7 +46,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
     protected final Map<SocketAddress, Integer> _poseListeners = new LinkedHashMap<SocketAddress, Integer>();
     protected final Map<SocketAddress, Integer> _imageListeners = new LinkedHashMap<SocketAddress, Integer>();
     protected final Map<SocketAddress, Integer> _cameraListeners = new LinkedHashMap<SocketAddress, Integer>();
-    protected final ArrayList<Map<SocketAddress,Integer>> _sensorListeners = new ArrayList<Map<SocketAddress, Integer>>();
+    protected final Map<Integer, Map<SocketAddress,Integer>> _sensorListeners = new TreeMap<Integer, Map<SocketAddress, Integer>>();
     protected final Map<SocketAddress, Integer> _velocityListeners = new LinkedHashMap<SocketAddress, Integer>();
     protected final Map<SocketAddress, Integer> _waypointListeners = new LinkedHashMap<SocketAddress, Integer>();
 
@@ -55,18 +57,18 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
     
     public UdpVehicleService(VehicleServer server) {
         this();
-        _vehicleServer = server;
+        setServer(server);
     }
     
     public SocketAddress getSocketAddress() {
         return _udpServer.getSocketAddress();
     }
     
-    public void setServer(VehicleServer server) {
+    public final void setServer(VehicleServer server) {
         synchronized(_serverLock) {
-            unregister();
+            if (_vehicleServer != null) unregister();
             _vehicleServer = server;
-            register();
+            if (_vehicleServer != null) register();
         }
     }
     
@@ -94,7 +96,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
         }
     }
     
-    public VehicleServer getServer() {
+    public final VehicleServer getServer() {
         synchronized(_serverLock) {
             return _vehicleServer;
         }
@@ -177,16 +179,11 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     synchronized(_sensorListeners) {
                         int channel = req.stream.readInt();
                         
-                        // Make sure the sensorListener array is large enough
-                        _sensorListeners.ensureCapacity(channel+1);
-                        while (_sensorListeners.size() < channel+1)
-                            _sensorListeners.add(null);
-                        
                         // Retrive the sensor sublisteners
                         Map<SocketAddress, Integer> _listeners = _sensorListeners.get(channel);
                         if (_listeners == null) {
                             _listeners = new LinkedHashMap<SocketAddress, Integer>();
-                            _sensorListeners.set(channel, _listeners);
+                            _sensorListeners.put(channel, _listeners);
                         }
                         
                         // Add the address to the appropriate sublistener list
@@ -306,14 +303,21 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
 
         @Override
         public void receivedPose(UtmPose pose) {
+            // Quickly check if anyone is listening
+            synchronized(_poseListeners) {
+                if (_poseListeners.isEmpty()) return;
+            }
+            
             try {
                 // Construct pose message
-                Response resp = new Response(UdpConstants.NO_TICKET, null);
+                Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_POSE.str);
                 UdpConstants.writePose(resp.stream, pose);
             
                 // Send to all listeners
-                _udpServer.bcast(resp, _poseListeners.keySet());
+                synchronized(_poseListeners) {
+                    _udpServer.bcast(resp, _poseListeners.keySet());
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to serialize pose");
             }
@@ -321,15 +325,22 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
 
         @Override
         public void receivedImage(byte[] image) {
+            // Quickly check if anyone is listening
+            synchronized(_imageListeners) {
+                if (_imageListeners.isEmpty()) return;
+            }
+            
             try {
                 // Construct pose message
-                Response resp = new Response(UdpConstants.NO_TICKET, null);
+                Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_IMAGE.str);
                 resp.stream.writeInt(image.length);
                 resp.stream.write(image);
             
                 // Send to all listeners
-                _udpServer.bcast(resp, _imageListeners.keySet());
+                synchronized(_imageListeners) {
+                    _udpServer.bcast(resp, _imageListeners.keySet());
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to serialize image");
             }
@@ -337,14 +348,21 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
 
         @Override
         public void imagingUpdate(CameraState status) {
+            // Quickly check if anyone is listening
+            synchronized(_cameraListeners) {
+                if (_cameraListeners.isEmpty()) return;
+            }
+            
             try {
                 // Construct pose message
-                Response resp = new Response(UdpConstants.NO_TICKET, null);
+                Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_CAMERA.str);
                 resp.stream.writeByte(status.ordinal());
             
                 // Send to all listeners
-                _udpServer.bcast(resp, _cameraListeners.keySet());
+                synchronized(_cameraListeners) {
+                    _udpServer.bcast(resp, _cameraListeners.keySet());
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to serialize camera");
             }
@@ -352,20 +370,22 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
 
         @Override
         public void receivedSensor(SensorData sensor) {
+            // Quickly check if anyone is listening
+            synchronized(_sensorListeners) {
+                if (!_sensorListeners.containsKey(sensor.channel)) return;
+            }
+            
             try {
                 // Construct pose message
-                Response resp = new Response(UdpConstants.NO_TICKET, null);
+                Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_SENSOR.str);
-                resp.stream.writeInt(sensor.channel);
-                resp.stream.writeByte(sensor.type.ordinal());
-                resp.stream.writeInt(sensor.data.length);
-                for (int i = 0; i < sensor.data.length; ++i)
-                    resp.stream.writeDouble(sensor.data[i]);
+                UdpConstants.writeSensorData(resp.stream, sensor);
             
                 // Send to all listeners
-                Map<SocketAddress, Integer> _listeners = _sensorListeners.get(sensor.channel);
-                if (_listeners != null)
+                synchronized(_sensorListeners) {
+                    Map<SocketAddress, Integer> _listeners = _sensorListeners.get(sensor.channel);
                     _udpServer.bcast(resp, _listeners.keySet());
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to serialize sensor " + sensor.channel);
             }
@@ -373,14 +393,21 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
 
         @Override
         public void receivedVelocity(Twist velocity) {
+            // Quickly check if anyone is listening
+            synchronized(_velocityListeners) {
+                if (_velocityListeners.isEmpty()) return;
+            }
+            
             try {
                 // Construct pose message
-                Response resp = new Response(UdpConstants.NO_TICKET, null);
+                Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_VELOCITY.str);
                 UdpConstants.writeTwist(resp.stream, velocity);
             
                 // Send to all listeners
-                _udpServer.bcast(resp, _velocityListeners.keySet());
+                synchronized(_velocityListeners) {
+                    _udpServer.bcast(resp, _velocityListeners.keySet());
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to serialize camera");
             }
@@ -388,14 +415,21 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
 
         @Override
         public void waypointUpdate(WaypointState status) {
+            // Quickly check if anyone is listening
+            synchronized(_waypointListeners) {
+                if (_waypointListeners.isEmpty()) return;
+            }
+            
             try {
                 // Construct pose message
-                Response resp = new Response(UdpConstants.NO_TICKET, null);
+                Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_WAYPOINT.str);
                 resp.stream.writeByte(status.ordinal());
             
                 // Send to all listeners
-                _udpServer.bcast(resp, _waypointListeners.keySet());
+                synchronized(_waypointListeners) {
+                    _udpServer.bcast(resp, _waypointListeners.keySet());
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to serialize camera");
             }
