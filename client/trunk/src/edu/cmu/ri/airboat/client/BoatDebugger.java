@@ -20,6 +20,8 @@ import edu.cmu.ri.crw.udp.UdpVehicleService;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.net.InetSocketAddress;
+import java.util.prefs.Preferences;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -198,6 +200,10 @@ public class BoatDebugger extends javax.swing.JFrame {
         UdpVehicleService testServer = new UdpVehicleService(server);
         System.out.println("Local dummy server started: " + testServer.getSocketAddress());
 
+        // Quick hack to put the local test server in the drop down list
+        Preferences p = Preferences.userRoot();
+        p.put(ConnectionPanel.LAST_URI_KEY, "localhost:" + ((InetSocketAddress)testServer.getSocketAddress()).getPort());
+        
         // Start up the debugger GUI
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
