@@ -59,7 +59,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     protected final Map<Integer, List<SensorListener>> _sensorListeners = new TreeMap<Integer, List<SensorListener>>();
     protected final List<ImageListener> _imageListeners = new ArrayList<ImageListener>();
     protected final List<VelocityListener> _velocityListeners = new ArrayList<VelocityListener>();
-    protected final List<PoseListener> _stateListeners = new ArrayList<PoseListener>();
+    protected final List<PoseListener> _poseListeners = new ArrayList<PoseListener>();
     protected final List<CameraListener> _cameraListeners = new ArrayList<CameraListener>();
     protected final List<WaypointListener> _waypointListeners = new ArrayList<WaypointListener>();
 
@@ -117,7 +117,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             // Check the lists for listeners, register if there are any
             registerListener(_imageListeners, UdpConstants.COMMAND.CMD_REGISTER_IMAGE_LISTENER);
             registerListener(_velocityListeners, UdpConstants.COMMAND.CMD_REGISTER_VELOCITY_LISTENER);
-            registerListener(_stateListeners, UdpConstants.COMMAND.CMD_REGISTER_STATE_LISTENER);
+            registerListener(_poseListeners, UdpConstants.COMMAND.CMD_REGISTER_POSE_LISTENER);
             registerListener(_cameraListeners, UdpConstants.COMMAND.CMD_REGISTER_CAMERA_LISTENER);
             registerListener(_waypointListeners, UdpConstants.COMMAND.CMD_REGISTER_WAYPOINT_LISTENER);
 
@@ -150,7 +150,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             if (obs == null) return;
 
             switch (UdpConstants.COMMAND.fromStr(command)) {
-                case CMD_GET_STATE:
+                case CMD_GET_POSE:
                     obs.completed(UdpConstants.readPose(req.stream));
                     break;
                 case CMD_CAPTURE_IMAGE:
@@ -192,7 +192,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                         gains[i] = req.stream.readDouble();
                     }
                     obs.completed(gains);
-                case CMD_SET_STATE:
+                case CMD_SET_POSE:
                 case CMD_SET_SENSOR_TYPE:
                 case CMD_SET_VELOCITY:
                 case CMD_SET_AUTONOMOUS:
@@ -221,8 +221,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     
     @Override
     public void addPoseListener(PoseListener l, FunctionObserver<Void> obs) {
-        synchronized (_stateListeners) {
-            _stateListeners.add(l);
+        synchronized (_poseListeners) {
+            _poseListeners.add(l);
         }
         if (obs != null) {
             obs.completed(null);
@@ -231,8 +231,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void removePoseListener(PoseListener l, FunctionObserver<Void> obs) {
-        synchronized (_stateListeners) {
-            _stateListeners.remove(l);
+        synchronized (_poseListeners) {
+            _poseListeners.remove(l);
         }
         if (obs != null) {
             obs.completed(null);
@@ -240,7 +240,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     }
 
     @Override
-    public void setPose(UtmPose state, FunctionObserver<Void> obs) {
+    public void setPose(UtmPose pose, FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
             obs.failed(FunctionObserver.FunctionError.ERROR);
             return;
@@ -250,8 +250,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         
         try {
             Response response = new Response(ticket, _vehicleServer);
-            response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_STATE.str);
-            UdpConstants.writePose(response.stream, state);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_POSE.str);
+            UdpConstants.writePose(response.stream, pose);
             if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
         } catch (IOException e) {
@@ -272,7 +272,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         
         try {
             Response response = new Response(ticket, _vehicleServer);
-            response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_STATE.str);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_POSE.str);
             if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
         } catch (IOException e) {
