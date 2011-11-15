@@ -29,8 +29,8 @@ public class DrivePanel extends AbstractAirboatPanel {
     // Ranges for thrust and rudder signals
     public static final double THRUST_MIN = 0.0;
     public static final double THRUST_MAX = 2.0;
-    public static final double RUDDER_MIN = -2.5;
-    public static final double RUDDER_MAX = 2.5;
+    public static final double RUDDER_MIN = 2.5;
+    public static final double RUDDER_MAX = -2.5;
 
     // Sets up a flag limiting the rate of velocity command transmission
     public AtomicBoolean _sentVelCommand = new AtomicBoolean(false);
@@ -182,7 +182,7 @@ public class DrivePanel extends AbstractAirboatPanel {
         if (_vehicle != null) {
             Twist twist = new Twist();
             twist.dx(fromProgressToRange(jThrust.getValue(), THRUST_MIN, THRUST_MAX));
-            twist.dz(fromProgressToRange(jRudder.getValue(), RUDDER_MIN, RUDDER_MAX));
+            twist.drz(fromProgressToRange(jRudder.getValue(), RUDDER_MIN, RUDDER_MAX));
             _vehicle.setVelocity(twist);
         }
     }
@@ -204,7 +204,7 @@ public class DrivePanel extends AbstractAirboatPanel {
 
             public void receivedVelocity(Twist twist) {
                 jThrustBar.setValue(fromRangeToProgress(twist.dx(), THRUST_MIN, THRUST_MAX));
-                jRudderBar.setValue(fromRangeToProgress(twist.dz(), RUDDER_MIN, RUDDER_MAX));
+                jRudderBar.setValue(fromRangeToProgress(twist.drz(), RUDDER_MIN, RUDDER_MAX));
                 DrivePanel.this.repaint();
             }
         });
