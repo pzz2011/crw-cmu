@@ -23,7 +23,7 @@ public class UdpConstants {
     public static final int REGISTRATION_RATE_MS = 1000;
     public static final int REGISTRATION_TIMEOUT_COUNT = 5;
 
-    public static final int RETRY_RATE_MS = 1000;
+    public static final int RETRY_RATE_MS = 500;
     public static final long RETRY_RATE_NS = TimeUnit.NANOSECONDS.convert(RETRY_RATE_MS, TimeUnit.MILLISECONDS);
     public static final int RETRY_COUNT = 3;
     public static final long TIMEOUT_NS = (RETRY_COUNT + 1) * RETRY_RATE_NS;
