@@ -27,7 +27,8 @@ public class UdpConstants {
     public static final long TIMEOUT_NS = (RETRY_COUNT + 1) * RETRY_RATE_NS;
     public static final int NO_TICKET = -1;
 
-    public static final int MAX_PACKET_SIZE = 512;
+    public static final int INITIAL_PACKET_SIZE = 512;
+    public static final int MAX_PACKET_SIZE = 16777216;
     public static final String CMD_ACKNOWLEDGE = "OK";
 
     /**
