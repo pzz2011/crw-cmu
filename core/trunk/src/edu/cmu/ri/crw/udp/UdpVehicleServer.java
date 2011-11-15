@@ -144,7 +144,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             final String command = req.stream.readUTF();
             // TODO: remove me
-            logger.log(Level.INFO, "Received command {0}:{1}", new Object[]{req.ticket, command});
+            logger.log(Level.INFO, "Received command {0} [{1}:{2}]", new Object[]{req.ticket, command, UdpConstants.COMMAND.fromStr(command)});
             
             FunctionObserver obs = _ticketMap.get(req.ticket);
             if (obs == null) return;
@@ -192,6 +192,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                         gains[i] = req.stream.readDouble();
                     }
                     obs.completed(gains);
+                    break;
                 case CMD_SET_POSE:
                 case CMD_SET_SENSOR_TYPE:
                 case CMD_SET_VELOCITY:
