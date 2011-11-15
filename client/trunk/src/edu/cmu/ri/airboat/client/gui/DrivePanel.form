@@ -23,7 +23,7 @@
                       <Component id="jThrust" min="-2" max="-2" attributes="0"/>
                       <EmptySpace max="-2" attributes="0"/>
                       <Component id="jThrustBar" min="-2" max="-2" attributes="0"/>
-                      <EmptySpace pref="55" max="32767" attributes="0"/>
+                      <EmptySpace pref="75" max="32767" attributes="0"/>
                       <Group type="103" groupAlignment="1" attributes="0">
                           <Component id="jAutonomyBox" min="-2" max="-2" attributes="0"/>
                           <Component id="jConnectedBox" alignment="1" min="-2" max="-2" attributes="0"/>
