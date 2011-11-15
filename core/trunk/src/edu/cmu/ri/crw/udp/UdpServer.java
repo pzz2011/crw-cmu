@@ -135,7 +135,7 @@ public class UdpServer {
         }
 
         public Response(long t, SocketAddress d) {
-            _buffer = new ByteArrayOutputStream(UdpConstants.MAX_PACKET_SIZE);
+            _buffer = new ByteArrayOutputStream(UdpConstants.INITIAL_PACKET_SIZE);
             stream = new DataOutputStream(_buffer);
 
             ticket = t;
