@@ -4,6 +4,7 @@
  */
 package edu.cmu.ri.crw.udp;
 
+import edu.cmu.ri.crw.data.SensorData;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import java.util.Random;
@@ -151,7 +152,7 @@ public class UdpVehicleServerTest {
         
         // If we haven't received a pose in a full second, something is wrong
         try {
-            assertTrue("Did not receive pose update.", latch.await(1, TimeUnit.SECONDS));
+            assertTrue("Did not receive pose update.", latch.await(2, TimeUnit.SECONDS));
         } catch(InterruptedException e) {
             fail("Did not receive pose update.");
         }
@@ -203,12 +204,27 @@ public class UdpVehicleServerTest {
     @Test
     public void testAddImageListener() {
         System.out.println("addImageListener");
-        ImageListener l = null;
-        //FunctionObserver<Void> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.addImageListener(l, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        final CountDownLatch latch = new CountDownLatch(1);
+        
+        // Register a new pose listener on this server
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        server.addImageListener(new ImageListener() {
+            @Override
+            public void receivedImage(byte[] image) {
+                latch.countDown();
+            }
+        });
+        server.startCamera(1, 1.0, 640, 480);
+        
+        // If we haven't received a pose in a full second, something is wrong
+        try {
+            assertTrue("Did not receive image update.", latch.await(2, TimeUnit.SECONDS));
+        } catch(InterruptedException e) {
+            fail("Did not receive image update.");
+        }
+        
+        instance.shutdown();
     }
 
     /**
@@ -260,12 +276,27 @@ public class UdpVehicleServerTest {
     @Test
     public void testAddCameraListener() {
         System.out.println("addCameraListener");
-        CameraListener l = null;
-        //FunctionObserver<Void> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.addCameraListener(l, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        final CountDownLatch latch = new CountDownLatch(1);
+        
+        // Register a new pose listener on this server
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        server.addCameraListener(new CameraListener() {
+            @Override
+            public void imagingUpdate(CameraState state) {
+                latch.countDown();
+            }
+        });
+        server.startCamera(1, 1.0, 640, 480);
+        
+        // If we haven't received a pose in a full second, something is wrong
+        try {
+            assertTrue("Did not receive camera update.", latch.await(2, TimeUnit.SECONDS));
+        } catch(InterruptedException e) {
+            fail("Did not receive camera update.");
+        }
+        
+        instance.shutdown();
     }
 
     /**
@@ -331,13 +362,26 @@ public class UdpVehicleServerTest {
     @Test
     public void testAddSensorListener() {
         System.out.println("addSensorListener");
-        int channel = 0;
-        SensorListener l = null;
-        FunctionObserver<Void> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.addSensorListener(channel, l, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        final CountDownLatch latch = new CountDownLatch(1);
+        
+        // Register a new pose listener on this server
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        server.addSensorListener(0, new SensorListener() {
+            @Override
+            public void receivedSensor(SensorData data) {
+                latch.countDown();
+            }
+        });
+        
+        // If we haven't received a pose in a full second, something is wrong
+        try {
+            assertTrue("Did not receive sensor update.", latch.await(2, TimeUnit.SECONDS));
+        } catch(InterruptedException e) {
+            fail("Did not receive sensor update.");
+        }
+        
+        instance.shutdown();
     }
 
     /**
@@ -406,12 +450,26 @@ public class UdpVehicleServerTest {
     @Test
     public void testAddVelocityListener() {
         System.out.println("addVelocityListener");
-        VelocityListener l = null;
-        FunctionObserver<Void> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.addVelocityListener(l, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        final CountDownLatch latch = new CountDownLatch(1);
+        
+        // Register a new pose listener on this server
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        server.addVelocityListener(new VelocityListener() {
+            @Override
+            public void receivedVelocity(Twist velocity) {
+                latch.countDown();
+            }
+        });
+        
+        // If we haven't received a pose in a full second, something is wrong
+        try {
+            assertTrue("Did not receive velocity update.", latch.await(2, TimeUnit.SECONDS));
+        } catch(InterruptedException e) {
+            fail("Did not receive velocity update.");
+        }
+        
+        instance.shutdown();
     }
 
     /**
@@ -461,12 +519,27 @@ public class UdpVehicleServerTest {
     @Test
     public void testAddWaypointListener() {
         System.out.println("addWaypointListener");
-        WaypointListener l = null;
-        FunctionObserver<Void> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.addWaypointListener(l, obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        final CountDownLatch latch = new CountDownLatch(1);
+        
+        // Register a new pose listener on this server
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        server.addWaypointListener(new WaypointListener() {
+            @Override
+            public void waypointUpdate(WaypointState state) {
+                latch.countDown();
+            }
+        });
+        server.startWaypoints(new UtmPose[]{new UtmPose()}, "STOP");
+        
+        // If we haven't received a pose in a full second, something is wrong
+        try {
+            assertTrue("Did not receive waypoint update.", latch.await(2, TimeUnit.SECONDS));
+        } catch(InterruptedException e) {
+            fail("Did not receive waypoint update.");
+        }
+        
+        instance.shutdown();
     }
 
     /**
