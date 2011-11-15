@@ -11,6 +11,7 @@ import edu.cmu.ri.crw.VehicleServer.SensorType;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.VelocityListener;
 import edu.cmu.ri.crw.WaypointListener;
+import edu.cmu.ri.crw.data.SensorData;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
 import edu.cmu.ri.crw.udp.UdpServer.Request;
@@ -143,56 +144,119 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     public void received(Request req) {
         try {
             final String command = req.stream.readUTF();
+            UdpConstants.COMMAND cmd = UdpConstants.COMMAND.fromStr(command);
+            
             // TODO: remove me
             logger.log(Level.INFO, "Received command {0} [{1}:{2}]", new Object[]{req.ticket, command, UdpConstants.COMMAND.fromStr(command)});
+
+            // Handle one-way commands (asynchronous events)
+            switch (cmd) {
+                case CMD_SEND_CAMERA:
+                    CameraState cState = CameraState.values()[req.stream.readByte()];
+                    synchronized (_cameraListeners) {
+                        for (CameraListener l : _cameraListeners) {
+                            l.imagingUpdate(cState);
+                        }
+                    }
+                    return;
+                case CMD_SEND_IMAGE:
+                    byte[] image = new byte[req.stream.readInt()];
+                    req.stream.readFully(image);
+                    synchronized (_imageListeners) {
+                        for (ImageListener l : _imageListeners) {
+                            l.receivedImage(image);
+                        }
+                    }
+                    return;
+                case CMD_SEND_POSE:
+                    UtmPose pose = UdpConstants.readPose(req.stream);
+                    synchronized (_poseListeners) {
+                        for (PoseListener l : _poseListeners) {
+                            l.receivedPose(pose);
+                        }
+                    }
+                    return;
+                case CMD_SEND_SENSOR:
+                    SensorData data = UdpConstants.readSensorData(req.stream);
+                    synchronized (_sensorListeners) {
+                        // If there is no list of listeners, there is nothing to notify
+                        if (!_sensorListeners.containsKey(data.channel)) {
+                            return;
+                        }
+
+                        // Notify each listener in the appropriate list
+                        for (SensorListener l : _sensorListeners.get(data.channel)) {
+                            l.receivedSensor(data);
+                        }
+                    }
+                    return;
+                case CMD_SEND_VELOCITY:
+                    Twist twist = UdpConstants.readTwist(req.stream);
+                    synchronized (_velocityListeners) {
+                        for (VelocityListener l : _velocityListeners) {
+                            l.receivedVelocity(twist);
+                        }
+                    }
+                    return;
+                case CMD_SEND_WAYPOINT:
+                    WaypointState wState = WaypointState.values()[req.stream.readByte()];
+                    synchronized (_waypointListeners) {
+                        for (WaypointListener l : _waypointListeners) {
+                            l.waypointUpdate(wState);
+                        }
+                    }
+                    return;
+            }
             
+            // For two-way commands (functions), check for a ticket
             FunctionObserver obs = _ticketMap.get(req.ticket);
             if (obs == null) return;
-
-            switch (UdpConstants.COMMAND.fromStr(command)) {
+            
+            // If one exists, dispatch the command
+            switch (cmd) {
                 case CMD_GET_POSE:
                     obs.completed(UdpConstants.readPose(req.stream));
-                    break;
+                    return;
                 case CMD_CAPTURE_IMAGE:
                     byte[] image = new byte[req.stream.readInt()];
                     req.stream.readFully(image);
                     obs.completed(image);
-                    break;    
+                    return;    
                 case CMD_GET_CAMERA_STATUS:
                     obs.completed(CameraState.values()[req.stream.readByte()]);
-                    break;
+                    return;
                 case CMD_GET_SENSOR_TYPE:
                     obs.completed(SensorType.values()[req.stream.readByte()]);
-                    break;
+                    return;
                 case CMD_GET_NUM_SENSORS:
                     obs.completed(req.stream.readInt());
-                    break;
+                    return;
                 case CMD_GET_VELOCITY:
                     obs.completed(UdpConstants.readTwist(req.stream));
-                    break;
+                    return;
                 case CMD_GET_WAYPOINTS:
                     UtmPose[] poses = new UtmPose[req.stream.readInt()];
                     for (int i = 0; i < poses.length; ++i) {
                         poses[i] = UdpConstants.readPose(req.stream);
                     }
                     obs.completed(poses);
-                    break;
+                    return;
                 case CMD_GET_WAYPOINT_STATUS:
                     obs.completed(WaypointState.values()[req.stream.readByte()]);
-                    break;
+                    return;
                 case CMD_IS_CONNECTED:
                     obs.completed(req.stream.readBoolean());
-                    break;
+                    return;
                 case CMD_IS_AUTONOMOUS:
                     obs.completed(req.stream.readBoolean());
-                    break;
+                    return;
                 case CMD_GET_GAINS:
                     double[] gains = new double[req.stream.readInt()];
                     for (int i = 0; i < gains.length; ++i) {
                         gains[i] = req.stream.readDouble();
                     }
                     obs.completed(gains);
-                    break;
+                    return;
                 case CMD_SET_POSE:
                 case CMD_SET_SENSOR_TYPE:
                 case CMD_SET_VELOCITY:
@@ -203,7 +267,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                 case CMD_START_WAYPOINTS:
                 case CMD_STOP_WAYPOINTS:
                     obs.completed(null);
-                    break;
+                    return;
                 default:
                     logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
             }
