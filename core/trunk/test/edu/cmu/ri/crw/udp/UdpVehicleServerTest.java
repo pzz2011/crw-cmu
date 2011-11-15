@@ -390,11 +390,14 @@ public class UdpVehicleServerTest {
     @Test
     public void testGetNumSensors() {
         System.out.println("getNumSensors");
-        FunctionObserver<Integer> obs = null;
-        //UdpVehicleServer instance = new UdpVehicleServer();
-        //instance.getNumSensors(obs);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
+        VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
+        
+        // Check that we got the right number of sensors
+        int nSensors = server.getNumSensors();
+        assertEquals("Incorrect sensor count.", sbs._sensorTypes.length, nSensors);
+        
+        instance.shutdown();
     }
 
     /**
