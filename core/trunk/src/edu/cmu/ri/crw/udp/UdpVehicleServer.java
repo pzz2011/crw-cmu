@@ -156,7 +156,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                 case CMD_CAPTURE_IMAGE:
                     byte[] image = new byte[req.stream.readInt()];
                     req.stream.readFully(image);
-                    obs.completed(req);
+                    obs.completed(image);
                     break;    
                 case CMD_GET_CAMERA_STATUS:
                     obs.completed(CameraState.values()[req.stream.readByte()]);
