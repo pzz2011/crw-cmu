@@ -1,5 +1,7 @@
 package edu.cmu.ri.crw.udp;
 
+import edu.cmu.ri.crw.VehicleServer.SensorType;
+import edu.cmu.ri.crw.data.SensorData;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
@@ -143,5 +145,22 @@ public class UdpConstants {
         
         return new UtmPose(pose, utm);
     }
+ 
+    public static void writeSensorData(DataOutputStream out, SensorData sensor) throws IOException {
+        out.writeInt(sensor.channel);
+        out.writeByte(sensor.type.ordinal());
+        out.writeInt(sensor.data.length);
+        for (int i = 0; i < sensor.data.length; ++i)
+            out.writeDouble(sensor.data[i]);
+    }
     
+    public static SensorData readSensorData(DataInputStream in) throws IOException {
+        SensorData sensor = new SensorData();
+        sensor.channel = in.readInt();
+        sensor.type = SensorType.values()[in.readByte()];
+        sensor.data = new double[in.readInt()];
+        for (int i = 0; i < sensor.data.length; ++i)
+            sensor.data[i] = in.readDouble();
+        return sensor;
+    }
 }
