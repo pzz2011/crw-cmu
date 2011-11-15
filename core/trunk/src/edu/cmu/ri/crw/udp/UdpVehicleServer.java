@@ -615,7 +615,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             for (int i = 0; i < waypoints.length; ++i) {
                 UdpConstants.writePose(response.stream, waypoints[i]);
             }
-            response.stream.writeUTF(controller);
+            response.stream.writeUTF((controller == null) ? "": controller);
             if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
         } catch (IOException e) {
