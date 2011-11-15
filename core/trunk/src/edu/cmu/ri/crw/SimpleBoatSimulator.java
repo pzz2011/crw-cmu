@@ -168,6 +168,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
                             // controller to figure out how to get to waypoint
                             // TODO: measure dt directly instead of approximating
                             vc.update(SimpleBoatSimulator.this, dt);
+                            sendWaypointUpdate(WaypointState.GOING);
                         }
                     }
                 }
@@ -220,17 +221,15 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
                 public void run() {
                     // Take a new image and send it out
                     sendImage(captureImage(width, height));
+                    sendCameraUpdate(CameraState.CAPTURING);
                     
-                    // Decrement the number of frames left
-                    if (nFrames > 0)
-                        nFrames--;
-                    
-                    // If we hit exactly 0, that means we just finished
                     if (nFrames == 0) {
+                        // If we hit exactly 0, that means we just finished
                         sendCameraUpdate(CameraState.DONE);
                         this.cancel();
-                    } else {
-                        sendCameraUpdate(CameraState.CAPTURING);
+                    } else if (nFrames > 0) {
+                        // Decrement the number of frames left
+                        nFrames--;
                     }
                 }
             };
