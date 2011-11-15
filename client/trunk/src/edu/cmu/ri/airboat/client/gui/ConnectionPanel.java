@@ -73,6 +73,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
                         public void completed(Boolean v) {
                             connectedBox.setSelected(v);
+                            connectButton.setBackground(Color.GREEN);
                         }
 
                         public void failed(FunctionError fe) {
@@ -83,6 +84,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
                     _vehicle.isAutonomous(new FunctionObserver<Boolean>() {
 
                         public void completed(Boolean v) {
+                            connectButton.setBackground(Color.GREEN);
                             autonomousBox.setSelected(v);
                         }
 
