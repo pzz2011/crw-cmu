@@ -178,7 +178,6 @@ public class UdpVehicleServerTest {
      */
     @Test
     public void testSetGetPose() {
-        fail("DISABLED TO TEST OTHER THINGS.");
         System.out.println("set/getPose");
         UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
         
