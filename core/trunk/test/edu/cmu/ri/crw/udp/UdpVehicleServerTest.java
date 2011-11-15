@@ -250,8 +250,8 @@ public class UdpVehicleServerTest {
         UdpVehicleServer instance = new UdpVehicleServer(service.getSocketAddress());
         
         // Generate a random image size
-        int width = rnd.nextInt(256);
-        int height = rnd.nextInt(256);
+        int width = rnd.nextInt(256) + 1;
+        int height = rnd.nextInt(256) + 1;
         
         // Check that we got an image of this size
         VehicleServer server = AsyncVehicleServer.Util.toSync(instance);
