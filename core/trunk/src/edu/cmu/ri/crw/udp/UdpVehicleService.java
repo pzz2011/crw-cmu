@@ -127,7 +127,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             resp.stream.writeUTF(command);
             
             // TODO: remove me
-            logger.log(Level.INFO, "Received command {0}:{1}", new Object[]{req.ticket, command});
+            logger.log(Level.INFO, "Received command {0} [{1}:{2}]", new Object[]{req.ticket, command, UdpConstants.COMMAND.fromStr(command)});
 
             switch (UdpConstants.COMMAND.fromStr(command)) {
                 case CMD_REGISTER_POSE_LISTENER:
@@ -276,6 +276,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                         resp.stream.writeDouble(ggGains[i]);
                     }
                     _udpServer.respond(resp);
+                    break;
                 default:
                     logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
             }
