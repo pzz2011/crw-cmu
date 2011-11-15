@@ -41,7 +41,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
     protected final UdpServer _udpServer = new UdpServer();
 
     protected final List<SocketAddress> _registries = new ArrayList<SocketAddress>();
-    protected final Map<SocketAddress, Integer> _stateListeners = new LinkedHashMap<SocketAddress, Integer>();
+    protected final Map<SocketAddress, Integer> _poseListeners = new LinkedHashMap<SocketAddress, Integer>();
     protected final Map<SocketAddress, Integer> _imageListeners = new LinkedHashMap<SocketAddress, Integer>();
     protected final Map<SocketAddress, Integer> _cameraListeners = new LinkedHashMap<SocketAddress, Integer>();
     protected final ArrayList<Map<SocketAddress,Integer>> _sensorListeners = new ArrayList<Map<SocketAddress, Integer>>();
@@ -130,16 +130,16 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             logger.log(Level.INFO, "Received command {0}:{1}", new Object[]{req.ticket, command});
 
             switch (UdpConstants.COMMAND.fromStr(command)) {
-                case CMD_REGISTER_STATE_LISTENER:
-                    synchronized(_stateListeners) {
-                        _stateListeners.put(req.source, UdpConstants.REGISTRATION_TIMEOUT_COUNT);
+                case CMD_REGISTER_POSE_LISTENER:
+                    synchronized(_poseListeners) {
+                        _poseListeners.put(req.source, UdpConstants.REGISTRATION_TIMEOUT_COUNT);
                     }
                     break;
-                case CMD_SET_STATE:
+                case CMD_SET_POSE:
                     _vehicleServer.setPose(UdpConstants.readPose(req.stream));
                     _udpServer.respond(resp); // Send void response
                     break;
-                case CMD_GET_STATE:
+                case CMD_GET_POSE:
                     UdpConstants.writePose(resp.stream, _vehicleServer.getPose());
                     _udpServer.respond(resp);
                     break;
@@ -308,11 +308,11 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             try {
                 // Construct pose message
                 Response resp = new Response(UdpConstants.NO_TICKET, null);
-                resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_STATE.str);
+                resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_POSE.str);
                 UdpConstants.writePose(resp.stream, pose);
             
                 // Send to all listeners
-                _udpServer.bcast(resp, _stateListeners.keySet());
+                _udpServer.bcast(resp, _poseListeners.keySet());
             } catch (IOException e) {
                 throw new RuntimeException("Failed to serialize pose");
             }
