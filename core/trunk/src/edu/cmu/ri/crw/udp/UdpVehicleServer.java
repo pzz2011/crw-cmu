@@ -252,10 +252,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_STATE.str);
             UdpConstants.writePose(response.stream, state);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -275,10 +273,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_STATE.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -320,10 +316,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_CAPTURE_IMAGE.str);
             response.stream.writeInt(width);
             response.stream.writeInt(height);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -367,10 +361,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             response.stream.writeDouble(interval);
             response.stream.writeInt(width);
             response.stream.writeInt(height);           
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -390,10 +382,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_STOP_CAMERA.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -413,10 +403,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_CAMERA_STATUS.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -475,10 +463,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_SENSOR_TYPE.str);
             response.stream.writeInt(channel);
             response.stream.writeByte(type.ordinal());
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -499,10 +485,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_SENSOR_TYPE.str);
             response.stream.writeInt(channel);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -522,10 +506,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_NUM_SENSORS.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -566,10 +548,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_VELOCITY.str);
             UdpConstants.writeTwist(response.stream, velocity);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -589,10 +569,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_VELOCITY.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -637,10 +615,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                 UdpConstants.writePose(response.stream, waypoints[i]);
             }
             response.stream.writeUTF(controller);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -660,10 +636,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_STOP_WAYPOINTS.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -683,10 +657,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_WAYPOINTS.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -706,10 +678,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_WAYPOINT_STATUS.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -729,10 +699,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_IS_CONNECTED.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -752,10 +720,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_IS_AUTONOMOUS.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -776,10 +742,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_SET_AUTONOMOUS.str);
             response.stream.writeBoolean(auto);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -804,10 +768,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             for (int i = 0; i < gains.length; ++i) {
                 response.stream.writeDouble(gains[i]);
             }
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
@@ -827,10 +789,8 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_GAINS.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
-
-            if (obs != null)
-                _ticketMap.put(ticket, obs);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
             if (obs != null)
