@@ -12,6 +12,7 @@
 package edu.cmu.ri.airboat.client.gui;
 
 import edu.cmu.ri.airboat.client.UtmUtils;
+import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.Utm;
@@ -32,12 +33,27 @@ public class WaypointPanel extends AbstractAirboatPanel {
     public static final int DEFAULT_UPDATE_MS = 1000;
     
     private SimpleWorldPanel _worldPanel = null;
-    private UtmPose waypoint = new UtmPose();
+    private UtmPose _waypoint = new UtmPose();
+    private final Object _waypointLock = new Object();
 
     /** Creates new form WaypointPanel */
     public WaypointPanel() {
         initComponents();
         setUpdateRate(DEFAULT_UPDATE_MS);
+    }
+    
+    
+    @Override
+    public void setVehicle(VehicleServer vehicle) {
+        super.setVehicle(vehicle);
+        
+        _vehicle.addWaypointListener(new WaypointListener() {
+            public void waypointUpdate(WaypointState ws) {
+                if (ws == WaypointState.OFF) {
+                    completedBox.setSelected(true);
+                }
+            }
+        });
     }
 
     /** This method is called from within the constructor to
@@ -129,16 +145,9 @@ public class WaypointPanel extends AbstractAirboatPanel {
             return;
 
         completedBox.setSelected(false);
-        _vehicle.startWaypoints(new UtmPose[]{waypoint}, "POINT_AND_SHOOT");
-        _vehicle.addWaypointListener(new WaypointListener() {
-
-            public void waypointUpdate(WaypointState ws) {
-                if (ws == WaypointState.OFF) {
-                    completedBox.setSelected(true);
-                }
-            }
-        });
-
+        synchronized(_waypointLock) {
+            _vehicle.startWaypoints(new UtmPose[]{_waypoint}, "POINT_AND_SHOOT");
+        }
     }//GEN-LAST:event_sendButtonActionPerformed
 
     private void cancelButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cancelButtonActionPerformed
@@ -185,13 +194,15 @@ public class WaypointPanel extends AbstractAirboatPanel {
             Pose3D pose = new Pose3D(fakeUtm.easting, fakeUtm.northing, wpPos.getAltitude(), 
                     0.0, 0.0, (_worldPanel.waypoint.getHeading() != null) ? _worldPanel.waypoint.getHeading().getRadians() : 0.0);
             Utm origin = new Utm(fakeUtm.zone, fakeUtm.isNorth);
-            UtmPose waypoint = new UtmPose(pose, origin);
-
-            selectedWaypointText.setText("[" + 
-                    UTM_FORMAT.format(waypoint.pose.getX()) + ", " +
-                    UTM_FORMAT.format(waypoint.pose.getY()) + ", " +
-                    UTM_FORMAT.format(waypoint.pose.getZ()) + "] " +
-                    waypoint.origin.zone + " " + (waypoint.origin.isNorth ? "North" : "South"));
+            
+            synchronized(_waypointLock) {
+                _waypoint = new UtmPose(pose, origin);
+                selectedWaypointText.setText("[" + 
+                        UTM_FORMAT.format(_waypoint.pose.getX()) + ", " +
+                        UTM_FORMAT.format(_waypoint.pose.getY()) + ", " +
+                        UTM_FORMAT.format(_waypoint.pose.getZ()) + "] " +
+                        _waypoint.origin.zone + " " + (_waypoint.origin.isNorth ? "North" : "South"));
+            }
         }
     };
 
