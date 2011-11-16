@@ -37,7 +37,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 		LoggerFactory.getLogger();
 
 	private static final String logTag = AirboatImpl.class.getName();
-	public static final int UPDATE_INTERVAL_MS = 100;
+	public static final int UPDATE_INTERVAL_MS = 200;
 	public static final int NUM_SENSORS = 3;
 	public static final AirboatController DEFAULT_CONTROLLER = AirboatController.POINT_AND_SHOOT;
 	
@@ -116,6 +116,9 @@ public class AirboatImpl extends AbstractVehicleServer {
 	protected AirboatImpl(Context context, String addr) {
 		_context = context;
 		_arduinoAddr = addr;
+
+		// Start a regular update function
+		_timer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);				
 	}
 
 	/**
@@ -124,32 +127,44 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * 
 	 * @param dt the elapsed time since the last update call (in seconds)
 	 */
-	protected void update(double dt) {
-
-		// Do an intelligent state prediction update here
-		_utmPose = filter.pose(System.currentTimeMillis());
-		logger.info("POSE: " + _utmPose);
-		sendState(_utmPose.clone());
+	private TimerTask _updateTask = new TimerTask() {
+		//long _lastUpdateMs = 0;
 		
-		// Call Amarino with new velocities here
-		Amarino.sendDataToArduino(_context, _arduinoAddr, SET_VELOCITY_FN,
-				new float[] { 
-					(float) _velocities.dx(), 
-					(float) _velocities.dy(),
-					(float) _velocities.dz(), 
-					(float) _velocities.drx(),
-					(float) _velocities.dry(), 
-					(float) _velocities.drz()
-				});
-		// Yes, I know this looks silly, but Amarino doesn't handle doubles
-		
-		// Log velocities
-		logger.info("VEL: " + _velocities);
-		
-		// Send velocities 
-		Twist vel = _velocities.clone();
-		sendVelocity(vel);		
-	}
+		@Override
+		public void run() {
+			/*
+			// Compute the number of milliseconds since last update
+			// (or 0 if this is the first update)
+			long currentUpdateMs = SystemClock.elapsedRealtime();
+			long elapsedMs = (_lastUpdateMs > 0) ? currentUpdateMs - _lastUpdateMs : 0;
+			_lastUpdateMs = currentUpdateMs;
+			*/
+				
+			// Do an intelligent state prediction update here
+			_utmPose = filter.pose(System.currentTimeMillis());
+			logger.info("POSE: " + _utmPose);
+			sendState(_utmPose.clone());
+			
+			// Call Amarino with new velocities here
+			Amarino.sendDataToArduino(_context, _arduinoAddr, SET_VELOCITY_FN,
+					new float[] { 
+						(float) _velocities.dx(), 
+						(float) _velocities.dy(),
+						(float) _velocities.dz(), 
+						(float) _velocities.drx(),
+						(float) _velocities.dry(), 
+						(float) _velocities.drz()
+					});
+			// Yes, I know this looks silly, but Amarino doesn't handle doubles
+			
+			// Log velocities
+			logger.info("VEL: " + _velocities);
+			
+			// Send velocities 
+			Twist vel = _velocities.clone();
+			sendVelocity(vel);	
+		}
+	};
 	
 	/**
 	 * @see VehicleServer#getGains(int)
