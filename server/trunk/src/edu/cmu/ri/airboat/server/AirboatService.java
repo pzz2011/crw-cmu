@@ -6,8 +6,6 @@ import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
@@ -37,7 +35,6 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.Debug;
 import android.os.IBinder;
-import android.os.SystemClock;
 import android.util.Log;
 import at.abraxas.amarino.AmarinoIntent;
 
@@ -67,7 +64,6 @@ public class AirboatService extends Service {
 	
 	// Default values for parameters
 	private static final String DEFAULT_LOG_PREFIX = "airboat_";
-	private static final int DEFAULT_UPDATE_RATE = 200;
 	final int GPS_UPDATE_RATE = 200; //in milliseconds
 	
 	// Intent fields definitions
@@ -82,17 +78,12 @@ public class AirboatService extends Service {
 	public static boolean isRunning = false;
 
 	// Member parameters 
-	private int _updateRate;
 	private String _arduinoAddr;
 	private InetSocketAddress _udpRegistryAddr;
 	
 	// Objects implementing actual functionality
 	private AirboatImpl _airboatImpl;
 	private UdpVehicleService _udpServer;
-	
-	// Timers for update function
-	private Timer _timer;
-	private TimerTask _updateTask;
 	
 	// Logger that pipes log information for airboat classes to file
 	private FileAppender _fileAppender; 
@@ -180,33 +171,7 @@ public class AirboatService extends Service {
     };
 
 	
-	/**
-	 * Class that calls the periodic update function on the vehicle 
-	 * implementation object.
-	 */
-	private static class UpdateTask extends TimerTask {
-		AirboatService _service;
-		long _lastUpdateMs = 0;
-		
-		public UpdateTask(AirboatService service) {
-			_service = service;
-		}
-		
-		@Override
-		public void run() {
-			if (_service._airboatImpl != null) {
-				// Compute the number of milliseconds since last update
-				// (or 0 if this is the first update)
-				long currentUpdateMs = SystemClock.elapsedRealtime();
-				long elapsedMs = (_lastUpdateMs > 0) ? currentUpdateMs - _lastUpdateMs : 0;			
-				
-					
-				// Trigger the server update function for this interval
-				_service._airboatImpl.update((elapsedMs / 1000.0));
-				_lastUpdateMs = currentUpdateMs;
-			}
-		}
-	}
+	
 	
 	/**
      * Class for clients to access.  Because we know this service always
@@ -229,9 +194,6 @@ public class AirboatService extends Service {
 		
 		// Disable all DNS lookups (safer for private/ad-hoc networks)
 		CrwSecurityManager.load();
-		
-		_timer = new Timer();
-		_updateTask = new UpdateTask(this);
 		isRunning = true;
 		
 		// TODO: optimize this to allocate resources up here and handle multiple start commands
@@ -325,7 +287,6 @@ public class AirboatService extends Service {
 		
         // Get necessary connection parameters
 		_arduinoAddr = intent.getStringExtra(BD_ADDR);
-		_updateRate = intent.getIntExtra(UPDATE_RATE, DEFAULT_UPDATE_RATE);
 		
 		// Check if the provided ROS master URI parameter can be parsed
 		String rosMasterStr = (intent.hasExtra(UDP_REGISTRY_ADDR) ? intent.getStringExtra(UDP_REGISTRY_ADDR) : getString(R.string.master_default_addr));
@@ -350,7 +311,7 @@ public class AirboatService extends Service {
 		
 		// Start up ROS processes in the background
 		new Thread(new Runnable() {
-			
+			@Override
 			public void run() {
 				// Create a RosVehicleServer to expose the data object
 				try {
@@ -365,31 +326,25 @@ public class AirboatService extends Service {
 			}
 		}).start();
 		
-		// Start a regular update function
-		_timer.scheduleAtFixedRate(_updateTask, 0, _updateRate);
-		Log.i(TAG,"AirboatService started.");
-		
 		// Log the velocity gains before starting the service
-		// TODO: get initial velocity gains logged
 		new Thread(new Runnable() {
-		
+			@Override
 			public void run() {
-				try { Thread.sleep(5000); } catch (InterruptedException ex) { }
-				
-				double[] velGains;
-				if (_airboatImpl != null) {
-					velGains = _airboatImpl.getGains(0);
-					logger.info("PIDGAINS: " + "0 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
-				} else{
-					_timer.cancel();
-				}
-				
-				if (_airboatImpl != null) {
-					velGains = _airboatImpl.getGains(5);
-					logger.info("PIDGAINS: " + "5 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
-				} else {
-					_timer.cancel();
-				}
+				do {
+					try { Thread.sleep(5000); } catch (InterruptedException ex) { }
+					
+					double[] velGains;
+					if (_airboatImpl != null) {
+						velGains = _airboatImpl.getGains(0);
+						logger.info("PIDGAINS: " + "0 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
+					}
+					
+					if (_airboatImpl != null) {
+						velGains = _airboatImpl.getGains(5);
+						logger.info("PIDGAINS: " + "5 " + velGains[0] + "," + velGains[1] + "," + velGains[2]);
+					}
+					
+				} while (_airboatImpl == null);
 			}
 		}).start();
 
@@ -414,6 +369,7 @@ public class AirboatService extends Service {
 		}
 		
 		// Indicate that the service should not be stopped arbitrarily
+		Log.i(TAG,"AirboatService started.");
 		return Service.START_STICKY;
 	}
 	
@@ -430,9 +386,6 @@ public class AirboatService extends Service {
 	public void onDestroy() {
 		// stop tracing to "/sdcard/trace_crw.trace"
 		Debug.stopMethodTracing();
-		
-		// Shutdown the regular update function
-		_timer.cancel();
 		
 		// Shutdown the ROS services
 		if (_udpServer != null) {
