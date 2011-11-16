@@ -15,7 +15,8 @@ import javax.measure.unit.SI;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
-import org.ros.message.crwlib_msgs.UtmPose;
+
+import robotutils.Pose3D;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -43,6 +44,8 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 import at.abraxas.amarino.AmarinoIntent;
 import edu.cmu.ri.airboat.server.AirboatFailsafeService.AirboatFailsafeIntent;
+import edu.cmu.ri.crw.data.Utm;
+import edu.cmu.ri.crw.data.UtmPose;
 
 public class AirboatActivity extends Activity {
 	private static final String logTag = AirboatActivity.class.getName();
@@ -238,7 +241,7 @@ public class AirboatActivity extends Activity {
 				// Create an intent to properly start the vehicle server
 				Intent intent = new Intent(AirboatActivity.this, AirboatService.class);
     			intent.putExtra(AirboatService.BD_ADDR, connectAddress.getText().toString());
-    			intent.putExtra(AirboatService.ROS_MASTER_URI, masterAddress.getText().toString());
+    			intent.putExtra(AirboatService.UDP_REGISTRY_ADDR, masterAddress.getText().toString());
     			
 				// Save the current BD addr and master URI
 				SharedPreferences prefs = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
@@ -360,11 +363,11 @@ public class AirboatActivity extends Activity {
     			Intent intent = new Intent(AirboatActivity.this, AirboatFailsafeService.class);
     			intent.putExtra(AirboatFailsafeIntent.HOSTNAME, failsafeAddress.getText().toString());
     			intent.putExtra(AirboatFailsafeIntent.HOME_POSE, new double[] {
-    					_homePosition.pose.position.x,
-    					_homePosition.pose.position.y,
-    					_homePosition.pose.position.z});
-    			intent.putExtra(AirboatFailsafeIntent.HOME_ZONE, _homePosition.utm.zone);
-    			intent.putExtra(AirboatFailsafeIntent.HOME_NORTH, _homePosition.utm.isNorth);
+    					_homePosition.pose.getX(),
+    					_homePosition.pose.getY(),
+    					_homePosition.pose.getZ()});
+    			intent.putExtra(AirboatFailsafeIntent.HOME_ZONE, _homePosition.origin.zone);
+    			intent.putExtra(AirboatFailsafeIntent.HOME_NORTH, _homePosition.origin.isNorth);
     			
 				// Save the current BD addr and master URI
 				SharedPreferences prefs = getSharedPreferences(PREFS_PRIVATE, Context.MODE_PRIVATE);
@@ -421,9 +424,12 @@ public class AirboatActivity extends Activity {
 			        				LatLong.valueOf(location.getLatitude(), location.getLongitude(), NonSI.DEGREE_ANGLE), 
 			        				ReferenceEllipsoid.WGS84
 			        			);
-			        	_homePosition.pose.position.x = utmLoc.eastingValue(SI.METER);
-			        	_homePosition.pose.position.y = utmLoc.northingValue(SI.METER);
-			        	_homePosition.pose.position.z = location.getAltitude();
+			        	_homePosition.pose = new Pose3D(
+			        			utmLoc.eastingValue(SI.METER),
+			        			utmLoc.northingValue(SI.METER),
+			        			location.getAltitude(),
+			        			0.0, 0.0, 0.0);
+			        	_homePosition.origin = new Utm(utmLoc.longitudeZone(), utmLoc.latitudeZone() > 'o');
 						
 			        	// Now that we have the GPS location, stop listening
 			        	Toast.makeText(getApplicationContext(),

@@ -3,16 +3,9 @@ package edu.cmu.ri.airboat.server;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.ros.internal.time.WallclockProvider;
-import org.ros.message.crwlib_msgs.SensorData;
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
-import org.ros.message.geometry_msgs.Pose;
-import org.ros.message.geometry_msgs.Twist;
-import org.ros.message.geometry_msgs.TwistWithCovarianceStamped;
-import org.ros.message.sensor_msgs.CompressedImage;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -24,11 +17,11 @@ import at.abraxas.amarino.AmarinoIntent;
 import com.google.code.microlog4android.LoggerFactory;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
-import edu.cmu.ri.crw.ImagingObserver;
-import edu.cmu.ri.crw.QuaternionUtils;
 import edu.cmu.ri.crw.VehicleFilter;
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.WaypointObserver;
+import edu.cmu.ri.crw.data.SensorData;
+import edu.cmu.ri.crw.data.Twist;
+import edu.cmu.ri.crw.data.UtmPose;
 
 /**
  * Contains the actual implementation of vehicle functionality, accessible as a
@@ -49,13 +42,15 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public static final AirboatController DEFAULT_CONTROLLER = AirboatController.POINT_AND_SHOOT;
 	
 	protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
-	protected UtmPose _waypoint = null;
+	protected UtmPose[] _waypoints = new UtmPose[0];
 
 	protected final Object _captureLock = new Object();
-	protected AtomicBoolean _isCapturing = null;
+	protected TimerTask _captureTask = null;
 	
 	protected final Object _navigationLock = new Object();
-	protected AtomicBoolean _isNavigating = null;
+	protected TimerTask _navigationTask = null;
+	
+	private final Timer _timer = new Timer();
 
 	/**
 	 * Defines the PID gains that will be returned if there is an error.
@@ -76,27 +71,22 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public static final int RESPONSE_TIMEOUT_MS = 250; // was 200 earlier
 
 	// Status information
-	AtomicBoolean _isConnected = new AtomicBoolean(true) ;
-	AtomicBoolean _isAutonomous = new AtomicBoolean(false);
+	final AtomicBoolean _isConnected = new AtomicBoolean(true);
+	final AtomicBoolean _isAutonomous = new AtomicBoolean(false);
 
 	// Internal data structures for Amarino callbacks
 	final Context _context;
 	final String _arduinoAddr;
 	final List<String> _partialCommand = new ArrayList<String>(10);
 	final Object _velocityGainLock = new Object();
-	double[] _velocityGain = new double[3];
+	final double[] _velocityGain = new double[3];
 	double _velocityGainAxis = -1;
 
-	/**
-	 * Keeps track of time
-	 */
-	WallclockProvider _wallclock = new WallclockProvider();
-	
 	/**
 	 * Inertial state vector, currently containing a 6D pose estimate:
 	 * [x,y,z,roll,pitch,yaw]
 	 */
-	public UtmPoseWithCovarianceStamped _pose = new UtmPoseWithCovarianceStamped();
+	UtmPose _utmPose = new UtmPose();
 
 	/**
 	 * Filter used internally to update the current pose estimate
@@ -112,7 +102,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	/**
 	 * Raw gyroscopic readings, as reported from the Arduino.
 	 */
-	double[] _gyroReadings = new double[3];
+	final double[] _gyroReadings = new double[3];
 
 	/**
 	 * Creates a new instance of the vehicle implementation. This function
@@ -137,39 +127,27 @@ public class AirboatImpl extends AbstractVehicleServer {
 	protected void update(double dt) {
 
 		// Do an intelligent state prediction update here
-		_pose = filter.pose(System.currentTimeMillis());
-		logger.info("POSE: " + "[" +
-				_pose.pose.pose.pose.position.x + "," +
-				_pose.pose.pose.pose.position.y + "," +
-				_pose.pose.pose.pose.position.z + "] " +
-				Arrays.toString(QuaternionUtils.toEulerAngles(_pose.pose.pose.pose.orientation)));
-		sendState(_pose.clone());
+		_utmPose = filter.pose(System.currentTimeMillis());
+		logger.info("POSE: " + _utmPose);
+		sendState(_utmPose.clone());
 		
 		// Call Amarino with new velocities here
 		Amarino.sendDataToArduino(_context, _arduinoAddr, SET_VELOCITY_FN,
 				new float[] { 
-					(float) _velocities.linear.x, 
-					(float) _velocities.linear.y,
-					(float) _velocities.linear.z, 
-					(float) _velocities.angular.x,
-					(float) _velocities.angular.y, 
-					(float) _velocities.angular.z
+					(float) _velocities.dx(), 
+					(float) _velocities.dy(),
+					(float) _velocities.dz(), 
+					(float) _velocities.drx(),
+					(float) _velocities.dry(), 
+					(float) _velocities.drz()
 				});
 		// Yes, I know this looks silly, but Amarino doesn't handle doubles
 		
 		// Log velocities
-		logger.info("VEL: " + "[" +
-				_velocities.linear.x + "," +
-				_velocities.linear.y + "," +
-				_velocities.linear.z + "," +
-				_velocities.angular.x + "," +
-				_velocities.angular.y + "," +
-				_velocities.angular.z + "]");
+		logger.info("VEL: " + _velocities);
 		
 		// Send velocities 
-		TwistWithCovarianceStamped vel = new TwistWithCovarianceStamped();
-		vel.header.stamp = _wallclock.getCurrentTime();
-		vel.twist.twist = _velocities;
+		Twist vel = _velocities.clone();
 		sendVelocity(vel);		
 	}
 	
@@ -315,7 +293,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			try {
 				SensorData reading = new SensorData();
 				reading.data = new double[3];
-				reading.type = (byte)SensorType.TE.ordinal();
+				reading.type = SensorType.TE;
 				for (int i = 0; i < 3; i++)
 					reading.data[i] = Double.parseDouble(cmd.get(i + 1));
 				sendSensor(0, reading);
@@ -415,15 +393,14 @@ public class AirboatImpl extends AbstractVehicleServer {
 		}
 	};
 
-	public synchronized CompressedImage captureImage(int width, int height) {
+	public synchronized byte[] captureImage(int width, int height) {
 
 		byte[] bytes = AirboatCameraActivity.takePhoto(_context, width, height);
 		Log.i(logTag, "Sending image [" + bytes.length + "]");
-		return toCompressedImage(width, height, bytes);
+		return bytes;
 	}
 
 	public synchronized boolean saveImage() {
-		
 		AirboatCameraActivity.savePhoto(_context);
 		Log.i(logTag, "Saving image.");
 		return true;
@@ -435,8 +412,12 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	@Override
-	public UtmPose getWaypoint() {
-		return _waypoint;
+	public UtmPose[] getWaypoints() {
+		UtmPose[] wpts = new UtmPose[_waypoints.length];
+		synchronized(_navigationLock) {		
+			System.arraycopy(_waypoints, 0, wpts, 0, wpts.length);
+		}
+		return wpts;
 	}
 
 	@Override
@@ -445,8 +426,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	@Override
-	public void startCamera(final long numFrames, final double interval,
-			final int width, final int height, final ImagingObserver obs) {
+	public void startCamera(final int numFrames, final double interval, final int width, final int height) {
 		
 		// Precompute the timing interval in ms
 		final long int_ms = (long)(interval * 1000.0);
@@ -507,21 +487,11 @@ public class AirboatImpl extends AbstractVehicleServer {
 	@Override
 	public void stopCamera() {
 		// Stop the thread that sends out images by terminating its
-		// navigation flag and then removing the reference to the old flag.
+		// capturing task process and then removing the reference.
 		synchronized(_captureLock) {
-			if (_isCapturing != null) {
-				_isCapturing.set(false);
-				_isCapturing = null;
-			}
+			_captureTask.cancel();
+			_captureTask = null;
 		}
-	}
-
-	double distToGoal(Pose x, Pose y) {
-		double dx = x.position.x - y.position.x;
-		double dy = x.position.y - y.position.y;
-		double dz = 0;  // The z on worldwind messes zs up. Anyway, we use UTM. x.position.z - y.position.z;
-		
-		return Math.sqrt(dx*dx + dy*dy + dz*dz);
 	}
 
 	@Override
@@ -530,8 +500,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	@Override
-	public UtmPoseWithCovarianceStamped getState() {
-		return _pose;
+	public UtmPose getPose() {
+		return _utmPose;
 	}
 
 	/**
@@ -541,33 +511,28 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * 
 	 * @param pose the corrected 6D pose of the vehicle: [x,y,z,roll,pitch,yaw]
 	 */
-	public void setState(UtmPose pose) {
+	@Override
+	public void setPose(UtmPose pose) {
 		
 		// Change the offset of this vehicle by modifying filter
 		filter.reset(pose, System.currentTimeMillis());
 		
 		// Copy this pose over the existing value
-		_pose.pose.pose.pose = pose.pose.clone();
-		_pose.utm = pose.utm.clone();
+		_utmPose = pose.clone();
 		
 		// Report the new pose in the log file
-		logger.info("POSE: " + "[" +
-				_pose.pose.pose.pose.position.x + "," +
-				_pose.pose.pose.pose.position.y + "," +
-				_pose.pose.pose.pose.position.z + "] " +
-				Arrays.toString(QuaternionUtils.toEulerAngles(_pose.pose.pose.pose.orientation)));
+		logger.info("POSE: " + _utmPose);
 	}
 
+	@Override
 	public WaypointState getWaypointStatus() {
 		synchronized(_navigationLock) {
-			if (_isNavigating == null) return WaypointState.OFF;
-			return (_isNavigating.get() ? WaypointState.GOING : WaypointState.OFF);
+			return (_navigationTask != null) ? WaypointState.GOING : WaypointState.OFF;
 		}
-		 
 	}
 	
 	@Override
-	public void startWaypoint(final UtmPose waypoint, final String controller, final WaypointObserver obs) {
+	public void startWaypoints(final UtmPose[] waypoints, final String controller) {
 		
 		// Precompute timing interval in ms
 		// TODO: use actual time to compute timesteps on the fly for navigation
@@ -598,11 +563,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 				}
 				
 				// Report the new waypoint in the log file
-				logger.info("NAV: " + vehicleController + "[" +
-						_pose.pose.pose.pose.position.x + "," +
-						_pose.pose.pose.pose.position.y + "," +
-						_pose.pose.pose.pose.position.z + "] " +
-						Arrays.toString(QuaternionUtils.toEulerAngles(_pose.pose.pose.pose.orientation)));
+				logger.info("NAV: " + vehicleController + " " + _utmPose);
 				
 				while (isNavigating.get()) {
 					
@@ -618,7 +579,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 						
 						// Get the position of the vehicle and the waypoint
 						// TODO: fix threading issue (fast stop/start)
-						Pose pose = _pose.pose.pose.pose;
+						Pose pose = _utmPose.pose.pose.pose;
 						Pose wpPose = waypoint.pose;
 	
 						// TODO: handle different UTM zones!
@@ -673,27 +634,21 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 	
 	@Override
-	public void stopWaypoint() {
-		
+	public void stopWaypoints() {
 		// Stop the thread that is doing the "navigation" by terminating its
-		// navigation flag and then removing the reference to the old flag.
+		// navigation task process and then removing the reference.
 		synchronized(_navigationLock) {
-			if (_isNavigating != null) {
-				_isNavigating.set(false);
-				_isNavigating = null;
-			}
-			_waypoint = null;
+			_navigationTask.cancel();
+			_navigationTask = null;
+			_waypoints = new UtmPose[0];
 		}
 	}
 
 	/**
 	 * Returns the current estimated 6D velocity of the vehicle.
 	 */
-	public TwistWithCovarianceStamped getVelocity() {
-		TwistWithCovarianceStamped twistMsg = new TwistWithCovarianceStamped();
-		twistMsg.header.stamp = _wallclock.getCurrentTime();
-		twistMsg.twist.twist = _velocities.clone();
-		return twistMsg;
+	public Twist getVelocity() {
+		return _velocities.clone();
 	}
 
 	/**
@@ -706,8 +661,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	@Override
 	public CameraState getCameraStatus() {
 		synchronized(_captureLock) {
-			if (_isCapturing == null) return CameraState.OFF;
-			return (_isCapturing.get() ? CameraState.CAPTURING : CameraState.OFF);
+			return (_captureTask != null) ? CameraState.CAPTURING : CameraState.OFF;
 		}
 	}
 
@@ -721,22 +675,20 @@ public class AirboatImpl extends AbstractVehicleServer {
 		_isAutonomous.set(isAutonomous);
 		
 		// Set velocities to zero to allow for safer transitions
-		_velocities.linear.x = 0.0;
-		_velocities.linear.y = 0.0;
-		_velocities.linear.z = 0.0;
-		_velocities.angular.x = 0.0;
-		_velocities.angular.y = 0.0;
-		_velocities.angular.z = 0.0;
+		_velocities = new Twist();
 	}
 
 	/**
 	 * Performs cleanup functions in preparation for stopping the server.
 	 */
 	public void shutdown() {
-		stopWaypoint();
+		stopWaypoints();
 		stopCamera();
 		
 		_isAutonomous.set(false);
 		_isConnected.set(false);
+		
+		_timer.cancel();
+		_timer.purge();
 	}
 }

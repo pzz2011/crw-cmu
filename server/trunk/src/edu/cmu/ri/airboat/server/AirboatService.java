@@ -2,8 +2,7 @@ package edu.cmu.ri.airboat.server;
 
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -16,12 +15,9 @@ import javax.measure.unit.SI;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
-import org.ros.RosCore;
-import org.ros.exception.RosRuntimeException;
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.node.NodeConfiguration;
-import org.ros.node.NodeRunner;
 
+import robotutils.Pose3D;
+import robotutils.Quaternion;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -50,9 +46,11 @@ import com.google.code.microlog4android.appender.FileAppender;
 import com.google.code.microlog4android.config.PropertyConfigurator;
 import com.google.code.microlog4android.format.PatternFormatter;
 
+import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.CrwSecurityManager;
-import edu.cmu.ri.crw.QuaternionUtils;
-import edu.cmu.ri.crw.ros.RosVehicleServer;
+import edu.cmu.ri.crw.data.Utm;
+import edu.cmu.ri.crw.data.UtmPose;
+import edu.cmu.ri.crw.udp.UdpVehicleService;
 
 /**
  * Android Service to register sensor and Amarino handlers for Android.
@@ -70,13 +68,11 @@ public class AirboatService extends Service {
 	// Default values for parameters
 	private static final String DEFAULT_LOG_PREFIX = "airboat_";
 	private static final int DEFAULT_UPDATE_RATE = 200;
-	private static final String DEFAULT_ROS_NODE_NAME = "vehicle";
 	final int GPS_UPDATE_RATE = 200; //in milliseconds
 	
 	// Intent fields definitions
 	public static final String BD_ADDR = "BD_ADDR";
-	public static final String ROS_MASTER_URI = "ROS_MASTER_URI";
-	public static final String ROS_NODE_NAME = "ROS_NODE_NAME";
+	public static final String UDP_REGISTRY_ADDR = "UDP_REGISTRY_ADDR";
 	public static final String UPDATE_RATE = "UPDATE_RATE";
 	
 	// Binder object that receives interactions from clients.
@@ -88,13 +84,11 @@ public class AirboatService extends Service {
 	// Member parameters 
 	private int _updateRate;
 	private String _arduinoAddr;
-	private URI _rosMasterUri;
-	private String _rosNodeName;
+	private InetSocketAddress _udpRegistryAddr;
 	
 	// Objects implementing actual functionality
 	private AirboatImpl _airboatImpl;
-	private RosVehicleServer _rosServer;
-	private RosCore _rosCore;
+	private UdpVehicleService _udpServer;
 	
 	// Timers for update function
 	private Timer _timer;
@@ -123,19 +117,15 @@ public class AirboatService extends Service {
         			);
 
         	// Convert to UTM data structure
-        	UtmPose utm = new UtmPose();
-        	utm.pose.position.x = utmLoc.eastingValue(SI.METER);
-        	utm.pose.position.y = utmLoc.northingValue(SI.METER);
-        	
-        	utm.utm.zone = (byte)utmLoc.longitudeZone();
-        	utm.utm.isNorth = (utmLoc.latitudeZone() < 'n');
-        	
-        	if (location.hasAltitude())
-        		utm.pose.position.z = location.getAltitude();
-        	
-        	if (location.hasBearing())
-        		utm.pose.orientation = QuaternionUtils.fromEulerAngles(0.0, 0.0, (90.0 - location.getBearing()) * Math.PI / 180.0);
-        	
+        	Pose3D pose = new Pose3D(
+        			utmLoc.eastingValue(SI.METER),
+        			utmLoc.northingValue(SI.METER),
+        			(location.hasAltitude() ? location.getAltitude() : 0.0),
+        			(location.hasBearing() ? Quaternion.fromEulerAngles(0.0, 0.0, (90.0 - location.getBearing()) * Math.PI / 180.0) : Quaternion.fromEulerAngles(0, 0, 0)) 
+        			);
+        	Utm origin = new Utm(utmLoc.longitudeZone(), utmLoc.latitudeZone() > 'o');
+        	UtmPose utm = new UtmPose(pose, origin);
+        	        	
         	// Apply update using filter object
         	if (_airboatImpl != null) {
         		_airboatImpl.filter.gpsUpdate(utm, location.getTime());
@@ -290,7 +280,7 @@ public class AirboatService extends Service {
 		}
 			
 		// Ensure that we do not reinitialize if not necessary
-		if (_airboatImpl != null || _rosServer != null) {
+		if (_airboatImpl != null || _udpServer != null) {
 			Log.w(TAG, "Attempted to start while running.");
 			return Service.START_STICKY;
 		}
@@ -336,31 +326,16 @@ public class AirboatService extends Service {
         // Get necessary connection parameters
 		_arduinoAddr = intent.getStringExtra(BD_ADDR);
 		_updateRate = intent.getIntExtra(UPDATE_RATE, DEFAULT_UPDATE_RATE);
-		_rosNodeName = intent.getStringExtra(ROS_NODE_NAME);
 		
 		// Check if the provided ROS master URI parameter can be parsed
-		_rosMasterUri = null;
-		String rosMasterStr = intent.getStringExtra(ROS_MASTER_URI);
-		String defaultRosMasterStr = getString(R.string.master_default_addr);
-		try {
-			// Only try to resolve the URI for and external ROS master 
-			// (not null, not empty, and not equal to the default value).
-			// Otherwise, we will be starting a local ROS core
-			if (rosMasterStr != null 
-					&& rosMasterStr.length() > 0
-					&& !rosMasterStr.equalsIgnoreCase(defaultRosMasterStr)) {
-				_rosMasterUri = new URI(rosMasterStr);
-			}
-		} catch (URISyntaxException e) {
-			logger.warn("Unable to parse " + rosMasterStr + " into URI");
-			sendNotification("ROS Master URI was invalid: " + rosMasterStr);
+		String rosMasterStr = (intent.hasExtra(UDP_REGISTRY_ADDR) ? intent.getStringExtra(UDP_REGISTRY_ADDR) : getString(R.string.master_default_addr));
+		_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(rosMasterStr);
+		if (_udpRegistryAddr == null) {
+			logger.warn("Unable to parse " + rosMasterStr + " into UDP address.");
+			sendNotification("Registry address invalid: " + rosMasterStr);
 			stopSelf();
 		}
 
-		// Set default values if necessary
-		if (_rosNodeName == null) 
-			_rosNodeName = DEFAULT_ROS_NODE_NAME;
-		
         // Create a filter that listens to Amarino connection events
         IntentFilter amarinoFilter = new IntentFilter();
         amarinoFilter.addAction(AmarinoIntent.ACTION_CONNECTED_DEVICES);
@@ -377,24 +352,10 @@ public class AirboatService extends Service {
 		new Thread(new Runnable() {
 			
 			public void run() {
-				// Start a local ROS core if no ROS master URI was provided
-				if (_rosMasterUri == null) {
-					try {
-						_rosCore = RosCore.newPublic(11411);
-				        NodeRunner.newDefault().run(_rosCore, NodeConfiguration.newPrivate());
-				        _rosCore.awaitStart();
-				        _rosMasterUri = _rosCore.getUri();
-					} catch (RosRuntimeException e) {
-						sendNotification("ROS Core failed: " + e.getMessage());
-				        stopSelf();
-						return;
-					}
-			        Log.i(TAG, "Local ROS core started");
-				}
-				
 				// Create a RosVehicleServer to expose the data object
 				try {
-					_rosServer = new RosVehicleServer(_rosMasterUri, _rosNodeName, _airboatImpl);
+					_udpServer = new UdpVehicleService(_airboatImpl);
+					_udpServer.addRegistry(_udpRegistryAddr);
 				} catch (Exception e) {
 					Log.e(TAG, "RosVehicleServer failed to launch", e);
 					sendNotification("RosVehicleServer failed: " + e.getMessage());
@@ -474,22 +435,13 @@ public class AirboatService extends Service {
 		_timer.cancel();
 		
 		// Shutdown the ROS services
-		if (_rosServer != null) {
+		if (_udpServer != null) {
 			try {
-				_rosServer.shutdown();
+				_udpServer.shutdown();
 			} catch (Exception e) {
 				Log.e(TAG, "RosVehicleServer shutdown error", e);
 			}
-			_rosServer = null;
-		}
-		
-		if (_rosCore != null) {
-			try {
-				_rosCore.shutdown();
-			} catch (Exception e) {
-				Log.e(TAG, "RosCore shutdown error", e);
-			}
-			_rosCore = null;
+			_udpServer = null;
 		}
 		
 		// Disconnect from the Android sensors

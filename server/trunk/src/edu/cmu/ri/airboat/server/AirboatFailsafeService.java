@@ -3,8 +3,7 @@ package edu.cmu.ri.airboat.server;
 import java.io.IOException;
 import java.net.InetAddress;
 
-import org.ros.message.crwlib_msgs.UtmPose;
-
+import robotutils.Pose3D;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -17,6 +16,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.data.Utm;
+import edu.cmu.ri.crw.data.UtmPose;
 
 /**
  * Runs a background process that verifies that the vehicle server is currently
@@ -115,11 +116,12 @@ public class AirboatFailsafeService extends Service {
 		boolean rawHomeNorth = intent.getBooleanExtra(AirboatFailsafeIntent.HOME_NORTH, true);
 
 		// Decode pose from intents
-		_homePosition.pose.position.x = rawHomePose[0];
-		_homePosition.pose.position.y = rawHomePose[1];
-		_homePosition.pose.position.z = rawHomePose[2];
-		_homePosition.utm.zone = (byte)rawHomeZone;
-		_homePosition.utm.isNorth = rawHomeNorth;
+		_homePosition.pose = new Pose3D(
+				rawHomePose[0],
+				rawHomePose[1],
+				rawHomePose[2], 
+				0.0, 0.0, 0.0);
+		_homePosition.origin = new Utm(rawHomeZone, rawHomeNorth);
 		
 		// Schedule the next connection test
 		_handler.postDelayed(_connectionTest, _connectionTestDelayMs);
@@ -194,12 +196,8 @@ public class AirboatFailsafeService extends Service {
 			// If the connection failed, trigger the failsafe behavior
 			_numFailures++;
 			if (_numFailures > _numAllowedFailures) {
-				Log.i(LOG_TAG, "Failsafe triggered: [" +
-						_homePosition.pose.position.x + "," +
-						_homePosition.pose.position.y + "," +
-						_homePosition.pose.position.z + "] " +
-						_homePosition.utm.zone + (_homePosition.utm.isNorth ? "North" : "South"));
-				server.startWaypoint(_homePosition, null, null);
+				Log.i(LOG_TAG, "Failsafe triggered: " + _homePosition);
+				server.startWaypoints(new UtmPose[]{_homePosition}, null);
 				_numFailures = 0;
 			}
 			
