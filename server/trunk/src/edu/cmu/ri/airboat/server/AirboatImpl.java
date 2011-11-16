@@ -431,57 +431,38 @@ public class AirboatImpl extends AbstractVehicleServer {
 		// Precompute the timing interval in ms
 		final long int_ms = (long)(interval * 1000.0);
 		
-		// Keep a reference to the capture flag for THIS capture process
-		final AtomicBoolean isCapturing = new AtomicBoolean(true);
-		
-		// Set this to be the current capture flag
-		synchronized(_captureLock) {
-			if (_isCapturing != null)
-				_isCapturing.set(false);		
-			_isCapturing = isCapturing;
-		}
-
-		// Start a capturing thread
-		new Thread(new Runnable() {
-
- 			@Override
+		// Create a new capturing task
+		TimerTask newCaptureTask = new TimerTask() {
+			int iFrame = 0;
+			
+			@Override
 			public void run() {
- 				int iFrame = 0;
-
- 				// Report the new imaging job in the log file
-				logger.info("IMG: " + numFrames + " @ " + interval + "s, " +
-						width + " x " + height);
- 				
-				while (isCapturing.get()
-						&& (numFrames <= 0 || iFrame < numFrames)) {
-
-					// Every so often, send out a random picture
-					sendImage(captureImage(width, height));
-					iFrame++;
-					
-					// Report status
-					if (obs != null)
-						obs.imagingUpdate(CameraState.CAPTURING);
-
-					// Wait for a while
-					try {
-						Thread.sleep(int_ms);
-					} catch (InterruptedException ex) {
-						return;
-					}
+ 				// Stop if we took enough pictures
+				if (numFrames > 0 && iFrame >= numFrames) {
+					sendCameraUpdate(CameraState.DONE);
+ 					this.cancel();
 				}
 				
-				// Upon completion, report status 
-				// (if isCapturing is still true, we completed on our own)
-				if (isCapturing.getAndSet(false)) {
-					if (obs != null)
-						obs.imagingUpdate(CameraState.DONE);
-				} else {
-					if (obs != null)
-						obs.imagingUpdate(CameraState.CANCELLED);
-				}
+				// Send out a new picture
+				sendImage(captureImage(width, height));
+				iFrame++;
+					
+				// Report status
+				sendCameraUpdate(CameraState.CAPTURING);
 			}
-		}).start();
+		}; 
+		
+		// Kill old capture process and start up this new one
+		synchronized(_captureLock) {
+			if (_captureTask != null)
+				_captureTask.cancel();
+			_captureTask = newCaptureTask;
+			_timer.schedule(_captureTask, 0, int_ms);
+		}
+		
+		// Report the new imaging job in the log file
+		logger.info("IMG: " + numFrames + " @ " + interval + "s, " +
+				width + " x " + height);
 	}
 
 	@Override
@@ -492,6 +473,8 @@ public class AirboatImpl extends AbstractVehicleServer {
 			_captureTask.cancel();
 			_captureTask = null;
 		}
+		
+		sendCameraUpdate(CameraState.CANCELLED);
 	}
 
 	@Override
@@ -538,99 +521,55 @@ public class AirboatImpl extends AbstractVehicleServer {
 		// TODO: use actual time to compute timesteps on the fly for navigation
 		final double dt = (double)UPDATE_INTERVAL_MS / 1000.0;
 		
-		// Keep a reference to the navigation flag for THIS waypoint
-		final AtomicBoolean isNavigating = new AtomicBoolean(true);
-		
-		// Set this to be the current navigation flag
-		synchronized(_navigationLock) {
-			if (_isNavigating != null)
-				_isNavigating.set(false);
-			_isNavigating = isNavigating;
-			_waypoint = waypoint.clone();
+		// Determine which controller was specified
+		AirboatController vc;
+		try {
+			vc = AirboatController.valueOf(controller);
+		} catch(IllegalArgumentException e) {
+			vc = DEFAULT_CONTROLLER;
 		}
+		final AirboatController vehicleController = vc;
 		
 		// Start a navigation thread
-		new Thread(new Runnable() {
+		TimerTask newNavigationTask = new TimerTask() {
 
 			@Override
 			public void run() {
 				
-				AirboatController vehicleController;
-				try {
-					vehicleController = AirboatController.valueOf(controller);
-				} catch(Exception e) {
-					vehicleController = DEFAULT_CONTROLLER;
+				// If we are not set in autonomous mode, don't try to drive!
+				if (!_isAutonomous.get()) {
+					sendWaypointUpdate(WaypointState.PAUSED);
+					return;
 				}
 				
-				// Report the new waypoint in the log file
-				logger.info("NAV: " + vehicleController + " " + _utmPose);
+				// TODO: handle different UTM zones!
+
+				// Figure out how to drive to waypoint
+				vehicleController.controller.update(AirboatImpl.this, dt);
 				
-				while (isNavigating.get()) {
+				// Report our status as moving toward target
+				sendWaypointUpdate(WaypointState.GOING);
 					
-					// If we are not set in autonomous mode, don't try to drive!
-					if (!_isAutonomous.get()) {
-						// TODO: probably should add a "paused" state
-						if (obs != null) 
-							obs.waypointUpdate(WaypointState.OFF);
-					} else {
-						// Report our status as moving toward target
-						if (obs != null)
-							obs.waypointUpdate(WaypointState.GOING);
-						
-						// Get the position of the vehicle and the waypoint
-						// TODO: fix threading issue (fast stop/start)
-						Pose pose = _utmPose.pose.pose.pose;
-						Pose wpPose = waypoint.pose;
-	
-						// TODO: handle different UTM zones!
-	
-						// Figure out how to drive to waypoint
-						vehicleController.controller.update(AirboatImpl.this, dt);
-						
-						// TODO: measure dt directly instead of approximating
-						
-						// Check for termination condition
-						// TODO: termination conditions tested by controller
-						double dist = distToGoal(pose, wpPose);
-						logger.debug("Distance to goal is "+dist);
-						if (dist <= 6.0) 
-							{
-								logger.info("Should reach a waypoint now.");
-								break;
-							}
-					}
-					
-					// Pause for a while
-					try { 
-						Thread.sleep(UPDATE_INTERVAL_MS); 
-					} catch (InterruptedException e) {}
-				}
-				
-				// Stop the vehicle
-				_velocities.linear.x = 0.0;
-				_velocities.linear.y = 0.0;
-				_velocities.linear.z = 0.0;
-				_velocities.angular.x = 0.0;
-				_velocities.angular.y = 0.0;
-				_velocities.angular.z = 0.0;
-				
-				// Upon completion, report status 
-				// (if isNavigating is still true, we completed on our own)
-				if (isNavigating.getAndSet(false)) {
-					if (obs != null)
-					{
-						obs.waypointUpdate(WaypointState.DONE);
-						logger.info("Should report reaching a waypoint now.");
-						
-					}
-				} else {
-					if (obs != null){
-						obs.waypointUpdate(WaypointState.CANCELLED);
-						logger.info("Should report cancelling a waypoint now.");
-					}
+				// If we reach the target, stop the vehicle and report it
+				if (getWaypoints().length <= 0) {
+					_velocities = new Twist();
+					sendWaypointUpdate(WaypointState.DONE);
 				}
 			}
-		}).start();
+		};
+		
+		// Set this to be the current navigation flag
+		synchronized(_navigationLock) {
+			if (_navigationTask != null)
+				_navigationTask.cancel();
+			_waypoints = new UtmPose[waypoints.length];
+			System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
+			_navigationTask = newNavigationTask;
+			_timer.schedule(_navigationTask, 0, UPDATE_INTERVAL_MS);	
+		}
+		
+		// Report the new waypoint in the log file
+		logger.info("NAV: " + vehicleController + " " + _utmPose);
 	}
 	
 	@Override
