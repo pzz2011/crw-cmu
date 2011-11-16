@@ -64,6 +64,7 @@ public class AirboatService extends Service {
 	
 	// Default values for parameters
 	private static final String DEFAULT_LOG_PREFIX = "airboat_";
+	private static final int DEFAULT_UDP_PORT = 11411;
 	final int GPS_UPDATE_RATE = 200; //in milliseconds
 	
 	// Intent fields definitions
@@ -315,7 +316,7 @@ public class AirboatService extends Service {
 			public void run() {
 				// Create a RosVehicleServer to expose the data object
 				try {
-					_udpServer = new UdpVehicleService(_airboatImpl);
+					_udpServer = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);
 					_udpServer.addRegistry(_udpRegistryAddr);
 				} catch (Exception e) {
 					Log.e(TAG, "RosVehicleServer failed to launch", e);
