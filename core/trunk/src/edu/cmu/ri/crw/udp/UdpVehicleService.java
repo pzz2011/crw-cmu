@@ -40,7 +40,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
     protected VehicleServer _vehicleServer;
     protected final Object _serverLock = new Object();
     
-    protected final UdpServer _udpServer = new UdpServer();
+    protected final UdpServer _udpServer;
 
     protected final List<SocketAddress> _registries = new ArrayList<SocketAddress>();
     protected final Map<SocketAddress, Integer> _poseListeners = new LinkedHashMap<SocketAddress, Integer>();
@@ -51,12 +51,24 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
     protected final Map<SocketAddress, Integer> _waypointListeners = new LinkedHashMap<SocketAddress, Integer>();
 
     public UdpVehicleService() {
+        _udpServer = new UdpServer();
+        _udpServer.setHandler(this);
+        _udpServer.start();
+    }
+    
+    public UdpVehicleService(int port) {
+        _udpServer = new UdpServer(port);
         _udpServer.setHandler(this);
         _udpServer.start();
     }
     
     public UdpVehicleService(VehicleServer server) {
         this();
+        setServer(server);
+    }
+    
+    public UdpVehicleService(int port, VehicleServer server) {
+        this(port);
         setServer(server);
     }
     

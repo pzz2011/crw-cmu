@@ -62,7 +62,19 @@ public class UdpServer {
         
         _socket = socket;
         _responses = new DelayQueue<QueuedResponse>();
+    }
+    
+    public UdpServer(int port) {
         
+        DatagramSocket socket = null;
+        try {
+            socket = new DatagramSocket(port);
+        } catch (SocketException e) {
+            // TODO: log something here;
+        }
+        
+        _socket = socket;
+        _responses = new DelayQueue<QueuedResponse>();
     }
     
     public void start() {
