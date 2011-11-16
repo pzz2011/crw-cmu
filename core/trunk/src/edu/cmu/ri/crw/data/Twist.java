@@ -13,6 +13,10 @@ public class Twist implements Cloneable, Serializable {
     
     public Twist() {}
     
+    public Twist(Twist t) {
+        this(t.velocity);
+    }
+    
     public Twist(double... velocities) {
         System.arraycopy(velocities, 0, velocity, 0, Math.min(velocity.length, velocities.length));
     }
