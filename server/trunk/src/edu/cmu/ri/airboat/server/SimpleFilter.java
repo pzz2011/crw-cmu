@@ -1,12 +1,10 @@
 package edu.cmu.ri.airboat.server;
 
-import org.ros.message.Time;
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
-import org.ros.message.geometry_msgs.Twist;
-
-import edu.cmu.ri.crw.QuaternionUtils;
+import robotutils.Pose3D;
+import robotutils.Quaternion;
 import edu.cmu.ri.crw.VehicleFilter;
+import edu.cmu.ri.crw.data.Twist;
+import edu.cmu.ri.crw.data.UtmPose;
 
 /**
  * A basic filter that uses weighted averages and a first-order approximate
@@ -41,11 +39,13 @@ public class SimpleFilter implements VehicleFilter {
 		while(_time < time) {
 			long step = Math.min(time - _time, MAX_STEP_MS);
 			double dt = step / 1000.0;
-			double yaw = QuaternionUtils.toYaw(_pose.pose.orientation);
+			double yaw = _pose.pose.getRotation().toYaw();
 			
-			_pose.pose.position.x += dt * (_vels.linear.x * Math.cos(yaw) - _vels.linear.y * Math.sin(yaw));
-			_pose.pose.position.y += dt * (_vels.linear.x * Math.sin(yaw) + _vels.linear.y * Math.cos(yaw));
-			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, yaw + dt * _vels.angular.z);
+			double x = _pose.pose.getX() + dt * (_vels.dx() * Math.sin(yaw) + _vels.dy() * Math.cos(yaw));
+			double y = _pose.pose.getY() + dt * (_vels.dx() * Math.cos(yaw) - _vels.dy() * Math.sin(yaw));
+			double z = _pose.pose.getZ();
+			Quaternion rotation = Quaternion.fromEulerAngles(0, 0, _pose.pose.getRotation().toYaw() + dt * _vels.drz());
+			_pose.pose = new Pose3D(x, y, z, rotation);
 			
 			_time += step;
 		}
@@ -58,10 +58,12 @@ public class SimpleFilter implements VehicleFilter {
 		// On the first compass update, simply take on the initial heading
 		// (invert the heading because yaw is negative heading) 
 		if (_isInitializedCompass) {
-			double oldYaw = QuaternionUtils.toYaw(_pose.pose.orientation);
-			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, angleAverage(ALPHA_COMPASS, oldYaw, yaw));
+			double oldYaw = _pose.pose.getRotation().toYaw();
+			_pose.pose = new Pose3D(_pose.pose.getX(), _pose.pose.getY(), _pose.pose.getZ(), 
+					Quaternion.fromEulerAngles(0, 0, angleAverage(ALPHA_COMPASS, oldYaw, yaw)));
 		} else {
-			_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, yaw);
+			_pose.pose = new Pose3D(_pose.pose.getX(), _pose.pose.getY(), _pose.pose.getZ(), 
+					Quaternion.fromEulerAngles(0, 0, yaw));
 			_isInitializedCompass = true;
 		}
 	}
@@ -71,46 +73,40 @@ public class SimpleFilter implements VehicleFilter {
 		predict(time);
 		
 		// If we are in the wrong zone or are uninitialized, use the GPS position
-		if (utm.utm.zone != _pose.utm.zone || utm.utm.isNorth != _pose.utm.isNorth || !_isInitializedGps) {
-			_pose.utm = utm.utm.clone();
+		if (!_pose.origin.equals(utm.origin) || !_isInitializedGps) {
+			_pose.origin = utm.origin.clone();
 			_pose.pose = utm.pose.clone();
 			_isInitializedGps = true;
 		} else {
 			// On other update, average together the readings
-			_pose.pose.position.x = ALPHA_GPS * utm.pose.position.x + (1 - ALPHA_GPS) * _pose.pose.position.x;
-			_pose.pose.position.y = ALPHA_GPS * utm.pose.position.y + (1 - ALPHA_GPS) * _pose.pose.position.y;
+			double x = ALPHA_GPS * utm.pose.getX() + (1 - ALPHA_GPS) * _pose.pose.getX();
+			double y = ALPHA_GPS * utm.pose.getY() + (1 - ALPHA_GPS) * _pose.pose.getY();
+			double z = (utm.pose.getZ() == 0.0) ? _pose.pose.getZ() : utm.pose.getZ();
 			
-			// If we have altitude, use it (0.0 if not filled in)
-			if (utm.pose.position.z != 0.0) {
-				_pose.pose.position.z = utm.pose.position.z;
+			// If we have a bearing, use it as well (yaw != exactly 0 in valid quaternions)
+			Quaternion orientation;
+			if (utm.pose.getRotation().toYaw() != 0.0) {
+				double oldYaw = _pose.pose.getRotation().toYaw();
+				double yaw = utm.pose.getRotation().toYaw();
+				orientation = Quaternion.fromEulerAngles(0, 0, angleAverage(ALPHA_GPS, oldYaw, yaw));
+			} else {
+				orientation = _pose.pose.getRotation();
 			}
 			
-			// If we have a bearing, use it as well (w != 0 in most valid quaternions)
-			if (utm.pose.orientation.w != 0.0) {
-				double oldYaw = QuaternionUtils.toYaw(_pose.pose.orientation);
-				double yaw = QuaternionUtils.toYaw(utm.pose.orientation);
-				_pose.pose.orientation = QuaternionUtils.fromEulerAngles(0, 0, angleAverage(ALPHA_GPS, oldYaw, yaw));
-			}
+			// Create new pose from update
+			_pose.pose = new Pose3D(x,y,z,orientation);
 		}
 	}
 
 	@Override
 	public synchronized void gyroUpdate(double yawVel, long time) {
 		predict(time);
-		_vels.angular.z = yawVel;
+		_vels.drz(yawVel);
 	}
 
 	@Override
-	public synchronized UtmPoseWithCovarianceStamped pose(long time) {
-		
-		UtmPoseWithCovarianceStamped poseMsg = new UtmPoseWithCovarianceStamped();
-		
-		poseMsg.utm = _pose.utm.clone();
-		poseMsg.pose.pose.pose = _pose.pose.clone();
-		poseMsg.pose.header.frame_id = "/base_link";
-		poseMsg.pose.header.stamp = Time.fromMillis(System.currentTimeMillis());
-		
-		return poseMsg;
+	public synchronized UtmPose pose(long time) {
+		return _pose.clone();
 	}
 
 	@Override

@@ -3,12 +3,6 @@ package edu.cmu.ri.airboat.server;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 
-import org.ros.message.geometry_msgs.Twist;
-
-import com.google.code.microlog4android.LoggerFactory;
-
-import edu.cmu.ri.crw.VehicleServer.WaypointState;
-
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -26,9 +20,14 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.SeekBar;
-import android.widget.TextView;
 import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
+
+import com.google.code.microlog4android.LoggerFactory;
+
+import edu.cmu.ri.crw.VehicleServer.WaypointState;
+import edu.cmu.ri.crw.data.Twist;
 
 /**
  * Android activity to display the debug screen to modify server parameters using a GUI
@@ -178,8 +177,8 @@ public class AirboatControlActivity extends Activity {
 					return;
 				
 				// Send a new velocity command
-				Twist twist = _airboatService.getServer().getVelocity().twist.twist;
-				twist.angular.z = fromProgressToRange(rudderSlider.getProgress(), RUDDER_MIN, RUDDER_MAX);
+				Twist twist = _airboatService.getServer().getVelocity();
+				twist.drz(fromProgressToRange(rudderSlider.getProgress(), RUDDER_MIN, RUDDER_MAX));
 				_airboatService.getServer().setVelocity(twist);
 			}
 		});
@@ -200,8 +199,8 @@ public class AirboatControlActivity extends Activity {
 					return;
 				
 				// Send a new velocity command
-				Twist twist = _airboatService.getServer().getVelocity().twist.twist;
-				twist.linear.x = fromProgressToRange(thrustSlider.getProgress(), THRUST_MIN, THRUST_MAX);
+				Twist twist = _airboatService.getServer().getVelocity();
+				twist.dx(fromProgressToRange(thrustSlider.getProgress(), THRUST_MIN, THRUST_MAX));
 				_airboatService.getServer().setVelocity(twist);
 			}
 		});
@@ -223,12 +222,12 @@ public class AirboatControlActivity extends Activity {
 				autonomousBox.setChecked(_airboatService.getServer().getWaypointStatus() == WaypointState.GOING);
 				
 				// Update the velocities
-				_velocities = _airboatService.getServer().getVelocity().twist.twist;
+				_velocities = _airboatService.getServer().getVelocity();
 
-				thrustValue.setText(velFormatter.format(_velocities.linear.x) + " m/s");
+				thrustValue.setText(velFormatter.format(_velocities.dx()) + " m/s");
 				thrustValue.invalidate();
 	
-				rudderValue.setText(velFormatter.format(_velocities.angular.z) + " rad/s");
+				rudderValue.setText(velFormatter.format(_velocities.drz()) + " rad/s");
 				rudderValue.invalidate();
 	
 				// Reschedule the next iteration of this update
