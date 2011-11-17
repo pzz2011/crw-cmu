@@ -182,11 +182,12 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     @Override
     public void stopWaypoints() {
         // Stop the thread that is doing the "navigation" by terminating its
-        // navigation process and clearing all the waypoints.
+        // navigation process, clear all the waypoints, and stop the vehicle.
         synchronized (_navigationLock) {
             _navigationTask.cancel();
             _navigationTask = null;
             _waypoints = new UtmPose[0];
+            setVelocity(new Twist());
         }
         sendWaypointUpdate(WaypointState.CANCELLED);
     }
@@ -212,16 +213,18 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
             @Override
             public void run() {
-                // Take a new image and send it out
-                sendImage(captureImage(width, height));
-                iFrame++;
+                synchronized (_captureLock) {
+                    // Take a new image and send it out
+                    sendImage(captureImage(width, height));
+                    iFrame++;
 
-                // If we exceed numFrames, we finished
-                if (numFrames > 0 && iFrame >= numFrames) {
-                    sendCameraUpdate(CameraState.DONE);
-                    this.cancel();
-                } else {
-                    sendCameraUpdate(CameraState.CAPTURING);
+                    // If we exceed numFrames, we finished
+                    if (numFrames > 0 && iFrame >= numFrames) {
+                        sendCameraUpdate(CameraState.DONE);
+                        this.cancel();
+                    } else {
+                        sendCameraUpdate(CameraState.CAPTURING);
+                    }
                 }
             }
         };
