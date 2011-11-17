@@ -17,6 +17,7 @@ import at.abraxas.amarino.AmarinoIntent;
 import com.google.code.microlog4android.LoggerFactory;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
+import edu.cmu.ri.crw.VehicleController;
 import edu.cmu.ri.crw.VehicleFilter;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.data.SensorData;
@@ -33,30 +34,30 @@ import edu.cmu.ri.crw.data.UtmPose;
  */
 public class AirboatImpl extends AbstractVehicleServer {
 
-	private static final com.google.code.microlog4android.Logger logger = 
-		LoggerFactory.getLogger();
+	private static final com.google.code.microlog4android.Logger logger = LoggerFactory
+			.getLogger();
 
 	private static final String logTag = AirboatImpl.class.getName();
 	public static final int UPDATE_INTERVAL_MS = 200;
 	public static final int NUM_SENSORS = 3;
 	public static final AirboatController DEFAULT_CONTROLLER = AirboatController.POINT_AND_SHOOT;
-	
+
 	protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
 	protected UtmPose[] _waypoints = new UtmPose[0];
 
 	protected final Object _captureLock = new Object();
 	protected TimerTask _captureTask = null;
-	
+
 	protected final Object _navigationLock = new Object();
 	protected TimerTask _navigationTask = null;
-	
+
 	private final Timer _timer = new Timer();
 
 	/**
 	 * Defines the PID gains that will be returned if there is an error.
 	 */
-	public static final double[] NAN_GAINS = 
-		new double[] { Double.NaN, Double.NaN, Double.NaN };
+	public static final double[] NAN_GAINS = new double[] { Double.NaN,
+			Double.NaN, Double.NaN };
 
 	// Define Amarino function control codes
 	public static final char GET_GYRO_FN = 'g';
@@ -109,8 +110,10 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * should only be used internally when the corresponding vehicle service is
 	 * started and stopped.
 	 * 
-	 * @param context the application context to use
-	 * @param addr the bluetooth address of the vehicle controller
+	 * @param context
+	 *            the application context to use
+	 * @param addr
+	 *            the bluetooth address of the vehicle controller
 	 */
 
 	protected AirboatImpl(Context context, String addr) {
@@ -118,54 +121,55 @@ public class AirboatImpl extends AbstractVehicleServer {
 		_arduinoAddr = addr;
 
 		// Start a regular update function
-		_timer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);				
+		_timer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
 	}
 
 	/**
 	 * Internal update function called at regular intervals to process command
 	 * and control events.
 	 * 
-	 * @param dt the elapsed time since the last update call (in seconds)
+	 * @param dt
+	 *            the elapsed time since the last update call (in seconds)
 	 */
 	private TimerTask _updateTask = new TimerTask() {
-		//long _lastUpdateMs = 0;
-		
+		// long _lastUpdateMs = 0;
+
 		@Override
 		public void run() {
 			/*
-			// Compute the number of milliseconds since last update
-			// (or 0 if this is the first update)
-			long currentUpdateMs = SystemClock.elapsedRealtime();
-			long elapsedMs = (_lastUpdateMs > 0) ? currentUpdateMs - _lastUpdateMs : 0;
-			_lastUpdateMs = currentUpdateMs;
-			*/
-				
+			 * // Compute the number of milliseconds since last update // (or 0
+			 * if this is the first update) long currentUpdateMs =
+			 * SystemClock.elapsedRealtime(); long elapsedMs = (_lastUpdateMs >
+			 * 0) ? currentUpdateMs - _lastUpdateMs : 0; _lastUpdateMs =
+			 * currentUpdateMs;
+			 */
+
 			// Do an intelligent state prediction update here
 			_utmPose = filter.pose(System.currentTimeMillis());
 			logger.info("POSE: " + _utmPose);
 			sendState(_utmPose.clone());
-			
+
 			// Call Amarino with new velocities here
-			Amarino.sendDataToArduino(_context, _arduinoAddr, SET_VELOCITY_FN,
-					new float[] { 
-						(float) _velocities.dx(), 
-						(float) _velocities.dy(),
-						(float) _velocities.dz(), 
-						(float) _velocities.drx(),
-						(float) _velocities.dry(), 
-						(float) _velocities.drz()
-					});
+			Amarino.sendDataToArduino(
+					_context,
+					_arduinoAddr,
+					SET_VELOCITY_FN,
+					new float[] { (float) _velocities.dx(),
+							(float) _velocities.dy(), (float) _velocities.dz(),
+							(float) _velocities.drx(),
+							(float) _velocities.dry(),
+							(float) _velocities.drz() });
 			// Yes, I know this looks silly, but Amarino doesn't handle doubles
-			
+
 			// Log velocities
 			logger.info("VEL: " + _velocities);
-			
-			// Send velocities 
+
+			// Send velocities
 			Twist vel = _velocities.clone();
-			sendVelocity(vel);	
+			sendVelocity(vel);
 		}
 	};
-	
+
 	/**
 	 * @see VehicleServer#getGains(int)
 	 */
@@ -212,13 +216,11 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 */
 	@Override
 	public void setGains(int axis, double[] k) {
-		
+
 		// Call Amarino here
-		Amarino.sendDataToArduino(
-				_context,
-				_arduinoAddr,
-				SET_GAINS_FN,
-				new float[] { (float) axis, (float) k[0], (float) k[1], (float) k[2] });
+		Amarino.sendDataToArduino(_context, _arduinoAddr, SET_GAINS_FN,
+				new float[] { (float) axis, (float) k[0], (float) k[1],
+						(float) k[2] });
 		logger.info("SETGAINS: " + axis + " " + Arrays.toString(k));
 	}
 
@@ -303,7 +305,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 				Log.w(logTag, "Received corrupt sensor function: " + cmd);
 				return;
 			}
-			
+
 			// Broadcast the sensor reading
 			try {
 				SensorData reading = new SensorData();
@@ -316,7 +318,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			} catch (NumberFormatException e) {
 				Log.w(logTag, "Received corrupt sensor reading: " + cmd);
 			}
-			
+
 			break;
 		default:
 			Log.w(logTag, "Received unknown function type: " + cmd);
@@ -348,7 +350,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			// Read in data as string and add to queue for processing
 			if (dataType == AmarinoIntent.STRING_EXTRA) {
 				String newCmd = intent.getStringExtra(AmarinoIntent.EXTRA_DATA);
-				
+
 				// If a command is completed, attempt to execute it
 				if (newCmd.indexOf('\r') >= 0 || newCmd.indexOf('\n') >= 0) {
 					try {
@@ -409,7 +411,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 	};
 
 	public synchronized byte[] captureImage(int width, int height) {
-
 		byte[] bytes = AirboatCameraActivity.takePhoto(_context, width, height);
 		Log.i(logTag, "Sending image [" + bytes.length + "]");
 		return bytes;
@@ -422,74 +423,82 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	@Override
-	public SensorType getSensorType(int channel) {
-		return _sensorTypes[channel];
-	}
+	public void startCamera(final int numFrames, final double interval,
+			final int width, final int height) {
+		Log.i(logTag, "Starting capture: " + numFrames + "(" + width + "x"
+				+ height + ") frames @ " + interval + "s");
 
-	@Override
-	public UtmPose[] getWaypoints() {
-		UtmPose[] wpts = new UtmPose[_waypoints.length];
-		synchronized(_navigationLock) {		
-			System.arraycopy(_waypoints, 0, wpts, 0, wpts.length);
-		}
-		return wpts;
-	}
-
-	@Override
-	public void setSensorType(int channel, SensorType type) {
-		_sensorTypes[channel] = type;
-	}
-
-	@Override
-	public void startCamera(final int numFrames, final double interval, final int width, final int height) {
-		
-		// Precompute the timing interval in ms
-		final long int_ms = (long)(interval * 1000.0);
-		
-		// Create a new capturing task
+		// Create a camera capture task
 		TimerTask newCaptureTask = new TimerTask() {
 			int iFrame = 0;
-			
+
 			@Override
 			public void run() {
- 				// Stop if we took enough pictures
-				if (numFrames > 0 && iFrame >= numFrames) {
-					sendCameraUpdate(CameraState.DONE);
- 					this.cancel();
+				synchronized (_captureLock) {
+					// Take a new image and send it out
+					sendImage(captureImage(width, height));
+					iFrame++;
+
+					// If we exceed numFrames, we finished
+					if (numFrames > 0 && iFrame >= numFrames) {
+						sendCameraUpdate(CameraState.DONE);
+						this.cancel();
+						_captureTask = null;
+					} else {
+						sendCameraUpdate(CameraState.CAPTURING);
+					}
 				}
-				
-				// Send out a new picture
-				sendImage(captureImage(width, height));
-				iFrame++;
-					
-				// Report status
-				sendCameraUpdate(CameraState.CAPTURING);
 			}
-		}; 
-		
-		// Kill old capture process and start up this new one
-		synchronized(_captureLock) {
+		};
+
+		synchronized (_captureLock) {
+			// Cancel any previous capture tasks
 			if (_captureTask != null)
 				_captureTask.cancel();
+
+			// Schedule this task for execution
 			_captureTask = newCaptureTask;
-			_timer.schedule(_captureTask, 0, int_ms);
+			_timer.scheduleAtFixedRate(_captureTask, 0,
+					(long) (interval * 1000.0));
 		}
-		
+
 		// Report the new imaging job in the log file
-		logger.info("IMG: " + numFrames + " @ " + interval + "s, " +
-				width + " x " + height);
+		logger.info("IMG: " + numFrames + " @ " + interval + "s, " + width
+				+ " x " + height);
 	}
 
 	@Override
 	public void stopCamera() {
 		// Stop the thread that sends out images by terminating its
-		// capturing task process and then removing the reference.
-		synchronized(_captureLock) {
-			_captureTask.cancel();
-			_captureTask = null;
+		// navigation flag and then removing the reference to the old flag.
+		synchronized (_captureLock) {
+			if (_captureTask != null) {
+				_captureTask.cancel();
+				_captureTask = null;
+			}
 		}
-		
 		sendCameraUpdate(CameraState.CANCELLED);
+	}
+
+	@Override
+	public CameraState getCameraStatus() {
+		synchronized (_captureLock) {
+			if (_captureTask != null) {
+				return CameraState.CAPTURING;
+			} else {
+				return CameraState.OFF;
+			}
+		}
+	}
+
+	@Override
+	public SensorType getSensorType(int channel) {
+		return _sensorTypes[channel];
+	}
+
+	@Override
+	public void setSensorType(int channel, SensorType type) {
+		_sensorTypes[channel] = type;
 	}
 
 	@Override
@@ -507,94 +516,119 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * the current estimate of vehicle state to match the specified pose. Used
 	 * for user- or multirobot- pose corrections.
 	 * 
-	 * @param pose the corrected 6D pose of the vehicle: [x,y,z,roll,pitch,yaw]
+	 * @param pose
+	 *            the corrected 6D pose of the vehicle: [x,y,z,roll,pitch,yaw]
 	 */
 	@Override
 	public void setPose(UtmPose pose) {
-		
+
 		// Change the offset of this vehicle by modifying filter
 		filter.reset(pose, System.currentTimeMillis());
-		
+
 		// Copy this pose over the existing value
 		_utmPose = pose.clone();
-		
+
 		// Report the new pose in the log file
 		logger.info("POSE: " + _utmPose);
 	}
 
 	@Override
-	public WaypointState getWaypointStatus() {
-		synchronized(_navigationLock) {
-			return (_navigationTask != null) ? WaypointState.GOING : WaypointState.OFF;
-		}
-	}
-	
-	@Override
-	public void startWaypoints(final UtmPose[] waypoints, final String controller) {
-		
-		// Precompute timing interval in ms
-		// TODO: use actual time to compute timesteps on the fly for navigation
-		final double dt = (double)UPDATE_INTERVAL_MS / 1000.0;
-		
-		// Determine which controller was specified
-		AirboatController vc;
-		try {
-			vc = AirboatController.valueOf(controller);
-		} catch(IllegalArgumentException e) {
-			vc = DEFAULT_CONTROLLER;
-		}
-		final AirboatController vehicleController = vc;
-		
-		// Start a navigation thread
+	public void startWaypoints(final UtmPose[] waypoints,
+			final String controller) {
+		Log.i(logTag,
+				"Starting waypoints with " + controller + ": "
+						+ Arrays.toString(waypoints));
+
+		// Create a waypoint navigation task
 		TimerTask newNavigationTask = new TimerTask() {
+			final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
+
+			// Retrieve the appropriate controller in initializer
+			VehicleController vc = AirboatController.STOP.controller;
+			{
+				try {
+					vc = AirboatController.valueOf(controller).controller;
+				} catch (IllegalArgumentException e) {
+					Log.w(logTag, "Unknown controller specified (using " + vc
+							+ " instead): " + controller);
+				}
+			}
 
 			@Override
 			public void run() {
-				
-				// If we are not set in autonomous mode, don't try to drive!
-				if (!_isAutonomous.get()) {
-					sendWaypointUpdate(WaypointState.PAUSED);
-					return;
-				}
-				
-				// TODO: handle different UTM zones!
-
-				// Figure out how to drive to waypoint
-				vehicleController.controller.update(AirboatImpl.this, dt);
-				
-				// Report our status as moving toward target
-				sendWaypointUpdate(WaypointState.GOING);
-					
-				// If we reach the target, stop the vehicle and report it
-				if (getWaypoints().length <= 0) {
-					_velocities = new Twist();
-					sendWaypointUpdate(WaypointState.DONE);
+				synchronized (_navigationLock) {
+					if (!_isAutonomous.get()) {
+						// If we are not autonomous, do nothing
+						sendWaypointUpdate(WaypointState.PAUSED);
+						return;
+					} else if (_waypoints.length == 0) {
+						// If we are finished with waypoints, stop in place
+						sendWaypointUpdate(WaypointState.DONE);
+						setVelocity(new Twist());
+						this.cancel();
+						_navigationTask = null;
+					} else {
+						// If we are still executing waypoints, use a
+						// controller to figure out how to get to waypoint
+						// TODO: measure dt directly instead of approximating
+						vc.update(AirboatImpl.this, dt);
+						sendWaypointUpdate(WaypointState.GOING);
+					}
 				}
 			}
 		};
-		
-		// Set this to be the current navigation flag
-		synchronized(_navigationLock) {
-			if (_navigationTask != null)
-				_navigationTask.cancel();
+
+		synchronized (_navigationLock) {
+			// Change waypoints to new set of waypoints
 			_waypoints = new UtmPose[waypoints.length];
 			System.arraycopy(waypoints, 0, _waypoints, 0, _waypoints.length);
+
+			// Cancel any previous navigation tasks
+			if (_navigationTask != null)
+				_navigationTask.cancel();
+
+			// Schedule this task for execution
 			_navigationTask = newNavigationTask;
-			_timer.schedule(_navigationTask, 0, UPDATE_INTERVAL_MS);	
+			_timer.scheduleAtFixedRate(_navigationTask, 0, UPDATE_INTERVAL_MS);
 		}
-		
+
 		// Report the new waypoint in the log file
-		logger.info("NAV: " + vehicleController + " " + _utmPose);
+		logger.info("NAV: " + controller + " " + Arrays.toString(waypoints));
 	}
-	
+
 	@Override
 	public void stopWaypoints() {
 		// Stop the thread that is doing the "navigation" by terminating its
-		// navigation task process and then removing the reference.
-		synchronized(_navigationLock) {
-			_navigationTask.cancel();
-			_navigationTask = null;
-			_waypoints = new UtmPose[0];
+		// navigation process, clear all the waypoints, and stop the vehicle.
+		synchronized (_navigationLock) {
+			if (_navigationTask != null) {
+				_navigationTask.cancel();
+				_navigationTask = null;
+				_waypoints = new UtmPose[0];
+				setVelocity(new Twist());
+			}
+		}
+		sendWaypointUpdate(WaypointState.CANCELLED);
+	}
+
+	@Override
+	public UtmPose[] getWaypoints() {
+		UtmPose[] wpts = new UtmPose[_waypoints.length];
+		synchronized (_navigationLock) {
+			System.arraycopy(_waypoints, 0, wpts, 0, wpts.length);
+		}
+		return wpts;
+	}
+
+	@Override
+	public WaypointState getWaypointStatus() {
+		synchronized (_navigationLock) {
+			if (_waypoints.length > 0) {
+				return _isAutonomous.get() ? WaypointState.PAUSED
+						: WaypointState.GOING;
+			} else {
+				return WaypointState.OFF;
+			}
 		}
 	}
 
@@ -613,13 +647,6 @@ public class AirboatImpl extends AbstractVehicleServer {
 	}
 
 	@Override
-	public CameraState getCameraStatus() {
-		synchronized(_captureLock) {
-			return (_captureTask != null) ? CameraState.CAPTURING : CameraState.OFF;
-		}
-	}
-
-	@Override
 	public boolean isAutonomous() {
 		return _isAutonomous.get();
 	}
@@ -627,7 +654,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	@Override
 	public void setAutonomous(boolean isAutonomous) {
 		_isAutonomous.set(isAutonomous);
-		
+
 		// Set velocities to zero to allow for safer transitions
 		_velocities = new Twist();
 	}
@@ -638,10 +665,10 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public void shutdown() {
 		stopWaypoints();
 		stopCamera();
-		
+
 		_isAutonomous.set(false);
 		_isConnected.set(false);
-		
+
 		_timer.cancel();
 		_timer.purge();
 	}
