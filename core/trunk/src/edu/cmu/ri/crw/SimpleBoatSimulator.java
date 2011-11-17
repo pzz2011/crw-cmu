@@ -126,7 +126,6 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
     @Override
     public void startWaypoints(final UtmPose[] waypoints, final String controller) {
-
         logger.log(Level.INFO, "Starting waypoints: {0}", Arrays.toString(waypoints));
         
         synchronized (_navigationLock) {
@@ -140,14 +139,14 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
             // Create a waypoint navigation task
             _navigationTask = new TimerTask() {
                 final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
-                VehicleController vc = SimpleBoatController.STOP.controller;
                 
                 // Retrieve the appropriate controller in initializer
+                VehicleController vc = SimpleBoatController.STOP.controller;
                 {
                     try {
                         vc = SimpleBoatController.valueOf(controller).controller;
                     } catch (IllegalArgumentException e) {
-                        logger.log(Level.WARNING, "Unknown controller specified (using STOP instead): {0}", controller);
+                        logger.log(Level.WARNING, "Unknown controller specified (using {0} instead): {1}", new Object[]{vc, controller});
                     }
                 }
                 
@@ -160,7 +159,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
                             return;
                         } else if (_waypoints.length == 0) {
                             // If we are finished with waypoints, stop in place
-                            sendWaypointUpdate(WaypointState.OFF);
+                            sendWaypointUpdate(WaypointState.DONE);
                             setVelocity(new Twist());
                             this.cancel();
                         } else {
@@ -181,22 +180,21 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
     @Override
     public void stopWaypoints() {
-
         // Stop the thread that is doing the "navigation" by terminating its
-        // navigation flag and then removing the reference to the old flag.
-        System.out.println("STOP!!!!");
+        // navigation process and clearing all the waypoints.
         synchronized (_navigationLock) {
             _navigationTask.cancel();
             _navigationTask = null;
             _waypoints = new UtmPose[0];
         }
+        sendWaypointUpdate(WaypointState.CANCELLED);
     }
 
     @Override
     public WaypointState getWaypointStatus() {
         synchronized (_navigationLock) {
             if (_waypoints.length > 0) {
-                return WaypointState.GOING;
+                return _isAutonomous.get() ? WaypointState.PAUSED : WaypointState.GOING;
             } else {
                 return WaypointState.OFF;
             }
@@ -205,7 +203,6 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
 
     @Override
     public void startCamera(final int numFrames, final double interval, final int width, final int height) {
-
         logger.log(Level.INFO, "Starting capture: {0} ({1}x{2}) frames @ {3}s ", new Object[]{numFrames, width, height, interval});
         
         synchronized (_captureLock) {
@@ -215,21 +212,20 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
             
             // Create a camera capture task
             _captureTask = new TimerTask() {
-                int nFrames = numFrames;
+                int iFrame = 0;
 
                 @Override
                 public void run() {
                     // Take a new image and send it out
                     sendImage(captureImage(width, height));
-                    sendCameraUpdate(CameraState.CAPTURING);
+                    iFrame++;
                     
-                    if (nFrames == 0) {
-                        // If we hit exactly 0, that means we just finished
+                    // If we exceed numFrames, we finished
+                    if (numFrames > 0 && iFrame >= numFrames) {
                         sendCameraUpdate(CameraState.DONE);
                         this.cancel();
-                    } else if (nFrames > 0) {
-                        // Decrement the number of frames left
-                        nFrames--;
+                    } else {
+                        sendCameraUpdate(CameraState.CAPTURING);
                     }
                 }
             };
@@ -247,6 +243,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
             _captureTask.cancel();
             _captureTask = null;
         }
+        sendCameraUpdate(CameraState.CANCELLED);
     }
 
     @Override
@@ -278,23 +275,6 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     @Override
     public Twist getVelocity() {
         return _velocity.clone();
-    }
-
-    /**
-     * Takes an angle and shifts it to be in the range -Pi to Pi.
-     * 
-     * @param angle
-     *            an angle in radians
-     * @return the same angle as given, normalized to the range -Pi to Pi.
-     */
-    public static double normalizeAngle(double angle) {
-        while (angle > Math.PI) {
-            angle -= 2 * Math.PI;
-        }
-        while (angle < -Math.PI) {
-            angle += 2 * Math.PI;
-        }
-        return angle;
     }
 
     @Override
