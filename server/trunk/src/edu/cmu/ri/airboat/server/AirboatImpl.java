@@ -549,7 +549,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			VehicleController vc = AirboatController.STOP.controller;
 			{
 				try {
-					vc = AirboatController.valueOf(controller).controller;
+					vc = (controller == null) ? vc : AirboatController.valueOf(controller).controller;
 				} catch (IllegalArgumentException e) {
 					Log.w(logTag, "Unknown controller specified (using " + vc
 							+ " instead): " + controller);

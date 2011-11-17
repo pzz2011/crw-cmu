@@ -366,7 +366,7 @@ public class AirboatActivity extends Activity {
     					_homePosition.pose.getX(),
     					_homePosition.pose.getY(),
     					_homePosition.pose.getZ()});
-    			intent.putExtra(AirboatFailsafeIntent.HOME_ZONE, _homePosition.origin.zone);
+    			intent.putExtra(AirboatFailsafeIntent.HOME_ZONE, (byte)_homePosition.origin.zone);
     			intent.putExtra(AirboatFailsafeIntent.HOME_NORTH, _homePosition.origin.isNorth);
     			
 				// Save the current BD addr and master URI
