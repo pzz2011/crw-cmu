@@ -155,6 +155,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
                         sendWaypointUpdate(WaypointState.DONE);
                         setVelocity(new Twist());
                         this.cancel();
+                        _navigationTask = null;
                     } else {
                         // If we are still executing waypoints, use a 
                         // controller to figure out how to get to waypoint
@@ -185,10 +186,12 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
         // Stop the thread that is doing the "navigation" by terminating its
         // navigation process, clear all the waypoints, and stop the vehicle.
         synchronized (_navigationLock) {
-            _navigationTask.cancel();
-            _navigationTask = null;
-            _waypoints = new UtmPose[0];
-            setVelocity(new Twist());
+            if (_navigationTask != null) {
+                _navigationTask.cancel();
+                _navigationTask = null;
+                _waypoints = new UtmPose[0];
+                setVelocity(new Twist());
+            }
         }
         sendWaypointUpdate(WaypointState.CANCELLED);
     }
@@ -223,6 +226,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
                     if (numFrames > 0 && iFrame >= numFrames) {
                         sendCameraUpdate(CameraState.DONE);
                         this.cancel();
+                        _captureTask = null;
                     } else {
                         sendCameraUpdate(CameraState.CAPTURING);
                     }
@@ -246,8 +250,10 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
         // Stop the thread that sends out images by terminating its
         // navigation flag and then removing the reference to the old flag.
         synchronized (_captureLock) {
-            _captureTask.cancel();
-            _captureTask = null;
+            if (_captureTask != null) { 
+                _captureTask.cancel();
+                _captureTask = null;
+            }
         }
         sendCameraUpdate(CameraState.CANCELLED);
     }
