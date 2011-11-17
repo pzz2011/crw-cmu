@@ -209,6 +209,7 @@ public class AirboatFailsafeService extends Service {
 				_numFailures = 0;
 				synchronized(_homeLock) {
 					Log.i(LOG_TAG, "Failsafe triggered: " + _homePosition);
+					server.setAutonomous(true);
 					server.startWaypoints(new UtmPose[]{_homePosition}, null);
 				}
 			}
