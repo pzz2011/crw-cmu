@@ -289,14 +289,16 @@ public class AirboatService extends Service {
         // Get necessary connection parameters
 		_arduinoAddr = intent.getStringExtra(BD_ADDR);
 		
-		// Check if the provided ROS master URI parameter can be parsed
-		String rosMasterStr = (intent.hasExtra(UDP_REGISTRY_ADDR) ? intent.getStringExtra(UDP_REGISTRY_ADDR) : getString(R.string.master_default_addr));
-		_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(rosMasterStr);
+		// Check if the provided UDP registry parameter can be parsed
+		/*
+		String udpRegistryStr = (intent.hasExtra(UDP_REGISTRY_ADDR) ? intent.getStringExtra(UDP_REGISTRY_ADDR) : getString(R.string.master_default_addr));
+		_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(udpRegistryStr);
 		if (_udpRegistryAddr == null) {
-			logger.warn("Unable to parse " + rosMasterStr + " into UDP address.");
-			sendNotification("Registry address invalid: " + rosMasterStr);
+			logger.warn("Unable to parse " + udpRegistryStr + " into UDP address.");
+			sendNotification("Registry address invalid: " + udpRegistryStr);
 			stopSelf();
 		}
+		*/
 
         // Create a filter that listens to Amarino connection events
         IntentFilter amarinoFilter = new IntentFilter();
@@ -317,7 +319,7 @@ public class AirboatService extends Service {
 				// Create a RosVehicleServer to expose the data object
 				try {
 					_udpServer = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);
-					_udpServer.addRegistry(_udpRegistryAddr);
+					//_udpServer.addRegistry(_udpRegistryAddr);
 				} catch (Exception e) {
 					Log.e(TAG, "RosVehicleServer failed to launch", e);
 					sendNotification("RosVehicleServer failed: " + e.getMessage());
