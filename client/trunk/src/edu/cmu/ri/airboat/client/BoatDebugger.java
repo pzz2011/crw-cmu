@@ -197,13 +197,9 @@ public class BoatDebugger extends javax.swing.JFrame {
 
         // Create a simulated boat and run a ROS server around it
         VehicleServer server = new SimpleBoatSimulator();
-        UdpVehicleService testServer = new UdpVehicleService(server);
+        UdpVehicleService testServer = new UdpVehicleService(11411, server);
         System.out.println("Local dummy server started: " + testServer.getSocketAddress());
 
-        // Quick hack to put the local test server in the drop down list
-        Preferences p = Preferences.userRoot();
-        p.put(ConnectionPanel.LAST_URI_KEY, "localhost:" + ((InetSocketAddress)testServer.getSocketAddress()).getPort());
-        
         // Start up the debugger GUI
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
