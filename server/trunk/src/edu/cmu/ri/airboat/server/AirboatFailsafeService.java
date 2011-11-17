@@ -112,7 +112,7 @@ public class AirboatFailsafeService extends Service {
     	 // Get necessary connection parameters
 		_hostname = intent.getStringExtra(AirboatFailsafeIntent.HOSTNAME);
 		double[] rawHomePose = intent.getDoubleArrayExtra(AirboatFailsafeIntent.HOME_POSE);
-		int rawHomeZone = intent.getByteExtra(AirboatFailsafeIntent.HOME_ZONE, (byte)14);
+		byte rawHomeZone = intent.getByteExtra(AirboatFailsafeIntent.HOME_ZONE, (byte)14);
 		boolean rawHomeNorth = intent.getBooleanExtra(AirboatFailsafeIntent.HOME_NORTH, true);
 
 		// Decode pose from intents
