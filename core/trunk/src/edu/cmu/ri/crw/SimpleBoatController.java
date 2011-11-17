@@ -2,6 +2,7 @@ package edu.cmu.ri.crw;
 
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
+import java.util.Arrays;
 import robotutils.Pose3D;
 
 /**
@@ -23,10 +24,11 @@ public enum SimpleBoatController {
         public void update(VehicleServer server, double dt) {
             Twist twist = new Twist();
 
-            // Get the position of the vehicle and the current waypoint
+            // Get the position of the vehicle 
             UtmPose state = server.getPose();
             Pose3D pose = state.pose;
 
+            // Get the current waypoint
             UtmPose[] waypoints = server.getWaypoints();
             if (waypoints.length < 0) {
                 server.setVelocity(twist);
@@ -44,8 +46,7 @@ public enum SimpleBoatController {
                     - pose.getRotation().toYaw();
             angle = normalizeAngle(angle);
 
-            // Choose driving behavior depending on direction and and where we
-            // are
+            // Choose driving behavior depending on direction and where we are
             if (Math.abs(angle) > 1.0) {
 
                 // If we are facing away, turn around first
@@ -56,6 +57,11 @@ public enum SimpleBoatController {
                 // If we are far away, drive forward and turn
                 twist.dx(Math.min(distance / 10.0, 1.0));
                 twist.drz(Math.max(Math.min(angle / 10.0, 1.0), -1.0));
+            } else {
+                
+                // If we are "at" the destination, de-queue a waypoint
+                server.startWaypoints(Arrays.copyOfRange(waypoints, 1, waypoints.length), 
+                        SimpleBoatController.POINT_AND_SHOOT.toString());
             }
 
             // Set the desired velocity
