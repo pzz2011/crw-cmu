@@ -21,7 +21,7 @@
               <EmptySpace type="unrelated" max="-2" attributes="0"/>
               <Component id="enlargeB" min="-2" max="-2" attributes="0"/>
               <EmptySpace type="unrelated" max="-2" attributes="0"/>
-              <Component id="jButton2" max="32767" attributes="0"/>
+              <Component id="buoyB" pref="76" max="32767" attributes="0"/>
           </Group>
           <Component id="imgL" alignment="0" pref="243" max="32767" attributes="0"/>
       </Group>
@@ -34,7 +34,7 @@
               <Group type="103" groupAlignment="3" attributes="0">
                   <Component id="doneB" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="enlargeB" alignment="3" min="-2" max="-2" attributes="0"/>
-                  <Component id="jButton2" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="buoyB" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
           </Group>
       </Group>
@@ -49,13 +49,12 @@
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="doneBActionPerformed"/>
       </Events>
     </Component>
-    <Component class="javax.swing.JButton" name="jButton2">
+    <Component class="javax.swing.JButton" name="buoyB">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Store"/>
-        <Property name="enabled" type="boolean" value="false"/>
+        <Property name="text" type="java.lang.String" value="Buoy"/>
       </Properties>
       <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jButton2ActionPerformed"/>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="buoyBActionPerformed"/>
       </Events>
     </Component>
     <Component class="javax.swing.JButton" name="enlargeB">

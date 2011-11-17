@@ -4,13 +4,15 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
-import edu.cmu.ri.crw.QuaternionUtils;
+import edu.cmu.ri.crw.SimpleBoatController;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
-import edu.cmu.ri.crw.WaypointObserver;
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
-import org.ros.message.geometry_msgs.Pose;
+import edu.cmu.ri.crw.VehicleController;
+import edu.cmu.ri.crw.data.Twist;
+import edu.cmu.ri.crw.data.UtmPose;
+import java.util.Arrays;
+import java.util.TimerTask;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @todo Allow some of these things to be configured
@@ -19,96 +21,62 @@ import org.ros.message.geometry_msgs.Pose;
 public class FastSimpleBoatSimulator extends SimpleBoatSimulator {
 
     protected long LOCAL_UPDATE_INTERVAL = 1000L;
+    private static final Logger logger = Logger.getLogger(SimpleBoatSimulator.class.getName());
+    
+     @Override
+    public void startWaypoints(final UtmPose[] waypoints, final String controller) {
+        logger.log(Level.INFO, "Starting waypoints: {0}", Arrays.toString(waypoints));
+        
+        // Create a waypoint navigation task
+        TimerTask newNavigationTask = new TimerTask() {
+            final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
 
-    @Override
-    public void startWaypoint(final UtmPose waypoint, String controller, final WaypointObserver obs) {
-
-        // Keep a reference to the navigation flag for THIS waypoint
-        final AtomicBoolean isNavigating = new AtomicBoolean(true);
-        System.out.println("\nStart Waypoint to " + waypoint.pose.position.x);
-        // Set this to be the current navigation flag
-               
-        synchronized (_navigationLock) {
-            if (_isNavigating != null) {
-                _isNavigating.set(false);
+            // Retrieve the appropriate controller in initializer
+            VehicleController vc = SimpleBoatController.STOP.controller;
+            {
+                try {
+                    vc = SimpleBoatController.valueOf(controller).controller;
+                } catch (IllegalArgumentException e) {
+                    logger.log(Level.WARNING, "Unknown controller specified (using {0} instead): {1}", new Object[]{vc, controller});
+                    // System.out.println("Unknown controller specified (using {0} instead): {1}");
+                }
             }
-            _isNavigating = isNavigating;
-            _waypoint = waypoint.clone();
-        }
-
-        new Thread(new Runnable() {
 
             @Override
             public void run() {
-                while (isNavigating.get()) {
-
-                    // If we are not set in autonomous mode, don't try to drive!
-                    // if (_isAutonomous.get()) {
-
-                    // Get the position of the vehicle and the waypoint
-                    UtmPoseWithCovarianceStamped state = getState();
-                    Pose pose = state.pose.pose.pose;
-                    Pose wpPose = waypoint.pose;
-
-                    // TODO: handle different UTM zones!
-
-                    // Compute the distance and angle to the waypoint
-                    // TODO: compute distance more efficiently
-                    double distance = Math.sqrt(Math.pow(
-                            (wpPose.position.x - pose.position.x), 2)
-                            + Math.pow(
-                            (wpPose.position.y - pose.position.y),
-                            2));
-                    double angle = Math.atan2(
-                            (wpPose.position.y - pose.position.y),
-                            (wpPose.position.x - pose.position.x))
-                            - QuaternionUtils.toYaw(pose.orientation);
-                    angle = normalizeAngle(angle);
-
-                    // Choose driving behavior depending on direction and
-                    // where we are
-                    if (Math.abs(angle) > 1.0) {
-
-                        // If we are facing away, turn around first
-                        _velocity.linear.x = 1.0;
-                        _velocity.angular.z = Math.max(Math.min(angle / 1.0, 5.0), -5.0);
-                    } else if (distance >= 3.0) {
-
-                        // If we are far away, drive forward and turn
-                        _velocity.linear.x = Math.min(distance / 5.0, 400.0);
-                        _velocity.angular.z = Math.max(Math.min(angle / 10.0, 5.0), -5.0);
-                    } else /* (distance < 3.0) */ {
-                        break;
-                    }
-                    //}
-
-                    // Pause for a while
-                    try {
-                        Thread.sleep(LOCAL_UPDATE_INTERVAL);
-                        if (obs != null) {
-                            obs.waypointUpdate(WaypointState.GOING);
-                        }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                // Stop the vehicle
-                _velocity.linear.x = 0.0;
-                _velocity.angular.z = 0.0;
-
-                // Upon completion, report status
-                // (if isNavigating is still true, we completed on our own)
-                if (isNavigating.getAndSet(false)) {
-                    if (obs != null) {
-                        obs.waypointUpdate(WaypointState.DONE);
-                    }
-                } else {
-                    if (obs != null) {
-                        obs.waypointUpdate(WaypointState.CANCELLED);
+                synchronized (_navigationLock) {
+                    if (!_isAutonomous.get()) {
+                        // If we are not autonomous, do nothing
+                        sendWaypointUpdate(WaypointState.PAUSED);
+                        return;
+                    } else if (_waypoints.length == 0) {
+                        // If we are finished with waypoints, stop in place
+                        sendWaypointUpdate(WaypointState.DONE);
+                        setVelocity(new Twist());
+                        this.cancel();
+                        _navigationTask = null;
+                    } else {
+                        // If we are still executing waypoints, use a 
+                        // controller to figure out how to get to waypoint
+                        // TODO: measure dt directly instead of approximating
+                        vc.update(FastSimpleBoatSimulator.this, dt);
+                        sendWaypointUpdate(WaypointState.GOING);
                     }
                 }
             }
-        }).start();
+        };
+        
+        synchronized (_navigationLock) {
+            // Change waypoints to new set of waypoints
+            _waypoints = Arrays.copyOf(waypoints, waypoints.length);
+
+            // Cancel any previous navigation tasks
+            if (_navigationTask != null)
+                _navigationTask.cancel();            
+            
+            // Schedule this task for execution
+            _navigationTask = newNavigationTask;
+            _timer.scheduleAtFixedRate(_navigationTask, 0, UPDATE_INTERVAL_MS);
+        }
     }
 }

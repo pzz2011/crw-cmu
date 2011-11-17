@@ -4,12 +4,12 @@
  */
 package edu.cmu.ri.airboat.irrigationtest;
 
-import edu.cmu.ri.crw.VehicleSensorListener;
-import edu.cmu.ri.crw.VehicleServer.WaypointState;
-import edu.cmu.ri.crw.VehicleStateListener;
-import edu.cmu.ri.crw.WaypointObserver;
-import edu.cmu.ri.crw.ros.RosVehicleProxy;
-import java.net.URI;
+import edu.cmu.ri.crw.CrwNetworkUtils;
+import edu.cmu.ri.crw.PoseListener;
+import edu.cmu.ri.crw.SensorListener;
+import edu.cmu.ri.crw.data.SensorData;
+import edu.cmu.ri.crw.data.UtmPose;
+import edu.cmu.ri.crw.udp.UdpVehicleServer;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,13 +17,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.ros.message.crwlib_msgs.SensorData;
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
-import org.ros.message.geometry_msgs.Pose;
+import robotutils.Pose3D;
 
 /**
  * A wrapper to implement Irrigation Test Interface with Airboat Server
@@ -125,6 +121,8 @@ public class InterfaceTester implements IrrigationTestInterface {
         return null;
 
         }*/
+        
+        /*
         UtmPose _pose = new UtmPose();
         _pose.pose.position.x = pose[0];
         _pose.pose.position.y = pose[1];
@@ -149,14 +147,15 @@ public class InterfaceTester implements IrrigationTestInterface {
         }
 
         return _pose;
-
+         */
+        return null;
     }
 
-    public static double[] UtmPoseToDouble(Pose pose) {
+    public static double[] UtmPoseToDouble(Pose3D pose) {
 
         double[] _pose = new double[2];
-        _pose[0] = pose.position.x;
-        _pose[1] = pose.position.y;
+        _pose[0] = pose.getX();
+        _pose[1] = pose.getY();
         //Since Paul's code only deals with just two members
         /*
         _pose[2] = pose.position.z;
@@ -171,9 +170,9 @@ public class InterfaceTester implements IrrigationTestInterface {
     protected class Boat {
 
         private boolean _waypointsWereUpdated;
-        RosVehicleProxy _server;
-        VehicleStateListener _stateListener;
-        VehicleSensorListener _sensorListener;
+        UdpVehicleServer _server;
+        PoseListener _stateListener;
+        SensorListener _sensorListener;
         int _boatNo;
         UtmPose _pose;
         final Queue<UtmPose> _waypoints = new LinkedList<UtmPose>();
@@ -183,21 +182,21 @@ public class InterfaceTester implements IrrigationTestInterface {
             //Initialize the boat by initalizing a proxy server for it
             // Connect to boat
             _boatNo = boatNo;
-            _server = new RosVehicleProxy(new URI(masterURI), nodeName);
-            _stateListener = new VehicleStateListener() {
+            _server = new UdpVehicleServer(CrwNetworkUtils.toInetSocketAddress(masterURI));
+            _stateListener = new PoseListener() {
 
-                public void receivedState(UtmPoseWithCovarianceStamped upwcs) {
+                public void receivedPose(UtmPose upwcs) {
                     _pose = new UtmPose();
-                    _pose.pose = upwcs.pose.pose.pose.clone();
-                    _pose.utm = upwcs.utm.clone();
+                    _pose.pose = upwcs.pose.clone();
+                    _pose.origin = upwcs.origin.clone();
 
-                    System.out.println("Pose: [" + _pose.pose.position.x+", "+_pose.pose.position.y);
+                    // System.out.println("Pose: [" + _pose.pose.position.x+", "+_pose.pose.position.y);
 
                     reportLoc(_boatNo, UtmPoseToDouble(_pose.pose));
                 }
             };
 
-            _sensorListener = new VehicleSensorListener() {
+            _sensorListener = new SensorListener() {
 
                 public void receivedSensor(SensorData sd) {
                     //TODO Perform Sensor value assignment correctly
@@ -211,8 +210,8 @@ public class InterfaceTester implements IrrigationTestInterface {
                                 "Sensor" + sd.type,
                                 sd.data[0],
                                 UtmPoseToDouble(_pose.pose),
-                                _pose.utm.zone,
-                                _pose.utm.isNorth);
+                                _pose.origin.zone,
+                                _pose.origin.isNorth);
 
                         System.out.println("Data:" + sd.data[0]);
                         reportObs(o);
@@ -224,12 +223,12 @@ public class InterfaceTester implements IrrigationTestInterface {
             };
 
             System.out.println("New boat created, boat # " + _boatNo);
-
+           
             //add Listeners
-            _server.addStateListener(_stateListener);
-            _server.addSensorListener(0, _sensorListener);
+            _server.addPoseListener(_stateListener, null);
+            _server.addSensorListener(0, _sensorListener, null);
 
-
+/*
             // Start update thread
             new Thread(new Runnable() {
 
@@ -273,13 +272,7 @@ public class InterfaceTester implements IrrigationTestInterface {
                                             reportDone(boatNo);
                                         }
                                     }
-                                    //TODO: Investigate the reason why WaypointState was being reported as cancelled
-                                    /* else if (state == WaypointState.CANCELLED) {
-                                        System.out.println("CANCELLED!!!");
-                                        _server.setAutonomous(false);
-                                        waypointDone.set(true);
-                                        reportDone(boatNo);
-                                    }*/
+                                    
                                 }
                             });
                             System.out.println("Boat given waypoint, status: " + _server.getWaypointStatus());
@@ -303,7 +296,7 @@ public class InterfaceTester implements IrrigationTestInterface {
 
             }).start();
 
-
+            */
         }
 
         public void setWaypoints(double[][] waypoints) {
@@ -322,8 +315,8 @@ public class InterfaceTester implements IrrigationTestInterface {
             _isShutdown = true;
             stopAllWaypoints();
 
-            _server.removeSensorListener(0, _sensorListener);
-            _server.removeStateListener(_stateListener);
+            _server.removeSensorListener(0, _sensorListener, null);
+            _server.removePoseListener(_stateListener, null);
 
 
             _server.shutdown();
@@ -331,7 +324,7 @@ public class InterfaceTester implements IrrigationTestInterface {
 
         public void stopAllWaypoints() {
             _waypoints.clear();
-            _server.stopWaypoint();
+            _server.stopWaypoints(null);
             
         }
     }

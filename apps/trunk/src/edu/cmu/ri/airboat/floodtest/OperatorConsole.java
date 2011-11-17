@@ -20,20 +20,25 @@ import gov.nasa.worldwind.layers.Earth.USGSTopoHighRes;
 import gov.nasa.worldwind.layers.Earth.USGSTopographicMaps;
 import gov.nasa.worldwind.layers.MarkerLayer;
 import gov.nasa.worldwind.layers.RenderableLayer;
+import gov.nasa.worldwind.layers.SurfaceImageLayer;
 import gov.nasa.worldwind.pick.PickedObject;
+import gov.nasa.worldwind.render.BasicShapeAttributes;
 import gov.nasa.worldwind.render.Polygon;
 import gov.nasa.worldwind.render.Polyline;
 import gov.nasa.worldwind.render.Renderable;
+import gov.nasa.worldwind.render.ShapeAttributes;
 import gov.nasa.worldwind.render.markers.Marker;
+import java.awt.Cursor;
+import java.awt.FlowLayout;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowStateListener;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
+import javax.swing.JPanel;
 
 /**
  *
@@ -46,14 +51,56 @@ import java.util.ArrayList;
  */
 public class OperatorConsole {
 
-    AppFrame frame = null;
+    static AppFrame frame = null;
     BoatPanel boatPanel = new BoatPanel();
     ImagePanel imgPanel = new ImagePanel();
+    AutonomyPanel autoPanel = new AutonomyPanel();
     BoatSimpleProxy selectedProxy = null;
     static RenderableLayer polyLayer = new RenderableLayer();
-    static public boolean assigningArea = false;
-    static public boolean assigningPath = false;
-    static public boolean settingWaterLevel = false;
+    static SurfaceImageLayer imageLayer = new SurfaceImageLayer();
+    // @todo Clean up modality stuff on OperatorConsole
+    static private boolean assigningArea = false;
+    static private boolean assigningSensingArea = false;
+    static private boolean assigningBuoyDetectionArea = false;
+    static private boolean assigningPath = false;
+    static private boolean settingWaterLevel = false;
+
+    public static void setAssigningArea(boolean assigningArea) {
+        OperatorConsole.assigningArea = assigningArea;
+        if (assigningArea) {
+            frame.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        } else {
+            frame.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
+    public static void setAssigningBuoyDetectionArea(boolean assigningBuoyDetectionArea) {
+        OperatorConsole.assigningBuoyDetectionArea = assigningBuoyDetectionArea;
+        if (assigningBuoyDetectionArea) {
+            frame.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        } else {
+            frame.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
+    public static void setAssigningPath(boolean assigningPath) {
+        OperatorConsole.assigningPath = assigningPath;
+        if (assigningPath) {
+            frame.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        } else {
+            frame.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
+    public static void setAssigningSensingArea(boolean assigningSensingArea) {
+        OperatorConsole.assigningSensingArea = assigningSensingArea;
+        if (assigningSensingArea) {
+            frame.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+        } else {
+            frame.setCursor(Cursor.getDefaultCursor());
+        }
+
+    }
 
     public OperatorConsole() {
 
@@ -72,16 +119,17 @@ public class OperatorConsole {
 
                     String ipAddrS = addr.getHostAddress();
 
-                    frame.setTitle("Operator console @ " + ipAddrS);                                       
-                    
+                    frame.setTitle("Operator console @ " + ipAddrS);
+
                     Runtime.getRuntime().addShutdownHook(new Thread() {
+
                         public void run() {
                             (new ProxyManager()).shutdown();
                         }
                     });
-                    
+
                     frame.addWindowListener(new WindowAdapter() {
-                        
+
                         @Override
                         public void windowClosing(WindowEvent we) {
                             super.windowClosing(we);
@@ -89,9 +137,8 @@ public class OperatorConsole {
                             (new ProxyManager()).shutdown();
                             System.exit(0);
                         }
-                        
-                    });                                        
-                    
+                    });
+
                 } catch (Exception e) {
                     System.out.println("Problem getting local IP " + e);
                 }
@@ -121,14 +168,18 @@ public class OperatorConsole {
         public AppFrame() {
 
             // @todo Make initial position configurable            
-            Configuration.setValue(AVKey.INITIAL_LATITUDE, 14.2263);
-            Configuration.setValue(AVKey.INITIAL_LONGITUDE, 121.324);
-            Configuration.setValue(AVKey.INITIAL_ALTITUDE, 10000.0);
+            Configuration.setValue(AVKey.INITIAL_LATITUDE, 40.44515205369163);
+            Configuration.setValue(AVKey.INITIAL_LONGITUDE, -80.01877404355538);
+            Configuration.setValue(AVKey.INITIAL_ALTITUDE, 3000.0);
 
             wwd = new WorldWindowGLJPanel();
             wwd.setPreferredSize(new java.awt.Dimension(1000, 800));
 
-            this.getContentPane().add(boatPanel, java.awt.BorderLayout.NORTH);
+            JPanel topPanel = new JPanel();
+            topPanel.setLayout(new FlowLayout());
+            topPanel.add(boatPanel, java.awt.BorderLayout.NORTH);
+            topPanel.add(autoPanel, java.awt.BorderLayout.NORTH);
+            this.getContentPane().add(topPanel, java.awt.BorderLayout.NORTH);
             this.getContentPane().add(wwd, java.awt.BorderLayout.CENTER);
             this.getContentPane().add(imgPanel, java.awt.BorderLayout.EAST);
             this.pack();
@@ -162,6 +213,8 @@ public class OperatorConsole {
             // wwd.getModel().getLayers().add(m2);
 
             wwd.getModel().getLayers().add(polyLayer);
+            wwd.getModel().getLayers().add(imageLayer);
+
             wwd.redraw();
 
             /*
@@ -220,40 +273,63 @@ public class OperatorConsole {
                     // System.out.println("Mouse pressed");
 
                 }
+                MouseMotionAdapter motionListener = new MouseMotionAdapter() {
+
+                    @Override
+                    public void mouseMoved(MouseEvent me) {
+                        // System.out.println("Movement");
+                        if (pLine != null) {
+                            polyLayer.removeRenderable(pLine);
+                        }
+                        ArrayList<Position> tempShapeParams = new ArrayList<Position>();
+                        tempShapeParams.add(shapeParams.get(0));
+                        tempShapeParams.add(getPickPosition());
+                        pLine = new Polyline(tempShapeParams);
+                        pLine.setFollowTerrain(true);
+                        pLine.setLineWidth(4.0);
+                        polyLayer.addRenderable(pLine);                        
+                        
+                        // System.out.println("Added line from " + tempShapeParams.get(0) + " " + tempShapeParams.get(1) + " " + polyLayer.getNumRenderables());
+                    }
+                };
+
+                private Position getPickPosition() {
+                    Position pickPos = wwd.getCurrentPosition();
+
+                    if (pickPos == null) {
+                        Point p = wwd.getMousePosition();
+
+                        Line ray = wwd.getView().computeRayFromScreenPoint(p.x, p.y);
+
+                        Intersection[] intersections = wwd.getSceneController().getTerrain().intersect(ray);
+                        if (intersections != null && intersections.length > 0) {
+                            pickPos = wwd.getView().getGlobe().computePositionFromPoint(intersections[0].getIntersectionPoint());
+                        }
+                    }
+                    return pickPos;
+                }
 
                 @Override
                 public void mouseReleased(MouseEvent me) {
                     super.mouseReleased(me);
 
-                    if (selectedProxy == null && !settingWaterLevel) {
+                    Position pickPos = getPickPosition();
+
+                    // @todo Change this, should not be able to set buoys or sensing, if no proxy exists (which means one would be selected)
+                    if (selectedProxy == null && (!settingWaterLevel && !assigningSensingArea && !assigningBuoyDetectionArea)) {
+
+                        System.out.println("Clicked point is " + pickPos);
                         return;
                     }
 
                     // Waypoints
                     if (me.isControlDown()) {
 
-                        Position targetPos = wwd.getCurrentPosition();
                         // @todo Consider shifting this control to ProxyManager
-                        selectedProxy.setWaypoint(targetPos);
-                        System.out.println("Current boat given new waypoint: " + targetPos);
+                        selectedProxy.setWaypoint(pickPos);
+                        System.out.println("Current boat given new waypoint: " + pickPos);
                         me.consume();
 
-                    }
-
-
-                    Position pickPos = wwd.getCurrentPosition();
-                    if (pickPos == null) {
-                        Point p = wwd.getMousePosition();
-
-                        Line ray = wwd.getView().computeRayFromScreenPoint(p.x, p.y);
-
-
-                        Intersection[] intersections = wwd.getSceneController().getTerrain().intersect(ray);
-                        if (intersections != null && intersections.length > 0) {
-                            pickPos = wwd.getView().getGlobe().computePositionFromPoint(intersections[0].getIntersectionPoint());
-                        }
-
-                        // System.out.println("Got position from ray " + pickPos);
                     }
 
                     // Path
@@ -288,12 +364,12 @@ public class OperatorConsole {
                             if (me.getClickCount() > 1) {
                                 System.out.println("FINISHED!");
                                 selectedProxy.setWaypoints(pLine);
-                                assigningPath = false;
+                                setAssigningPath(false);
                                 shapeParams.clear();
                                 pLine = null;
                             }
                         }
-                    } else if (assigningArea) {
+                    } else if (assigningArea || assigningBuoyDetectionArea || assigningSensingArea) {
 
                         if (me.getClickCount() == 1) {
                             System.out.println("Point for shape: " + pickPos);
@@ -310,7 +386,14 @@ public class OperatorConsole {
                             if (shapeParams.size() == 1) {
                                 // ellipsoid = new Ellipsoid(pickPos, 50, 150, 150);
                                 // polyLayer.addRenderable(ellipsoid);
+
+                                wwd.addMouseMotionListener(motionListener);
+
                             } else if (shapeParams.size() > 1) {
+
+                                if (shapeParams.size() == 2) {
+                                    wwd.removeMouseMotionListener(motionListener);
+                                }
 
                                 pLine = new Polyline(shapeParams);
                                 pLine.setFollowTerrain(true);
@@ -319,6 +402,7 @@ public class OperatorConsole {
                             }
 
                             me.consume();
+
                         } else {
                             System.out.println("FINISHED!");
                             me.consume();
@@ -335,17 +419,33 @@ public class OperatorConsole {
 
                                 shapeParams.clear();
 
-                                selectedProxy.setArea(pgon);
+                                if (assigningArea) {
+                                    selectedProxy.setArea(pgon);
+                                    setAssigningArea(false);
+                                } else if (assigningBuoyDetectionArea) {
+                                    System.out.println("Set buoy detection area");
+                                    ShapeAttributes normalAttributes = new BasicShapeAttributes();
+                                    normalAttributes.setInteriorOpacity(0.0);
+                                    pgon.setAttributes(normalAttributes);
+                                    setAssigningBuoyDetectionArea(false);
+                                    AutonomyPanel.setBuoyDetectionArea(pgon);
+                                } else if (assigningSensingArea) {
+                                    System.out.println("Assigning sensing area");
+                                    ShapeAttributes normalAttributes = new BasicShapeAttributes();
+                                    normalAttributes.setInteriorOpacity(0.0);
+                                    pgon.setAttributes(normalAttributes);
+                                    setAssigningSensingArea(false);
+                                    AutonomyPanel.setSensorArea(pgon);
+                                }
                             }
-
-                            assigningArea = false;
                         }
                     } else if (settingWaterLevel) {
-                        
+
                         System.out.println("Setting water level");
-                        
+
                         final Position fPickPos = pickPos;
-                        (new Thread () {
+                        (new Thread() {
+
                             public void run() {
                                 Polygon water = getWaterLevel(fPickPos);
                                 polyLayer.addRenderable(water);
@@ -354,7 +454,7 @@ public class OperatorConsole {
 
                             private Polygon getWaterLevel(Position fPickPos) {
                                 ArrayList<Position> shapeParams = new ArrayList<Position>();
-                                
+
                                 // Dummy code - Arnav replace this
                                 int height = 1000;
                                 Position f0 = new Position(fPickPos.getLatitude(), fPickPos.getLongitude(), fPickPos.elevation + height);
@@ -364,12 +464,12 @@ public class OperatorConsole {
                                 shapeParams.add(f0);
                                 shapeParams.add(f1);
                                 shapeParams.add(f2);
-                                shapeParams.add(f3);              
+                                shapeParams.add(f3);
                                 // End dummy code
-                                
+
                                 Polygon p = new Polygon(shapeParams);
                                 p.setAltitudeMode(WorldWind.ABSOLUTE);
-                                
+
                                 return p;
                             }
                         }).start();

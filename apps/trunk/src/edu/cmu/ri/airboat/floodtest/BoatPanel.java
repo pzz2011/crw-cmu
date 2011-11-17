@@ -11,10 +11,11 @@
 package edu.cmu.ri.airboat.floodtest;
 
 import edu.cmu.ri.airboat.client.BoatDebugPanel;
-import edu.cmu.ri.airboat.client.BoatDebugger;
 import edu.cmu.ri.airboat.client.gui.TeleopFrame;
-import gov.nasa.worldwind.geom.Position;
+import edu.cmu.ri.crw.AsyncVehicleServer;
+import java.awt.Graphics;
 import java.awt.Insets;
+import java.awt.image.BufferedImage;
 import javax.swing.JFrame;
 import javax.swing.border.MatteBorder;
 
@@ -55,6 +56,11 @@ public class BoatPanel extends javax.swing.JPanel {
     private void update() {
         // proxy.getCurrWaypoint();
         modeL.setText(proxy.getMode().toString());
+        BufferedImage img = proxy.getLatestImg();
+        if (img != null) {
+            Graphics g = latestImgP.getGraphics();
+            g.drawImage(img, 0, 0, latestImgP.getWidth(), latestImgP.getHeight(), this);
+        }
     }
 
     public void setProxy(BoatSimpleProxy proxy) {
@@ -111,7 +117,7 @@ public class BoatPanel extends javax.swing.JPanel {
         noteWriteB = new javax.swing.JButton();
         modeL = new javax.swing.JLabel();
         disconnectB = new javax.swing.JButton();
-        jButton1 = new javax.swing.JButton();
+        latestImgP = new javax.swing.JPanel();
 
         setBorder(javax.swing.BorderFactory.createMatteBorder(3, 3, 3, 3, new java.awt.Color(0, 0, 0)));
 
@@ -175,7 +181,7 @@ public class BoatPanel extends javax.swing.JPanel {
             }
         });
 
-        modeL.setFont(new java.awt.Font("Lucida Grande", 1, 36));
+        modeL.setFont(new java.awt.Font("Lucida Grande", 1, 36)); // NOI18N
         modeL.setText("Mode");
 
         disconnectB.setText("Delete");
@@ -187,20 +193,26 @@ public class BoatPanel extends javax.swing.JPanel {
             }
         });
 
-        jButton1.setText("Set Water Level");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
+        latestImgP.setBorder(javax.swing.BorderFactory.createTitledBorder("Latest Image"));
+
+        org.jdesktop.layout.GroupLayout latestImgPLayout = new org.jdesktop.layout.GroupLayout(latestImgP);
+        latestImgP.setLayout(latestImgPLayout);
+        latestImgPLayout.setHorizontalGroup(
+            latestImgPLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+            .add(0, 322, Short.MAX_VALUE)
+        );
+        latestImgPLayout.setVerticalGroup(
+            latestImgPLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+            .add(0, 142, Short.MAX_VALUE)
+        );
 
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
+            .add(layout.createSequentialGroup()
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-                    .add(layout.createSequentialGroup()
+                    .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
                         .addContainerGap()
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
                             .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
@@ -209,64 +221,61 @@ public class BoatPanel extends javax.swing.JPanel {
                                     .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
                                     .add(assignPathB))
                                 .add(cancelB, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                            .add(addressF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 427, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
+                            .add(addressF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 427, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
+                            .add(teleopB)
+                            .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                                .add(disconnectB)
+                                .add(debuggerB)))
+                        .add(99, 99, 99))
                     .add(layout.createSequentialGroup()
-                        .add(30, 30, 30)
-                        .add(modeL, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 406, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
-                .add(62, 62, 62)
-                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
-                    .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-                            .add(debuggerB)
-                            .add(disconnectB)
                             .add(layout.createSequentialGroup()
-                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
-                                    .add(layout.createSequentialGroup()
-                                        .add(137, 137, 137)
-                                        .add(jLabel1)
-                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED))
-                                    .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
-                                        .add(noteWriteB)
-                                        .add(1, 1, 1)))
-                                .add(jScrollPane1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 268, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
-                        .add(61, 61, 61))
-                    .add(layout.createSequentialGroup()
-                        .add(teleopB)
-                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .add(jButton1)
-                        .add(83, 83, 83))))
+                                .add(5, 5, 5)
+                                .add(jLabel1))
+                            .add(layout.createSequentialGroup()
+                                .add(27, 27, 27)
+                                .add(noteWriteB)))
+                        .add(28, 28, 28)
+                        .add(jScrollPane1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 268, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .add(47, 47, 47)
+                        .add(modeL, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 157, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .add(38, 38, 38)))
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                .add(latestImgP, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(layout.createSequentialGroup()
-                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+            .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
+                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
                     .add(layout.createSequentialGroup()
+                        .add(11, 11, 11)
+                        .add(latestImgP, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .add(layout.createSequentialGroup()
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createSequentialGroup()
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                                    .add(addressF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                    .add(teleopB))
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(debuggerB))
+                            .add(org.jdesktop.layout.GroupLayout.TRAILING, cancelB))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
-                            .add(addressF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
-                            .add(teleopB)
-                            .add(jButton1))
-                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
-                        .add(debuggerB))
-                    .add(org.jdesktop.layout.GroupLayout.TRAILING, cancelB))
-                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
-                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-                    .add(layout.createSequentialGroup()
-                        .add(disconnectB)
-                        .add(9, 9, 9)
+                            .add(assignAreaB)
+                            .add(assignPathB)
+                            .add(disconnectB))
+                        .add(18, 18, 18)
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
+                            .add(modeL, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 70, Short.MAX_VALUE)
                             .add(jScrollPane1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 70, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                             .add(layout.createSequentialGroup()
                                 .add(jLabel1)
-                                .add(16, 16, 16)
-                                .add(noteWriteB)
-                                .add(6, 6, 6))))
-                    .add(layout.createSequentialGroup()
-                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
-                            .add(assignAreaB)
-                            .add(assignPathB))
-                        .add(36, 36, 36)
-                        .add(modeL, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                .add(21, 21, 21))
+                                .add(18, 18, 18)
+                                .add(noteWriteB)))))
+                .addContainerGap())
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -277,7 +286,7 @@ public class BoatPanel extends javax.swing.JPanel {
 
         if (teleOpFrame != null && teleOpFrame.isVisible()) {
         } else {
-            teleOpFrame = new TeleopFrame(proxy.getVehicleServer());
+            teleOpFrame = new TeleopFrame(AsyncVehicleServer.Util.toSync(proxy.getVehicleServer()));
             teleOpFrame.setVisible(true);
             System.out.println("Created teleop frame");
         }
@@ -288,7 +297,7 @@ public class BoatPanel extends javax.swing.JPanel {
         if (debugFrame != null && debugFrame.isVisible()) {
         } else {
             BoatDebugPanel boatPanel = new BoatDebugPanel();
-            boatPanel.setServer(proxy.getVehicleServer());
+            boatPanel.setServer(AsyncVehicleServer.Util.toSync(proxy.getVehicleServer()));
 
             JFrame mainFrame = new JFrame();
             mainFrame.setTitle("Boat Debugging Panel");
@@ -306,7 +315,7 @@ public class BoatPanel extends javax.swing.JPanel {
     private void assignAreaBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_assignAreaBActionPerformed
 
         // @todo Find a more elegant way of doing this
-        OperatorConsole.assigningArea = true;
+        OperatorConsole.setAssigningArea(true);
         update();
     }//GEN-LAST:event_assignAreaBActionPerformed
 
@@ -318,7 +327,7 @@ public class BoatPanel extends javax.swing.JPanel {
     private void assignPathBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_assignPathBActionPerformed
 
         // @todo Find a more elegant way of doing this
-        OperatorConsole.assigningPath = true;
+        OperatorConsole.setAssigningPath(true);
         update();
     }//GEN-LAST:event_assignPathBActionPerformed
 
@@ -335,10 +344,6 @@ public class BoatPanel extends javax.swing.JPanel {
         }
     }//GEN-LAST:event_disconnectBActionPerformed
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        OperatorConsole.settingWaterLevel = true;
-    }//GEN-LAST:event_jButton1ActionPerformed
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextField addressF;
     private javax.swing.JButton assignAreaB;
@@ -346,9 +351,9 @@ public class BoatPanel extends javax.swing.JPanel {
     private javax.swing.JButton cancelB;
     private javax.swing.JButton debuggerB;
     private javax.swing.JButton disconnectB;
-    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JPanel latestImgP;
     private javax.swing.JLabel modeL;
     private javax.swing.JTextArea noteTF;
     private javax.swing.JButton noteWriteB;

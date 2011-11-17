@@ -11,8 +11,11 @@
 package edu.cmu.ri.airboat.floodtest;
 
 import java.awt.Image;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import javax.swing.ImageIcon;
+import javax.swing.JPanel;
 
 /**
  *
@@ -54,7 +57,7 @@ public class SingleImagePanel extends javax.swing.JPanel {
     private void initComponents() {
 
         doneB = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
+        buoyB = new javax.swing.JButton();
         enlargeB = new javax.swing.JButton();
         imgL = new javax.swing.JLabel();
 
@@ -65,11 +68,10 @@ public class SingleImagePanel extends javax.swing.JPanel {
             }
         });
 
-        jButton2.setText("Store");
-        jButton2.setEnabled(false);
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
+        buoyB.setText("Buoy");
+        buoyB.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
+                buoyBActionPerformed(evt);
             }
         });
 
@@ -89,7 +91,7 @@ public class SingleImagePanel extends javax.swing.JPanel {
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
                 .add(enlargeB)
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
-                .add(jButton2, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .add(buoyB, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 76, Short.MAX_VALUE))
             .add(imgL, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 243, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
@@ -100,13 +102,26 @@ public class SingleImagePanel extends javax.swing.JPanel {
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
                     .add(doneB)
                     .add(enlargeB)
-                    .add(jButton2)))
+                    .add(buoyB)))
         );
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton2ActionPerformed
+    private void buoyBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buoyBActionPerformed
+
+        final JPanel panel = this;
+        this.addMouseListener(new MouseAdapter() {
+
+            @Override
+            public void mouseClicked(MouseEvent me) {
+                super.mouseClicked(me);
+                
+                System.out.println("Got click: " + me);
+                panel.removeMouseListener(this);
+            }
+            
+        });
+        
+    }//GEN-LAST:event_buoyBActionPerformed
 
     // @todo make this a proper semaphore
     boolean lock = false;    
@@ -132,9 +147,9 @@ public class SingleImagePanel extends javax.swing.JPanel {
     }//GEN-LAST:event_enlargeBActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton buoyB;
     private javax.swing.JButton doneB;
     private javax.swing.JButton enlargeB;
     private javax.swing.JLabel imgL;
-    private javax.swing.JButton jButton2;
     // End of variables declaration//GEN-END:variables
 }
