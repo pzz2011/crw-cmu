@@ -4,6 +4,7 @@ import robotutils.Pose3D;
 import robotutils.Quaternion;
 import edu.cmu.ri.crw.VehicleFilter;
 import edu.cmu.ri.crw.data.Twist;
+import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 
 /**
@@ -29,7 +30,7 @@ public class SimpleFilter implements VehicleFilter {
 	boolean _isInitializedCompass = false;
 	
 	// State represented by 6D pose
-	UtmPose _pose = new UtmPose();
+	UtmPose _pose = new UtmPose(new Pose3D(476608.34, 4671214.40, 172.35, 0, 0, 0), new Utm(17, true));
 	Twist _vels = new Twist();
 	
 	// The current time in milliseconds, used to measure filter update intervals
