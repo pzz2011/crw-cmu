@@ -29,6 +29,12 @@ public class PidPanel extends AbstractAirboatPanel {
         _axis = axis;
         initComponents();
         setUpdateRate(DEFAULT_UPDATE_MS);
+        
+        // TODO: Fix this once delays are resolved
+        pSpinner.setEnabled(false);
+        iSpinner.setEnabled(false);
+        dSpinner.setEnabled(false);
+        setButton.setEnabled(false);
     }
 
     /** This method is called from within the constructor to
@@ -200,7 +206,7 @@ public class PidPanel extends AbstractAirboatPanel {
     public void update() {
         if (_vehicle != null) {
 
-            double[] pids = _vehicle.getGains(_axis);
+            double[] pids = null; //_vehicle.getGains(_axis);
             // TODO: what the hell? System.out.println("" + _axis);
             if (pids == null || pids.length < 3) {
                 return;
