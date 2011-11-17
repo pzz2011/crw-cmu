@@ -7,6 +7,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import robotutils.Pose3D;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -22,6 +23,7 @@ import edu.cmu.ri.crw.VehicleFilter;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.data.SensorData;
 import edu.cmu.ri.crw.data.Twist;
+import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 
 /**
@@ -87,7 +89,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	 * Inertial state vector, currently containing a 6D pose estimate:
 	 * [x,y,z,roll,pitch,yaw]
 	 */
-	UtmPose _utmPose = new UtmPose();
+	UtmPose _utmPose = new UtmPose(new Pose3D(476608.34, 4671214.40, 172.35, 0, 0, 0), new Utm(17, true));
 
 	/**
 	 * Filter used internally to update the current pose estimate
