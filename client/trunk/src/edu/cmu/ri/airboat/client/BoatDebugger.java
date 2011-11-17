@@ -20,8 +20,6 @@ import edu.cmu.ri.crw.udp.UdpVehicleService;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.net.InetSocketAddress;
-import java.util.prefs.Preferences;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
