@@ -128,52 +128,53 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     public void startWaypoints(final UtmPose[] waypoints, final String controller) {
         logger.log(Level.INFO, "Starting waypoints: {0}", Arrays.toString(waypoints));
         
+        // Create a waypoint navigation task
+        TimerTask newNavigationTask = new TimerTask() {
+            final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
+
+            // Retrieve the appropriate controller in initializer
+            VehicleController vc = SimpleBoatController.STOP.controller;
+            {
+                try {
+                    vc = SimpleBoatController.valueOf(controller).controller;
+                } catch (IllegalArgumentException e) {
+                    logger.log(Level.WARNING, "Unknown controller specified (using {0} instead): {1}", new Object[]{vc, controller});
+                }
+            }
+
+            @Override
+            public void run() {
+                synchronized (_navigationLock) {
+                    if (!_isAutonomous.get()) {
+                        // If we are not autonomous, do nothing
+                        sendWaypointUpdate(WaypointState.PAUSED);
+                        return;
+                    } else if (_waypoints.length == 0) {
+                        // If we are finished with waypoints, stop in place
+                        sendWaypointUpdate(WaypointState.DONE);
+                        setVelocity(new Twist());
+                        this.cancel();
+                    } else {
+                        // If we are still executing waypoints, use a 
+                        // controller to figure out how to get to waypoint
+                        // TODO: measure dt directly instead of approximating
+                        vc.update(SimpleBoatSimulator.this, dt);
+                        sendWaypointUpdate(WaypointState.GOING);
+                    }
+                }
+            }
+        };
+        
         synchronized (_navigationLock) {
             // Change waypoints to new set of waypoints
             _waypoints = Arrays.copyOf(waypoints, waypoints.length);
 
             // Cancel any previous navigation tasks
             if (_navigationTask != null)
-                _navigationTask.cancel();
-            
-            // Create a waypoint navigation task
-            _navigationTask = new TimerTask() {
-                final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
-                
-                // Retrieve the appropriate controller in initializer
-                VehicleController vc = SimpleBoatController.STOP.controller;
-                {
-                    try {
-                        vc = SimpleBoatController.valueOf(controller).controller;
-                    } catch (IllegalArgumentException e) {
-                        logger.log(Level.WARNING, "Unknown controller specified (using {0} instead): {1}", new Object[]{vc, controller});
-                    }
-                }
-                
-                @Override
-                public void run() {
-                    synchronized (_navigationLock) {
-                        if (!_isAutonomous.get()) {
-                            // If we are not autonomous, do nothing
-                            sendWaypointUpdate(WaypointState.PAUSED);
-                            return;
-                        } else if (_waypoints.length == 0) {
-                            // If we are finished with waypoints, stop in place
-                            sendWaypointUpdate(WaypointState.DONE);
-                            setVelocity(new Twist());
-                            this.cancel();
-                        } else {
-                            // If we are still executing waypoints, use a 
-                            // controller to figure out how to get to waypoint
-                            // TODO: measure dt directly instead of approximating
-                            vc.update(SimpleBoatSimulator.this, dt);
-                            sendWaypointUpdate(WaypointState.GOING);
-                        }
-                    }
-                }
-            };
+                _navigationTask.cancel();            
             
             // Schedule this task for execution
+            _navigationTask = newNavigationTask;
             _timer.scheduleAtFixedRate(_navigationTask, 0, UPDATE_INTERVAL_MS);
         }
     }
@@ -205,32 +206,33 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     public void startCamera(final int numFrames, final double interval, final int width, final int height) {
         logger.log(Level.INFO, "Starting capture: {0} ({1}x{2}) frames @ {3}s ", new Object[]{numFrames, width, height, interval});
         
+        // Create a camera capture task
+        TimerTask newCaptureTask = new TimerTask() {
+            int iFrame = 0;
+
+            @Override
+            public void run() {
+                // Take a new image and send it out
+                sendImage(captureImage(width, height));
+                iFrame++;
+
+                // If we exceed numFrames, we finished
+                if (numFrames > 0 && iFrame >= numFrames) {
+                    sendCameraUpdate(CameraState.DONE);
+                    this.cancel();
+                } else {
+                    sendCameraUpdate(CameraState.CAPTURING);
+                }
+            }
+        };
+        
         synchronized (_captureLock) {
             // Cancel any previous capture tasks
             if (_captureTask != null)
                 _captureTask.cancel();
             
-            // Create a camera capture task
-            _captureTask = new TimerTask() {
-                int iFrame = 0;
-
-                @Override
-                public void run() {
-                    // Take a new image and send it out
-                    sendImage(captureImage(width, height));
-                    iFrame++;
-                    
-                    // If we exceed numFrames, we finished
-                    if (numFrames > 0 && iFrame >= numFrames) {
-                        sendCameraUpdate(CameraState.DONE);
-                        this.cancel();
-                    } else {
-                        sendCameraUpdate(CameraState.CAPTURING);
-                    }
-                }
-            };
-            
             // Schedule this task for execution
+            _captureTask = newCaptureTask;
             _timer.scheduleAtFixedRate(_captureTask, 0, (long)(interval * 1000.0));
         }
     }
