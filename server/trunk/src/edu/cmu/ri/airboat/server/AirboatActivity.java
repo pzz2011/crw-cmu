@@ -430,6 +430,7 @@ public class AirboatActivity extends Activity {
 			        			location.getAltitude(),
 			        			0.0, 0.0, 0.0);
 			        	_homePosition.origin = new Utm(utmLoc.longitudeZone(), utmLoc.latitudeZone() > 'o');
+			        	AirboatFailsafeService.setHome(_homePosition);
 						
 			        	// Now that we have the GPS location, stop listening
 			        	Toast.makeText(getApplicationContext(),
