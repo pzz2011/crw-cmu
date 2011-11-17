@@ -115,7 +115,7 @@ public class AirboatService extends Service {
         			(location.hasAltitude() ? location.getAltitude() : 0.0),
         			(location.hasBearing() ? Quaternion.fromEulerAngles(0.0, 0.0, (90.0 - location.getBearing()) * Math.PI / 180.0) : Quaternion.fromEulerAngles(0, 0, 0)) 
         			);
-        	Utm origin = new Utm(utmLoc.longitudeZone(), utmLoc.latitudeZone() > 'o');
+        	Utm origin = new Utm(utmLoc.longitudeZone(), utmLoc.latitudeZone() > 'O');
         	UtmPose utm = new UtmPose(pose, origin);
         	        	
         	// Apply update using filter object
