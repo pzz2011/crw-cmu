@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,6 +40,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
     
     protected VehicleServer _vehicleServer;
     protected final Object _serverLock = new Object();
+    protected final AtomicInteger _imageSeq = new AtomicInteger();
     
     protected final UdpServer _udpServer;
 
@@ -321,7 +323,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             }
             
             try {
-                // Construct pose message
+                // Construct message
                 Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_POSE.str);
                 UdpConstants.writePose(resp.stream, pose);
@@ -343,15 +345,31 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             }
             
             try {
-                // Construct pose message
-                Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
-                resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_IMAGE.str);
-                resp.stream.writeInt(image.length);
-                resp.stream.write(image);
-            
-                // Send to all listeners
-                synchronized(_imageListeners) {
-                    _udpServer.bcast(resp, _imageListeners.keySet());
+                final int imageSeq = _imageSeq.incrementAndGet();
+                
+                // Figure out how many pieces into which to fragment the image
+                final int totalIdx = (image.length - 1) / UdpConstants.MAX_PAYLOAD_SIZE + 1;
+                
+                // Transmit each piece in a separate packet
+                for (int pieceIdx = 0; pieceIdx < totalIdx; ++pieceIdx) {
+                    
+                    // Compute the length of this piece
+                    int pieceLen = (pieceIdx + 1 < totalIdx) ? UdpConstants.MAX_PAYLOAD_SIZE : image.length - pieceIdx*UdpConstants.MAX_PAYLOAD_SIZE;
+                    
+                    // Construct message
+                    Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
+                    resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_IMAGE.str);
+                    resp.stream.writeInt(imageSeq);
+                    resp.stream.writeInt(totalIdx);
+                    resp.stream.writeInt(pieceIdx);
+                    
+                    resp.stream.writeInt(pieceLen);
+                    resp.stream.write(image, pieceIdx*UdpConstants.MAX_PAYLOAD_SIZE, pieceLen);
+
+                    // Send to all listeners
+                    synchronized(_imageListeners) {
+                        _udpServer.bcast(resp, _imageListeners.keySet());
+                    }
                 }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to serialize image");
@@ -366,7 +384,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             }
             
             try {
-                // Construct pose message
+                // Construct message
                 Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_CAMERA.str);
                 resp.stream.writeByte(status.ordinal());
@@ -388,7 +406,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             }
             
             try {
-                // Construct pose message
+                // Construct message
                 Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_SENSOR.str);
                 UdpConstants.writeSensorData(resp.stream, sensor);
@@ -411,7 +429,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             }
             
             try {
-                // Construct pose message
+                // Construct message
                 Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_VELOCITY.str);
                 UdpConstants.writeTwist(resp.stream, velocity);
@@ -433,7 +451,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             }
             
             try {
-                // Construct pose message
+                // Construct message
                 Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
                 resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_WAYPOINT.str);
                 resp.stream.writeByte(status.ordinal());

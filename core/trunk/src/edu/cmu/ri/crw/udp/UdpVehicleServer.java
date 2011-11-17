@@ -57,6 +57,10 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     final AtomicLong _ticketCounter = new AtomicLong(new Random().nextLong() << 32); // Start ticket with random offset to prevent collisions across multiple clients
     final TimeoutMap _ticketMap = new TimeoutMap();
     
+    final Object _imageReassemblyLock = new Object();
+    int _imageReassemblyTicket;
+    byte[][] _imageReassemblyTable;
+    
     protected final Map<Integer, List<SensorListener>> _sensorListeners = new TreeMap<Integer, List<SensorListener>>();
     protected final List<ImageListener> _imageListeners = new ArrayList<ImageListener>();
     protected final List<VelocityListener> _velocityListeners = new ArrayList<VelocityListener>();
@@ -105,6 +109,54 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                     logger.log(Level.WARNING, "Failed to transmit listener registration: {0}", registerCommand);
                 }
             }
+        }
+    }
+
+    /**
+     * This function attempts to reconstruct an image from a UDP packet stream.
+     * It assumes a continuous stream of unreliable, non-retransmitted images.
+     * 
+     * @param req a request containing the latest image
+     * @return byte array containing compressed image, or null if not complete
+     * @throws IOException 
+     */
+    private byte[] reconstructImage(Request req) throws IOException {
+        synchronized(_imageReassemblyLock) {
+            
+            // Reconstruct all the data from the request
+            int imageSeq = req.stream.readInt();
+            int totalIdx = req.stream.readInt();
+            int pieceIdx = req.stream.readInt();
+            byte[] image = new byte[req.stream.readInt()];
+            req.stream.readFully(image);
+            
+            // If this is a new image, reset the table
+            if (_imageReassemblyTicket != imageSeq) {
+                _imageReassemblyTicket = imageSeq;
+                _imageReassemblyTable = new byte[totalIdx][];
+            }
+            
+            // Put the piece in the corresponding slot
+            _imageReassemblyTable[pieceIdx] = image;
+            
+            // Get total image length.  If the pieces aren't done, return null
+            int totalLength = 0;
+            for (byte[] piece : _imageReassemblyTable) {
+                if (piece == null) {
+                    return null;
+                } else {
+                    totalLength += piece.length;
+                }
+            }
+            
+            // Reconstruct the image by copying together the pieces
+            byte[] totalImage = new byte[totalLength];
+            int offset = 0;
+            for (byte[] piece : _imageReassemblyTable) {
+                System.arraycopy(piece, 0, totalImage, offset, piece.length);
+                offset += piece.length;
+            }
+            return totalImage;
         }
     }
 
@@ -160,11 +212,12 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                     }
                     return;
                 case CMD_SEND_IMAGE:
-                    byte[] image = new byte[req.stream.readInt()];
-                    req.stream.readFully(image);
-                    synchronized (_imageListeners) {
-                        for (ImageListener l : _imageListeners) {
-                            l.receivedImage(image);
+                    byte[] image = reconstructImage(req);
+                    if (image != null) {
+                        synchronized (_imageListeners) {
+                            for (ImageListener l : _imageListeners) {
+                                l.receivedImage(image);
+                            }
                         }
                     }
                     return;
