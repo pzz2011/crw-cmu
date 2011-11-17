@@ -49,7 +49,7 @@ public class WaypointPanel extends AbstractAirboatPanel {
         
         _vehicle.addWaypointListener(new WaypointListener() {
             public void waypointUpdate(WaypointState ws) {
-                if (ws == WaypointState.OFF) {
+                if (ws == WaypointState.DONE) {
                     completedBox.setSelected(true);
                 }
             }
