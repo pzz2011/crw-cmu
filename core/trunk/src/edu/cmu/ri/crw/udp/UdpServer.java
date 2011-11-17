@@ -257,7 +257,7 @@ public class UdpServer {
                 
                 // If it is an ACK, remove the corresponding outgoing messages,
                 // otherwise, send out an ACK and handle the message
-                System.out.println("GOT PACKET " + _socket.getLocalSocketAddress() + " CMD " + cmd);
+                //System.out.println("GOT PACKET " + _socket.getLocalSocketAddress() + " CMD " + cmd);
                 if (cmd.equals(UdpConstants.CMD_ACKNOWLEDGE)) {
                     acknowledge(request.ticket);
                 } else {
@@ -266,7 +266,7 @@ public class UdpServer {
                         try {
                             Response response = new Response(request);
                             response.stream.writeUTF(UdpConstants.CMD_ACKNOWLEDGE);
-                            System.out.println("ACKING " + cmd + " : " + response.ticket + " from " + request.source);
+                            //System.out.println("ACKING " + cmd + " : " + response.ticket + " from " + request.source);
                             send(response);
                         } catch (IOException e) {
                             // TODO: more elegant error message
@@ -303,7 +303,7 @@ public class UdpServer {
 
                 // Send the response to the requestor
                 try {
-                    System.out.println("RESENDING [" + response.ttl + "]: " + response.ticket + " to " + response.destination);
+                    //System.out.println("RESENDING [" + response.ttl + "]: " + response.ticket + " to " + response.destination);
                     _socket.send(response.toPacket());
                 } catch (IOException e) {
                     // TODO: figure out which errors we need to return on or ignore here
@@ -337,7 +337,7 @@ public class UdpServer {
             QueuedResponse qr = new QueuedResponse(response);
             _responses.add(qr);
             _socket.send(qr.toPacket());
-            System.out.println("RESPOND " + qr.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + qr.destination);
+            //System.out.println("RESPOND " + qr.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + qr.destination);
         } catch (SocketException e) {
             // TODO: Error! do something
         } catch (IOException e) {
@@ -363,7 +363,7 @@ public class UdpServer {
                 _socket.send(packet);
             }
             
-            System.out.println("BCAST " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
+            //System.out.println("BCAST " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
         } catch (SocketException e) {
             // TODO: Error! do something
         } catch (IOException e) {
@@ -383,7 +383,7 @@ public class UdpServer {
             DatagramPacket packet = new QueuedResponse(response).toPacket();
             _socket.send(packet);
             
-            System.out.println("SEND " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
+            //System.out.println("SEND " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
         } catch (SocketException e) {
             // TODO: Error! do something
         } catch (IOException e) {
