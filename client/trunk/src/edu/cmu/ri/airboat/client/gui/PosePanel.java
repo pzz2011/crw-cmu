@@ -153,7 +153,7 @@ public class PosePanel extends AbstractAirboatPanel {
             
             double x = wpUtm.getEasting();
             double y = wpUtm.getNorthing();
-            double z = wpPos.getAltitude();
+            double z = Math.max(wpPos.getAltitude(), 0.0); // Don't set things to bottom of ocean
             Pose3D pose = new Pose3D(x, y, z, 0.0, 0.0, 0.0);
             Utm origin = new Utm(wpUtm.getZone(), wpUtm.getHemisphere().contains("North"));
             UtmPose utmPose = new UtmPose(pose, origin);
