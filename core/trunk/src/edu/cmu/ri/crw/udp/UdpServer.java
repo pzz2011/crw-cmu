@@ -309,7 +309,7 @@ public class UdpServer {
                     _socket.send(response.toPacket());
                 } catch (IOException e) {
                     // TODO: figure out which errors we need to return on or ignore here
-                    // TODO: some logger thing here
+                    logger.log(Level.WARNING, "Failed to resend data.", e);
                     return;
                 }
 
@@ -341,9 +341,9 @@ public class UdpServer {
             _socket.send(qr.toPacket());
             //System.out.println("RESPOND " + qr.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + qr.destination);
         } catch (SocketException e) {
-            // TODO: Error! do something
+            logger.log(Level.WARNING, "Failed to respond.", e);
         } catch (IOException e) {
-            // TODO: Error! do something else
+            logger.log(Level.WARNING, "Failed to respond.", e);
         }
     }
 
@@ -367,9 +367,9 @@ public class UdpServer {
             
             //System.out.println("BCAST " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
         } catch (SocketException e) {
-            // TODO: Error! do something
+            logger.log(Level.WARNING, "Failed to respond.", e);
         } catch (IOException e) {
-            // TODO: Error! do something else
+            logger.log(Level.WARNING, "Failed to respond.", e);
         }
     }
     
@@ -387,9 +387,9 @@ public class UdpServer {
             
             //System.out.println("SEND " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
         } catch (SocketException e) {
-            // TODO: Error! do something
+            logger.log(Level.WARNING, "Failed to respond.", e);
         } catch (IOException e) {
-            // TODO: Error! do something else
+            logger.log(Level.WARNING, "Failed to respond.", e);
         }
     }
 
