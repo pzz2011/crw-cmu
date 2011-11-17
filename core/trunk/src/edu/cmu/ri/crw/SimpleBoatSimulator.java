@@ -93,13 +93,23 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     @Override
     public byte[] captureImage(int width, int height) {
 
-        // Create an image and fill it with a random color
+        // Create an image of the correct size
         BufferedImage image = new BufferedImage(width, height,
                 BufferedImage.TYPE_3BYTE_BGR);
         Graphics2D graphics = (Graphics2D) image.getGraphics();
         graphics.setPaint(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
         graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
 
+        // Fill it with random noise!
+        Random rand = new Random();
+        int[] data = new int[width * height * 3];
+        for (int i = 0; i < data.length; ++i) {
+            data[i] = rand.nextInt();
+        }
+        
+        // Copy raw data to the image's raster
+        image.getRaster().setPixels(0, 0, width, height, data);
+        
         return toCompressedImage(image);
     }
 
