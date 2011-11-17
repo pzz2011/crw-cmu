@@ -39,7 +39,8 @@ public class AirboatFailsafeService extends Service {
 	private String _hostname;
 	
 	// The "home" position that will be set as a waypoint if a failure occurs
-	private UtmPose _homePosition = new UtmPose();
+	private static final Object _homeLock = new Object();
+	private static UtmPose _homePosition = new UtmPose();
 	
 	// Contains a reference to the airboat service, or null if service is not running 
 	private AirboatService _airboatService = null;
@@ -116,13 +117,15 @@ public class AirboatFailsafeService extends Service {
 		boolean rawHomeNorth = intent.getBooleanExtra(AirboatFailsafeIntent.HOME_NORTH, true);
 
 		// Decode pose from intents
-		_homePosition.pose = new Pose3D(
-				rawHomePose[0],
-				rawHomePose[1],
-				rawHomePose[2], 
-				0.0, 0.0, 0.0);
-		_homePosition.origin = new Utm(rawHomeZone, rawHomeNorth);
-		
+		synchronized(_homeLock) {
+			_homePosition.pose = new Pose3D(
+					rawHomePose[0],
+					rawHomePose[1],
+					rawHomePose[2], 
+					0.0, 0.0, 0.0);
+			_homePosition.origin = new Utm(rawHomeZone, rawHomeNorth);
+		}
+			
 		// Schedule the next connection test
 		_handler.postDelayed(_connectionTest, _connectionTestDelayMs);
 		
@@ -151,6 +154,12 @@ public class AirboatFailsafeService extends Service {
         return START_STICKY;
     }
 
+	public static void setHome(UtmPose pose) {
+		synchronized (_homeLock) {
+			_homePosition = pose.clone();
+		}
+	}
+    
     @Override
     public void onDestroy() {
     	super.onDestroy();
@@ -187,18 +196,21 @@ public class AirboatFailsafeService extends Service {
 			try {
 				if (InetAddress.getByName(_hostname).isReachable(500)) {
 					_numFailures = 0;
-					return;
+				} else {
+					_numFailures++;
 				}
 			} catch (IOException e) {
+				_numFailures++;
 				Log.i(LOG_TAG, "Connection failure: " + e.getMessage());
 			}
 			
 			// If the connection failed, trigger the failsafe behavior
-			_numFailures++;
 			if (_numFailures > _numAllowedFailures) {
-				Log.i(LOG_TAG, "Failsafe triggered: " + _homePosition);
-				server.startWaypoints(new UtmPose[]{_homePosition}, null);
 				_numFailures = 0;
+				synchronized(_homeLock) {
+					Log.i(LOG_TAG, "Failsafe triggered: " + _homePosition);
+					server.startWaypoints(new UtmPose[]{_homePosition}, null);
+				}
 			}
 			
 			// Schedule the next connection test
