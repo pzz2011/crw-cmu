@@ -28,9 +28,9 @@ public enum SimpleBoatController {
             UtmPose state = server.getPose();
             Pose3D pose = state.pose;
 
-            // Get the current waypoint
+            // Get the current waypoint, or return if there are none
             UtmPose[] waypoints = server.getWaypoints();
-            if (waypoints.length < 0) {
+            if (waypoints == null || waypoints.length <= 0) {
                 server.setVelocity(twist);
                 return;
             }
@@ -39,11 +39,8 @@ public enum SimpleBoatController {
             // TODO: handle different UTM zones!
 
             // Compute the distance and angle to the waypoint
-            // TODO: compute distance more efficiently
-            double distance = waypoint.getEuclideanDistance(pose);
-            double angle = Math.atan2((waypoint.getY() - pose.getY()),
-                    (waypoint.getX() - pose.getX()))
-                    - pose.getRotation().toYaw();
+            double distanceSq = planarDistanceSq(pose, waypoint);
+            double angle = angleBetween(pose, waypoint) - pose.getRotation().toYaw();
             angle = normalizeAngle(angle);
 
             // Choose driving behavior depending on direction and where we are
@@ -52,10 +49,10 @@ public enum SimpleBoatController {
                 // If we are facing away, turn around first
                 twist.dx(0.5);
                 twist.drz(Math.max(Math.min(angle / 1.0, 1.0), -1.0));
-            } else if (distance >= 3.0) {
+            } else if (distanceSq >= 9.0) {
 
                 // If we are far away, drive forward and turn
-                twist.dx(Math.min(distance / 10.0, 1.0));
+                twist.dx(Math.min(distanceSq / 10.0, 1.0));
                 twist.drz(Math.max(Math.min(angle / 10.0, 1.0), -1.0));
             } else {
                 
@@ -97,7 +94,7 @@ public enum SimpleBoatController {
             Pose3D pose = state.pose;
 
             UtmPose[] waypoints = server.getWaypoints();
-            if (waypoints.length < 0) {
+            if (waypoints == null || waypoints.length <= 0) {
                 server.setVelocity(twist);
                 return;
             }
@@ -105,11 +102,8 @@ public enum SimpleBoatController {
 
             // TODO: handle different UTM zones!
             // Compute the distance and angle to the waypoint
-            // TODO: compute distance more efficiently
-            double distance = waypoint.getEuclideanDistance(pose);
-            double angle = Math.atan2((waypoint.getY() - pose.getY()),
-                    (waypoint.getX() - pose.getX())
-                    - pose.getRotation().toYaw());
+            double distanceSq = planarDistanceSq(pose, waypoint);
+            double angle = angleBetween(pose, waypoint) - pose.getRotation().toYaw();
             angle = normalizeAngle(angle);
 
             // Choose driving behavior depending on direction and and where we
@@ -118,9 +112,9 @@ public enum SimpleBoatController {
                 // If we are facing away, turn around first
                 twist.dx(0.5);
                 twist.drz(Math.max(Math.min(angle / 1.0, 1.0), -1.0));
-            } else if (distance >= 3.0) {
+            } else if (distanceSq >= 9.0) {
                 // If we are far away, drive forward and turn
-                twist.dx(Math.min(distance / 10.0, 1.0));
+                twist.dx(Math.min(distanceSq / 10.0, 1.0));
                 twist.drz(Math.max(Math.min(angle / 10.0, 1.0), -1.0));
             }
 
@@ -221,6 +215,35 @@ public enum SimpleBoatController {
             angle += 2 * Math.PI;
         }
         return angle;
+    }
+    
+    /**
+     * Computes the squared XY-planar Euclidean distance between two points.
+     * Using the squared distance is cheaper (it avoid a sqrt), and for 
+     * constant comparisons, it makes no difference (just square the constant).
+     * 
+     * @param a the first pose
+     * @param b the second pose
+     * @return the XY-planar Euclidean distance
+     */
+    public static double planarDistanceSq(Pose3D a, Pose3D b) {
+        double dx = a.getX() - b.getX();
+        double dy = a.getY() - b.getY();
+        return dx*dx + dy*dy;
+    }
+    
+    /**
+     * Computes a direction vector from a source pose to a destination pose,
+     * as projected onto the XY-plane. Returns an angle representing the 
+     * direction in the XY-plane to take if starting at the source pose to 
+     * reach the destination pose.
+     * 
+     * @param a the source (starting) pose
+     * @param b the destination (final) pose
+     * @return an angle in the XY-plane (around +Z-axis) to get to destination
+     */
+    public static double angleBetween(Pose3D src, Pose3D dest) {
+        return Math.atan2((dest.getY() - src.getY()), (dest.getX() - src.getX()));
     }
 
     public enum PlanningMethod {
