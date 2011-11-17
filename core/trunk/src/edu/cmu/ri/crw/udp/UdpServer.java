@@ -57,7 +57,8 @@ public class UdpServer {
         try {
             socket = new DatagramSocket();
         } catch (SocketException e) {
-            // TODO: log something here;
+            logger.severe("Unable to open desired UDP socket.");
+            throw new RuntimeException("Unable to open desired UDP socket.", e);
         }
         
         _socket = socket;
@@ -70,7 +71,8 @@ public class UdpServer {
         try {
             socket = new DatagramSocket(port);
         } catch (SocketException e) {
-            // TODO: log something here;
+            logger.severe("Unable to open desired UDP socket.");
+            throw new RuntimeException("Unable to open desired UDP socket.", e);
         }
         
         _socket = socket;
