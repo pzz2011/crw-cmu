@@ -2,6 +2,7 @@ package edu.cmu.ri.crw;
 
 import edu.cmu.ri.crw.data.SensorData;
 import edu.cmu.ri.crw.data.Twist;
+import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -36,7 +37,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     public static final int UPDATE_INTERVAL_MS = 100;
     
     public final SensorType[] _sensorTypes = new SensorType[3];
-    public UtmPose _utmPose = new UtmPose();
+    public UtmPose _utmPose = new UtmPose(new Pose3D(166021,0,0,0,0,0), new Utm(31,true));
     public Twist _velocity = new Twist();
     public UtmPose[] _waypoints = new UtmPose[0];
     
