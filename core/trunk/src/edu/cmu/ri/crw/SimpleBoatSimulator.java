@@ -311,5 +311,6 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
      */
     public void shutdown() {
         _timer.cancel();
+        _timer.purge();
     }
 }
