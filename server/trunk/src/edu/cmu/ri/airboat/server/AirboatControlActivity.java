@@ -26,6 +26,7 @@ import android.widget.TextView.OnEditorActionListener;
 
 import com.google.code.microlog4android.LoggerFactory;
 
+import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.data.Twist;
 
@@ -250,12 +251,13 @@ public class AirboatControlActivity extends Activity {
 					protected double[][] doInBackground(Void... params) {
 						
 						// Don't do anything if we can't get access to the controller
-						if ((_airboatService == null) || (_airboatService.getServer() == null))
+						VehicleServer server;
+						if ((_airboatService == null) || ((server = _airboatService.getServer()) == null))
 							return new double[][] { {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} };
 		
 						// Update the PID gains
-						double[] pidThrust = _airboatService.getServer().getGains(0);
-						double[] pidRudder = _airboatService.getServer().getGains(5);
+						double[] pidThrust = server.getGains(0);
+						double[] pidRudder = server.getGains(5);
 						
 						return new double[][] { pidThrust, pidRudder };
 					}
