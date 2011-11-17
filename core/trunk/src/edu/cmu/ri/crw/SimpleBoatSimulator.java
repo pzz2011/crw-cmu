@@ -37,7 +37,7 @@ public class SimpleBoatSimulator extends AbstractVehicleServer {
     public static final int UPDATE_INTERVAL_MS = 100;
     
     public final SensorType[] _sensorTypes = new SensorType[3];
-    public UtmPose _utmPose = new UtmPose(new Pose3D(166021,0,0,0,0,0), new Utm(31,true));
+    public UtmPose _utmPose = new UtmPose(new Pose3D(476608.34, 4671214.40, 172.35, 0, 0, 0), new Utm(17, true));
     public Twist _velocity = new Twist();
     public UtmPose[] _waypoints = new UtmPose[0];
     
