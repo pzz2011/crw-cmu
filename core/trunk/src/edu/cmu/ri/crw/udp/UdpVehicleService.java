@@ -141,7 +141,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             resp.stream.writeUTF(command);
             
             // TODO: remove me
-            logger.log(Level.INFO, "Received command {0} [{1}:{2}]", new Object[]{req.ticket, command, UdpConstants.COMMAND.fromStr(command)});
+            //logger.log(Level.INFO, "Received command {0} [{1}:{2}]", new Object[]{req.ticket, command, UdpConstants.COMMAND.fromStr(command)});
 
             switch (UdpConstants.COMMAND.fromStr(command)) {
                 case CMD_REGISTER_POSE_LISTENER:

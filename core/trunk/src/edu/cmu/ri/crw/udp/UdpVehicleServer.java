@@ -147,7 +147,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             UdpConstants.COMMAND cmd = UdpConstants.COMMAND.fromStr(command);
             
             // TODO: remove me
-            logger.log(Level.INFO, "Received command {0} [{1}:{2}]", new Object[]{req.ticket, command, UdpConstants.COMMAND.fromStr(command)});
+            //logger.log(Level.INFO, "Received command {0} [{1}:{2}]", new Object[]{req.ticket, command, UdpConstants.COMMAND.fromStr(command)});
 
             // Handle one-way commands (asynchronous events)
             switch (cmd) {
