@@ -390,7 +390,7 @@ public class AirboatActivity extends Activity {
 			@Override
 			public void run() {
 				failsafeToggle.setChecked(AirboatFailsafeService.isRunning);
-				failsafeToggle.setEnabled(true);
+				failsafeToggle.setEnabled(AirboatService.isRunning);
 				handler.postDelayed(this, 300);
 			}
 		}, 0);
