@@ -30,7 +30,7 @@ public class UdpConstants {
     public static final int NO_TICKET = -1;
 
     public static final int INITIAL_PACKET_SIZE = 512;
-    public static final int MAX_PACKET_SIZE = 16777216;
+    public static final int MAX_PACKET_SIZE = 65507;
     public static final String CMD_ACKNOWLEDGE = "OK";
 
     /**
