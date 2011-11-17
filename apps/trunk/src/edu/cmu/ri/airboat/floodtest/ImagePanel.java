@@ -10,6 +10,7 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.crw.data.UtmPose;
 import java.awt.GridLayout;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
@@ -26,7 +27,7 @@ import javax.imageio.ImageIO;
  */
 public class ImagePanel extends javax.swing.JPanel {
 
-    private static PriorityBlockingQueue<ImageComparable> queue = new PriorityBlockingQueue<ImageComparable>();
+    private static PriorityBlockingQueue<BufferedImageWithPose> queue = new PriorityBlockingQueue<BufferedImageWithPose>();
     private static File imagesDir = null;
 
     static void setImagesDirectory(String loc) {
@@ -50,7 +51,7 @@ public class ImagePanel extends javax.swing.JPanel {
         }
     }
 
-    public static void addImage(BufferedImage img) {
+    public static void addImage(BufferedImage img, UtmPose pose) {
 
         // Flip the image vertically
         AffineTransform tx = AffineTransform.getScaleInstance(1, -1);
@@ -79,7 +80,7 @@ public class ImagePanel extends javax.swing.JPanel {
         }
 
         if (queue.size() < 1000) {
-            queue.offer(new ImageComparable(img));
+            queue.offer(new BufferedImageWithPose(img, pose));
             queueP.setValue(Math.min(100, queue.size()));
         } else {
             System.out.println("No longer queuing images, queue is full");
@@ -95,28 +96,9 @@ public class ImagePanel extends javax.swing.JPanel {
         }
         return null;
     }
-    private static long count = 0L;
-
-    private static class ImageComparable implements Comparable<ImageComparable> {
-
-        long c = count++;
-        private final BufferedImage img;
-
-        public ImageComparable(BufferedImage img) {
-            this.img = img;
-        }
-
-        public int compareTo(ImageComparable t) {
-            if (t.c > c) {
-                return 1;
-            } else if (t.c < c) {
-                return -1;
-            } else {
-                return 0;
-            }
-        }
-    }
-
+    
+    public static long count = 0L;
+    
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -204,4 +186,6 @@ public class ImagePanel extends javax.swing.JPanel {
     private static javax.swing.JProgressBar queueP;
     private static javax.swing.JSlider rateS;
     // End of variables declaration//GEN-END:variables
+
+    
 }

@@ -9,6 +9,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import javax.swing.JPanel;
@@ -26,9 +27,133 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
     double mean = 0.0;
     double maxExtent = 1.0;
     DecimalFormat df = new DecimalFormat("#.###");
+    ArrayList<double[]> prev = new ArrayList<double[]>();
+    
+    public BufferedImage makeBufferedImage() {
 
-    ArrayList<double []> prev = new ArrayList<double []>();
 
+        double width = getWidth();
+        double height = getHeight();
+
+        BufferedImage bimage = new BufferedImage((int) width, (int) height, BufferedImage.TYPE_INT_ARGB);
+
+        Graphics2D g2 = bimage.createGraphics();
+
+
+        double dx = width / autonomy.getWidth();
+        double dy = height / autonomy.getHeight();
+
+        if (autonomy == null) {
+            g2.drawString("No autonomy", 100, 100);
+        } else {
+            g2.clearRect(0, 0, (int) width, (int) height);
+
+            AutonomyController.LocationInfo[][] model = autonomy.getLocInfo();
+
+            int bx = (int) (width / model.length);
+            int by = (int) (height / model[0].length);
+
+            double prevMean = mean;
+            double prevMaxExtent = maxExtent;
+
+            for (int i = 0; i < model.length; i++) {
+                for (int j = 0; j < model[0].length; j++) {
+
+                    if (model[i][j] != null) {
+
+                        double v = 0.0;
+
+                        if (showMean) {
+                            v = model[i][j].getMean();
+                        } else {
+                            v = model[i][j].getStdDev();
+                        }
+
+                        g2.setColor(Color.black);
+                        g2.drawString(df.format(v), bx * i, (int) (height - by * (j + 1)));
+
+                        mean = (0.99 * mean) + (0.01 * v);
+
+                        if (maxExtent < Math.abs(mean - v)) {
+                            maxExtent *= 1.01;
+                        } else {
+                            maxExtent *= 0.999;
+                        }
+
+                        double alpha = Math.abs((prevMean - v) / prevMaxExtent);
+                        alpha = Math.min(1.0, alpha);
+
+                        if (v < prevMean) {
+                            g2.setColor(new Color(1.0f, 0.0f, 0.0f, (float) alpha));
+                        } else {
+                            g2.setColor(new Color(0.0f, 1.0f, 0.0f, (float) alpha));
+                        }
+
+                        // System.out.println("v = " + v + " mean = " + mean + " maxExtent=" + maxExtent + " alpha=" + alpha);
+
+                    } else {
+                        g2.setColor(Color.LIGHT_GRAY);
+                    }
+
+                    g2.fillRect(bx * i, (int) (height - by * (j + 1)), bx, by);
+
+                }
+            }
+
+            g2.setColor(Color.black);
+
+            double left = autonomy.ul[0];
+            double bottom = autonomy.lr[1];
+
+            for (double[] p : prev) {
+                g2.fillOval((int) ((p[0] - left) * dx), (int) (height - ((p[1] - bottom) * dy)), 5, 5);
+            }
+
+            // Draw boats
+            for (Integer boat : autonomy.getLocations().keySet()) {
+                double[] pose = autonomy.getBoatLocation(boat);
+
+                int x = (int) ((pose[0] - left) * dx);
+                int y = (int) ((pose[1] - bottom) * dy);
+
+                // System.out.println("Drawing at " + x + " " + y + " based on " + pose[1] + " " + dy + " " + height + " " + autonomy.getHeight());
+
+                g2.drawString("B" + boat, x, (int) (height - y));
+
+                double[][] plan = autonomy.getPlans().get(boat);
+
+                if (plan != null) {
+
+                    // g2.drawLine(x, (int)(height - y), (int) (plan[0][0] * dx), (int) (height - plan[0][1] * dy));
+
+                    for (int i = 1; i < plan.length; i++) {
+                        double[] ds = plan[i - 1];
+                        double[] de = plan[i];
+                        g2.drawLine((int) ((ds[0] - left) * dx), (int) (height - (ds[1] - bottom) * dy), (int) ((de[0] - left) * dx), (int) (height - (de[1] - bottom) * dy));
+                    }
+                }
+
+                prev.add(pose);
+                if (prev.size() > 200) {
+                    prev.remove(0);
+                }
+
+            }
+
+
+
+            // Draw obstacles
+            for (AutonomyController.Obstacle o : autonomy.getObstacles()) {
+                g2.fillRect((int) ((o.r.x - left) * dx), (int) (height - (o.r.y * dy) - (o.r.height * dy)), (int) (o.r.width * dx), (int) (o.r.height * dy));
+            }
+        }
+
+
+        return bimage;
+    }
+
+    
+    // @todo Replace this with a call to makeBufferedImage
     public void paint(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
 
@@ -102,16 +227,16 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
             double left = autonomy.ul[0];
             double bottom = autonomy.lr[1];
 
-            for (double [] p: prev) {
-                g2.fillOval((int)((p[0] - left) * dx), (int)(height - ((p[1]-bottom)*dy)), 5, 5);
+            for (double[] p : prev) {
+                g2.fillOval((int) ((p[0] - left) * dx), (int) (height - ((p[1] - bottom) * dy)), 5, 5);
             }
-            
+
             // Draw boats
             for (Integer boat : autonomy.getLocations().keySet()) {
                 double[] pose = autonomy.getBoatLocation(boat);
-                
-                int x = (int) ((pose[0]  - left) * dx);
-                int y = (int) ((pose[1]  - bottom) * dy);
+
+                int x = (int) ((pose[0] - left) * dx);
+                int y = (int) ((pose[1] - bottom) * dy);
 
                 // System.out.println("Drawing at " + x + " " + y + " based on " + pose[1] + " " + dy + " " + height + " " + autonomy.getHeight());
 
@@ -120,9 +245,9 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
                 double[][] plan = autonomy.getPlans().get(boat);
 
                 if (plan != null) {
-                    
+
                     // g2.drawLine(x, (int)(height - y), (int) (plan[0][0] * dx), (int) (height - plan[0][1] * dy));
-                    
+
                     for (int i = 1; i < plan.length; i++) {
                         double[] ds = plan[i - 1];
                         double[] de = plan[i];
@@ -131,7 +256,9 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
                 }
 
                 prev.add(pose);
-                if (prev.size() > 200) prev.remove(0);
+                if (prev.size() > 200) {
+                    prev.remove(0);
+                }
 
             }
 
@@ -139,7 +266,7 @@ public class GridDisplay extends JPanel implements AutonomyEventListener {
 
             // Draw obstacles
             for (AutonomyController.Obstacle o : autonomy.getObstacles()) {
-                g2.fillRect((int) ((o.r.x-left) * dx), (int) (height - (o.r.y * dy) - (o.r.height * dy)), (int) (o.r.width * dx), (int) (o.r.height * dy));
+                g2.fillRect((int) ((o.r.x - left) * dx), (int) (height - (o.r.y * dy) - (o.r.height * dy)), (int) (o.r.width * dx), (int) (o.r.height * dy));
             }
         }
     }

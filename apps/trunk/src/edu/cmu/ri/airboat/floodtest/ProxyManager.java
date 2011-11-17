@@ -4,10 +4,11 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.crw.CrwNetworkUtils;
 import gov.nasa.worldwind.render.markers.Marker;
 import java.awt.Color;
+import java.net.InetSocketAddress;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -36,7 +37,7 @@ public class ProxyManager {
     public static void setCameraRates(double d) {
         instance.setCameraRates(d);
     }
-    
+
     public BoatSimpleProxy getRandomProxy() {
 
         if (instance.boatProxies.isEmpty()) {
@@ -46,13 +47,17 @@ public class ProxyManager {
         return instance.boatProxies.get(rand.nextInt(instance.boatProxies.size()));
     }
 
+    public ArrayList<BoatSimpleProxy> getAll() {
+        return instance.boatProxies;
+    }
+
     public static void remove(BoatSimpleProxy proxy) {
         instance.remove(proxy);
     }
-    
-    public boolean createSimulatedBoatProxy(String name, URI uri, Color color) {        
-        
-        instance.createBoatProxy(name, uri, color);
+
+    public boolean createSimulatedBoatProxy(String name, InetSocketAddress addr, Color color) {
+
+        instance.createBoatProxy(name, addr, color);
 
         return true;
     }
@@ -61,9 +66,9 @@ public class ProxyManager {
 
         /*
         try {
-            instance.createBoatProxy(new URI("http://localhost:" + port), Material.YELLOW);
+        instance.createBoatProxy(new URI("http://localhost:" + port), Material.YELLOW);
         } catch (URISyntaxException e) {
-            System.out.println("Problem with URI: " + e);
+        System.out.println("Problem with URI: " + e);
         }
          * */
 
@@ -73,43 +78,39 @@ public class ProxyManager {
 
     public boolean createPhysicalBoatProxy(String name, String host, Color color) {
 
-        try {
-            System.out.println("Creating physical boat proxy");
-            instance.createBoatProxy(name, new URI(host), color);
-        } catch (URISyntaxException e) {
-            System.out.println("Problem with URI: " + e);
-        }
+        System.out.println("Creating physical boat proxy");
+        instance.createBoatProxy(name, CrwNetworkUtils.toInetSocketAddress(host), color);
+
         return true;
     }
 
     public void shutdown() {
         instance.shutdown();
     }
-    
+
     private static class Singleton {
 
         public ArrayList<Marker> markers = new ArrayList<Marker>();
         ArrayList<BoatSimpleProxy> boatProxies = new ArrayList<BoatSimpleProxy>();
-        HashMap<URI, BoatSimpleProxy> boatMap = new HashMap<URI, BoatSimpleProxy>();
+        HashMap<InetSocketAddress, BoatSimpleProxy> boatMap = new HashMap<InetSocketAddress, BoatSimpleProxy>();
         OperatorConsole console = null;
 
         public Singleton() {
-           
         }
-        
-        public void createBoatProxy(String name, URI uri, Color color) {
-        
+
+        public void createBoatProxy(String name, InetSocketAddress addr, Color color) {
+
             try {
-                BoatSimpleProxy proxy = new BoatSimpleProxy(name, markers, color, 1, uri, "vehicle_client" + (int) (new Random().nextInt(1000000)));               
+                BoatSimpleProxy proxy = new BoatSimpleProxy(name, markers, color, 1, addr);
                 boatProxies.add(proxy);
-                boatMap.put(uri, proxy);
-                
+                boatMap.put(addr, proxy);
+
                 if (console != null) {
                     console.setSelected(proxy);
                 }
-                
+
                 proxy.start();
-                
+
             } catch (Exception e) {
                 System.out.println("Creating proxy failed: " + e);
                 e.printStackTrace();
@@ -129,11 +130,11 @@ public class ProxyManager {
         public ArrayList<Marker> getMarkers() {
             return markers;
         }
-        
+
         public void setCameraRates(double d) {
             System.out.println("Setting camera speeds to " + d);
             for (BoatSimpleProxy p : boatProxies) {
-                p._server.stopCamera();
+                p._server.stopCamera(null);
                 p._server.startCamera(0, d, 640, 480, null);
             }
         }
@@ -146,7 +147,7 @@ public class ProxyManager {
 
         private void shutdown() {
             for (BoatSimpleProxy p : boatProxies) {
-                p._server.stopCamera();
+                p._server.stopCamera(null);
                 p._server.shutdown();
             }
         }

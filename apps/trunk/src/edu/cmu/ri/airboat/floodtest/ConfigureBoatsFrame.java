@@ -11,23 +11,19 @@
 package edu.cmu.ri.airboat.floodtest;
 
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.ros.RosVehicleServer;
+import edu.cmu.ri.crw.data.Utm;
+import edu.cmu.ri.crw.data.UtmPose;
+import edu.cmu.ri.crw.udp.UdpVehicleService;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.Color;
-import java.io.File;
-import java.net.URI;
+import java.net.InetSocketAddress;
 import java.security.AccessControlException;
 import java.util.Random;
 import java.util.prefs.Preferences;
 import javax.swing.JColorChooser;
 import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.plaf.FileChooserUI;
-import org.ros.RosCore;
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.node.NodeConfiguration;
-import org.ros.node.NodeRunner;
+import robotutils.Pose3D;
 
 /**
  *
@@ -286,7 +282,7 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
         jLabel9.setText("Lat");
 
-        latSim.setText("14.22");
+        latSim.setText("40.441");
         latSim.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 latSimActionPerformed(evt);
@@ -295,7 +291,7 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
         jLabel10.setText("Lon");
 
-        lonSim.setText("121.28");
+        lonSim.setText("-80.014");
 
         createSimB.setText("Create");
         createSimB.addActionListener(new java.awt.event.ActionListener() {
@@ -526,6 +522,7 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
         for (int i = 0; i < count; i++) {
 
+            /*
             // Start a local ros core
             RosCore core = RosCore.newPublic(port + i);
             NodeRunner.newDefault().run(core, NodeConfiguration.newPrivate());
@@ -536,10 +533,14 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
             //URI masterUri = new URI("http://localhost:11311");
             System.out.println("Master URI: " + masterUri);
 
+             * 
+             */
+            
             // Create a simulated boat and run a ROS server around it
             VehicleServer server = new FastSimpleBoatSimulator();
 
-            RosVehicleServer rosServer = new RosVehicleServer(masterUri, "vehicle", server);
+            // @todo Can specify port?
+            UdpVehicleService rosServer = new UdpVehicleService(port + i, server);
 
             // Create a ROS proxy server that accesses the same object
             // RosVehicleProxy proxyServer = new RosVehicleProxy(masterUri, "vehicle_client");
@@ -548,24 +549,16 @@ public class ConfigureBoatsFrame extends javax.swing.JFrame {
 
             UTMCoord utm = UTMCoord.fromLatLon(Angle.fromDegrees(lat), Angle.fromDegrees(lon));
 
-            UtmPose p1 = new UtmPose();
-            p1.utm.zone = (byte) utm.getZone();
-            p1.pose.position.x = utm.getEasting();
-            p1.pose.position.y = utm.getNorthing();
-            p1.utm.isNorth = utm.getHemisphere().contains("North");
+            UtmPose p1 = new UtmPose(new Pose3D(utm.getEasting(), utm.getNorthing(), 0.0, 0.0, 0.0, 0.0), new Utm(utm.getZone(), utm.getHemisphere().contains("North")));            
 
-            server.setState(p1);
-
-            UtmPose p = new UtmPose();
-            p.pose.position.x = 10.0;
-            p.pose.position.y = 60.0;
+            server.setPose(p1);
 
             // Tmp, we don't really want to save sim images
             ImagePanel.setImagesDirectory(imagesF.getText());
 
             // @todo shutdown
 
-            proxyManager.createSimulatedBoatProxy(nameF.getText(), masterUri, colorB.getBackground());
+            proxyManager.createSimulatedBoatProxy(nameF.getText(), new InetSocketAddress("localhost", port + i), colorB.getBackground());
         }
 
         simPortNo.setValue(port + count);

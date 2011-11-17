@@ -4,16 +4,19 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
-import edu.cmu.ri.crw.ImagingObserver;
-import edu.cmu.ri.crw.QuaternionUtils;
-import edu.cmu.ri.crw.VehicleImageListener;
-import edu.cmu.ri.crw.VehicleSensorListener;
+import edu.cmu.ri.airboat.buoytest.BuoyManager;
+import edu.cmu.ri.airboat.irrigationtest.Observation;
+import edu.cmu.ri.crw.FunctionObserver;
+import edu.cmu.ri.crw.FunctionObserver.FunctionError;
+import edu.cmu.ri.crw.ImageListener;
+import edu.cmu.ri.crw.PoseListener;
+import edu.cmu.ri.crw.SensorListener;
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.VehicleServer.CameraState;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
-import edu.cmu.ri.crw.VehicleStateListener;
-import edu.cmu.ri.crw.WaypointObserver;
-import edu.cmu.ri.crw.ros.RosVehicleProxy;
+import edu.cmu.ri.crw.data.SensorData;
+import edu.cmu.ri.crw.data.Utm;
+import edu.cmu.ri.crw.data.UtmPose;
+import edu.cmu.ri.crw.udp.UdpVehicleServer;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.LatLon;
 import gov.nasa.worldwind.geom.Position;
@@ -23,24 +26,23 @@ import gov.nasa.worldwind.render.Material;
 import gov.nasa.worldwind.render.Polygon;
 import gov.nasa.worldwind.render.Polyline;
 import gov.nasa.worldwind.render.ShapeAttributes;
-import gov.nasa.worldwind.render.markers.BasicMarker;
 import gov.nasa.worldwind.render.markers.BasicMarkerAttributes;
 import gov.nasa.worldwind.render.markers.BasicMarkerShape;
 import gov.nasa.worldwind.render.markers.Marker;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.imageio.ImageIO;
-import org.ros.message.crwlib_msgs.SensorData;
-import org.ros.message.crwlib_msgs.UtmPose;
-import org.ros.message.crwlib_msgs.UtmPoseWithCovarianceStamped;
-import org.ros.message.sensor_msgs.CompressedImage;
+import javax.swing.DefaultComboBoxModel;
+import robotutils.Pose3D;
 
 /**
  * @todo Need a flag for autonomous or under human control
@@ -69,11 +71,13 @@ public class BoatSimpleProxy extends Thread {
     private double fuelUsageRate = 1.0e-2;
     // ROS update
     private boolean _waypointsWereUpdated;
-    VehicleStateListener _stateListener;
-    VehicleSensorListener _sensorListener;
+    PoseListener _stateListener;
+    SensorListener _sensorListener;
     int _boatNo;
     UtmPose _pose;
     volatile boolean _isShutdown = false;
+    // Latest image returned from this boat
+    private BufferedImage latestImg = null;
 
     //
     // New Control variables
@@ -88,15 +92,20 @@ public class BoatSimpleProxy extends Thread {
     private StateEnum state = StateEnum.IDLE;
     final Queue<UtmPose> _waypoints = new LinkedList<UtmPose>();
     private UtmPose currentWaypoint = null;
-    RosVehicleProxy _server;
+    UdpVehicleServer _server;
     private Polygon currentArea = null;
     private Polyline currentPath = null;
     private Color color = null;
     private URI masterURI = null;
     Marker marker = null;
     Marker waypointMarker = null;
-
-    public BoatSimpleProxy(final String name, final ArrayList<Marker> markers, Color color, final int boatNo, URI masterURI, String nodeName) throws URISyntaxException {
+    
+    // @todo Temporary centralized data structure, make it a listener
+    public static DataDisplay dataDisplay = null;
+    // @todo Temporary centralized data structure, make it a listener
+    public static BuoyManager buoyManager = null;
+    
+    public BoatSimpleProxy(final String name, final ArrayList<Marker> markers, Color color, final int boatNo, InetSocketAddress addr) {
 
         this.masterURI = masterURI;
         this.name = name;
@@ -107,33 +116,34 @@ public class BoatSimpleProxy extends Thread {
         //Initialize the boat by initalizing a proxy server for it
         // Connect to boat
         _boatNo = boatNo;
-        _server = new RosVehicleProxy(masterURI, nodeName);
+        
+        if (addr == null) {
+            System.out.println("$$$$$$$$$$$$$$$$$$$$$ addr falied");
+        }
+        
+        _server = new UdpVehicleServer(addr);
 
-        _stateListener = new VehicleStateListener() {
+        _stateListener = new PoseListener() {
 
-            public void receivedState(UtmPoseWithCovarianceStamped upwcs) {
-                _pose = new UtmPose();
-                _pose.pose = upwcs.pose.pose.pose.clone();
-                _pose.utm = upwcs.utm.clone();
-
+            public void receivedPose(UtmPose upwcs) {
+                _pose = upwcs.clone();
+                
                 if (home == null && USE_SOFTWARE_FAIL_SAFE) {
-                    home = new UtmPose();
-                    home.pose = upwcs.pose.pose.pose.clone();
-                    home.utm = upwcs.utm.clone();
+                    home = upwcs.clone();
                 }
 
                 // System.out.println("Pose: [" + _pose.pose.position.x + ", " + _pose.pose.position.y + "], zone = " + _pose.utm.zone);
 
                 try {
 
-                    int longZone = _pose.utm.zone;
+                    int longZone = _pose.origin.zone;
 
                     // Convert hemisphere to arbitrary worldwind codes
-                    String wwHemi = (_pose.utm.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
+                    String wwHemi = (_pose.origin.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
 
                     // Fill in UTM data structure
                     // System.out.println("Converting from " + longZone + " " + wwHemi + " " + _pose.pose.position.x + " " + _pose.pose.position.y);
-                    UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, _pose.pose.position.x, _pose.pose.position.y);
+                    UTMCoord boatPos = UTMCoord.fromUTM(longZone, wwHemi, _pose.pose.getX(), _pose.pose.getY());
 
                     // UTMCoord boatPos = UTMCoord.fromLatLon(Angle.fromDegrees(14.22), Angle.fromDegrees(121.32));
                     // System.out.println("Boatpos: " + boatPos.getHemisphere() + " " + boatPos.getZone() + " " + boatPos.getLatitude() + " " + boatPos.getLongitude());
@@ -147,8 +157,9 @@ public class BoatSimpleProxy extends Thread {
                         markers.add(marker);
                     }
                     marker.setPosition(p);
-                    marker.setHeading(Angle.fromRadians(Math.PI / 2.0 - QuaternionUtils.toYaw(_pose.pose.orientation)));
+                    marker.setHeading(Angle.fromRadians(Math.PI / 2.0 - _pose.pose.getRotation().toYaw()));
 
+                    /** @todo FIX
                     UtmPose wpPose = _server.getWaypoint();
 
                     if (wpPose != null && !(wpPose.utm.zone == 0 && wpPose.pose.position.x == 0.0)) {
@@ -174,8 +185,10 @@ public class BoatSimpleProxy extends Thread {
                         waypointMarker = null;
                     }
 
+                     */
+                    
                 } catch (Exception e) {
-                    System.err.println("BoatSimpleProxy: Invalid pose received: " + e + " Pose: [" + _pose.pose.position.x + ", " + _pose.pose.position.y + "], zone = " + _pose.utm.zone);
+                    System.err.println("BoatSimpleProxy: Invalid pose received: " + e + " Pose: [" + _pose.pose.getX() + ", " + _pose.pose.getY() + "], zone = " + _pose.origin.zone);
                 }
 
 
@@ -185,41 +198,95 @@ public class BoatSimpleProxy extends Thread {
             }
         };
 
-        _sensorListener = new VehicleSensorListener() {
+        _sensorListener = new SensorListener() {
+
+            boolean first = true;
 
             public void receivedSensor(SensorData sd) {
-                //TODO Perform Sensor value assignment correctly
+
+                System.out.println("Received sensor");
                 //Since the sensor Update is called just after state update
                 //There shouldn't be too much error with regards to the
                 //position of the sampling point
 
-                /* @todo Observation handling commented out
-                try {
-                Observation o = new Observation(
-                "Sensor" + sd.type,
-                sd.data[0],
-                UtmPoseToDouble(_pose.pose),
-                _pose.utm.zone,
-                _pose.utm.isNorth);
-                
-                System.out.println("Data:" + sd.data[0]);
-                reportObs(o);
-                
-                } catch (NullPointerException e) {
-                System.out.println("Problem in receivedSensor, null pointer " + sd + " " + _pose);
+                if (first) {
+                    // @todo Inelegant creation of the model, need to get feed names.
+                    first = false;
+                    DefaultComboBoxModel model = new DefaultComboBoxModel();
+                    model.addElement("None");
+                    for (int i = 0; i < sd.data.length; i++) {
+                        model.addElement(i);
+                    }
+                    AutonomyPanel.dataSelectCombo.setModel(model);
                 }
-                 * 
-                 */
+
+                // @todo Observation handling is a hack (centralized, assumes all have data display)
+                try {
+
+                    if (dataDisplay != null) {
+                        for (int i = 0; i < sd.data.length; i++) {
+                            Observation o = new Observation(
+                                    "Sensor" + sd.type,
+                                    sd.data[i],
+                                    UtmPoseToDouble(_pose.pose),
+                                    _pose.origin.zone, _pose.origin.isNorth);
+
+                            System.out.println("Data " + i + " = " + sd.data[i]);
+
+                            dataDisplay.newObservation(o, i);
+                        }
+
+                    } else {
+                        // System.out.println("Nothing to do with observation");
+                    }
+
+                } catch (NullPointerException e) {
+                    System.out.println("Problem in receivedSensor, null pointer " + sd + " " + _pose);
+                }
+            }
+
+            // @todo Check if this is right
+            double[] UtmPoseToDouble(Pose3D p) {
+                double[] d = new double[3];
+                d[0] = p.getX();
+                d[1] = p.getY();
+                d[2] = p.getZ();
+                return d;
             }
         };
 
         System.out.println("New boat created, boat # " + _boatNo);
 
         //add Listeners
-        _server.addStateListener(_stateListener);
+        _server.addPoseListener(_stateListener, null);
 
         // This is causing a null pointer exception
         // _server.addSensorListener(0, _sensorListener);
+        // Cheating dummy data
+        (new Thread() {
+
+            Random rand = new Random();
+
+            public void run() {
+                while (true) {
+
+                    SensorData sd = new SensorData();
+                    // @todo Observation
+                    // sd.type = (byte) 0;
+                    sd.data = new double[4];
+                    for (int i = 0; i < sd.data.length; i++) {
+                        sd.data[i] = rand.nextDouble();
+                    }
+
+                    _sensorListener.receivedSensor(sd);
+
+                    try {
+                        sleep(1000L);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
+        }).start();
 
     }
 
@@ -232,15 +299,21 @@ public class BoatSimpleProxy extends Thread {
         }
         System.out.println("DONE SLEEPING BEFORE CAMERA START");
 
-        _server.addImageListener(new VehicleImageListener() {
+        _server.addImageListener(new ImageListener() {
 
-            public void receivedImage(CompressedImage ci) {
+            public void receivedImage(byte [] ci) {
                 // Take a picture, and put the resulting image into the panel
                 try {
-                    BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(ci.data));
-                    System.out.println("Got image ... ");
+                    BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(ci));
+                    // System.out.println("Got image ... ");
                     if (image != null) {
-                        ImagePanel.addImage(image);
+                        ImagePanel.addImage(image, _pose);
+                        
+                        if (buoyManager != null) {
+                            buoyManager.newImaage(image, _pose);
+                        }
+                        
+                        latestImg = image;
                     } else {
                         System.err.println("Failed to decode image.");
                     }
@@ -249,15 +322,9 @@ public class BoatSimpleProxy extends Thread {
                 }
 
             }
-        });
+        }, null);
 
-        _server.startCamera(0, 10.0, 640, 480, new ImagingObserver() {
-
-            @Override
-            public void imagingUpdate(CameraState status) {
-                System.err.println("IMAGES: " + status);
-            }
-        });
+        _server.startCamera(0, 10.0, 640, 480, null);
 
         System.out.println("Image listener started");
 
@@ -274,7 +341,7 @@ public class BoatSimpleProxy extends Thread {
         // @todo How to stop the boat
 
         _waypoints.clear();
-        _server.stopWaypoint();
+        _server.stopWaypoints(null);
 
         clearRenderables();
 
@@ -313,11 +380,7 @@ public class BoatSimpleProxy extends Thread {
 
         for (Position position : ps) {
             UTMCoord utm = UTMCoord.fromLatLon(position.latitude, position.longitude);
-            UtmPose pose = new UtmPose();
-            pose.pose.position.x = utm.getEasting();
-            pose.pose.position.y = utm.getNorthing();
-            pose.utm.isNorth = utm.getHemisphere().contains("North");
-            pose.utm.zone = (byte) utm.getZone();
+            UtmPose pose = new UtmPose(new Pose3D(utm.getEasting(), utm.getNorthing(), 0.0, 0.0, 0.0, 0.0), new Utm(utm.getZone(), utm.getHemisphere().contains("North")));                        
             _waypoints.add(pose);
         }
 
@@ -334,12 +397,7 @@ public class BoatSimpleProxy extends Thread {
         }
 
         UTMCoord utm = UTMCoord.fromLatLon(p.latitude, p.longitude);
-
-        UtmPose wputm = new UtmPose();
-        wputm.pose.position.x = utm.getEasting();
-        wputm.pose.position.y = utm.getNorthing();
-        wputm.utm.isNorth = utm.getHemisphere().contains("North");
-        wputm.utm.zone = (byte) utm.getZone();
+        UtmPose wputm = new UtmPose(new Pose3D(utm.getEasting(), utm.getNorthing(), 0.0, 0.0, 0.0, 0.0), new Utm(utm.getZone(), utm.getHemisphere().contains("North")));            
 
         System.out.println("Setting waypoint for " + this + " to " + wputm);
 
@@ -361,14 +419,28 @@ public class BoatSimpleProxy extends Thread {
             }
         }
 
-        if (!_server.isAutonomous()) {
-            _server.setAutonomous(true);
-        }
+         _server.setAutonomous(true, null);
+                 
+        _server.isAutonomous(new FunctionObserver<Boolean>() {
 
+            public void completed(Boolean v) {
+                if (!v) {
+                    _server.setAutonomous(true, null);
+                }
+            }
 
-
+            public void failed(FunctionError fe) {
+                System.out.println("Don't know what to do, setting autonomous failed:  " + fe);
+            }
+        });
+          
         currentWaypoint = wputm;
-        _server.startWaypoint(wputm, null, new WaypointObserver() {
+        // @todo Register a waypoint listener to get the same status updates (and know at the end of the waypoints)
+        
+        
+        _server.startWaypoints(new UtmPose[] {wputm}, null, null);
+
+/*, new WaypointObserver() {
 
             int goingCounter = 0;
             int resendRate = 20;
@@ -379,9 +451,6 @@ public class BoatSimpleProxy extends Thread {
                     setWaypoint(_waypoints.poll());
                 } else if (status == WaypointState.GOING) {
                     ++goingCounter;
-                    /*if (goingCounter >= resendRate) {
-                    setWaypoint(currentWaypoint);
-                    }*/
                     System.out.println("GOING");
                 } else {
                     if (status == WaypointState.CANCELLED && goingCounter >= resendRate) {
@@ -392,7 +461,7 @@ public class BoatSimpleProxy extends Thread {
                 }
             }
         });
-
+  */      
     }
 
     public void setArea(Polygon poly) {
@@ -431,6 +500,58 @@ public class BoatSimpleProxy extends Thread {
         state = StateEnum.AREA;
     }
 
+    public static void initDataDisply(double[] ul, double[] br, Polygon pgon, final List list) {
+
+        dataDisplay = new DataDisplay(ul, br);
+
+        // @todo Ugly static connection between autonomy panel and boat simple proxy
+        AutonomyPanel.dataSelectCombo.setEnabled(true);
+
+        (new Thread() {
+            
+            public void run() {
+                while (true) {
+
+                    int index = 0;
+
+                    // @todo Fix hack way of getting index
+                    index = AutonomyPanel.dataSelectCombo.getSelectedIndex() - 1;
+
+                    BufferedImage img = null;
+
+                    if (index >= 0) {
+                        img = dataDisplay.makeBufferedImage(index);
+                    }
+
+                    if (img != null) {
+                        OperatorConsole.imageLayer.addImage("Data", img, list);
+                    }
+                    // System.out.println("Updated sensor data");
+
+                    try {
+                        sleep(1000);
+                    } catch (InterruptedException e) {
+                    }
+
+                    if (img != null) {
+                        OperatorConsole.imageLayer.removeImage("Data");
+                    }
+                }
+
+
+            }
+        }).start();
+    }
+
+    public static void initBuoyDetection(ArrayList<LatLon> buoys, Polygon pgon) {
+        buoyManager = new BuoyManager(buoys, pgon);
+        
+    }
+    
+    public static void showBuoyCheckFrame() {
+        buoyManager.showProcessingFrame();
+    }
+    
     public Position getCurrWaypoint() {
         return currWaypoint;
     }
@@ -441,6 +562,10 @@ public class BoatSimpleProxy extends Thread {
 
     public Color getColor() {
         return color;
+    }
+
+    public BufferedImage getLatestImg() {
+        return latestImg;
     }
 
     private boolean at(Position p1, Position p2) {
@@ -463,7 +588,7 @@ public class BoatSimpleProxy extends Thread {
 
     }
 
-    public VehicleServer getVehicleServer() {
+    public UdpVehicleServer getVehicleServer() {
         return _server;
     }
 
