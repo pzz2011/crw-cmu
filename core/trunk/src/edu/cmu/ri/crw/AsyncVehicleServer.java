@@ -7,6 +7,8 @@ import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * A variant of VehicleServer in which methods are asynchronous, and allows the
@@ -70,165 +72,370 @@ public interface AsyncVehicleServer {
              */
             public static AsyncVehicleServer toAsync(final VehicleServer server) {
                 return new AsyncVehicleServer() {
+                    
+                    ExecutorService executor = Executors.newCachedThreadPool();
 
                     @Override
-                    public void addPoseListener(PoseListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void addPoseListener(final PoseListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.addPoseListener(l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void removePoseListener(PoseListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void removePoseListener(final PoseListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.removePoseListener(l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void setPose(UtmPose state, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void setPose(final UtmPose state, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.setPose(state);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void getPose(FunctionObserver<UtmPose> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void getPose(final FunctionObserver<UtmPose> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.getPose());
+                            }
+                        });
                     }
 
                     @Override
-                    public void addImageListener(ImageListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void addImageListener(final ImageListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.addImageListener(l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void removeImageListener(ImageListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void removeImageListener(final ImageListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.removeImageListener(l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void captureImage(int width, int height, FunctionObserver<byte[]> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void captureImage(final int width, final int height, final FunctionObserver<byte[]> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.captureImage(width, height));
+                            }
+                        });
                     }
 
                     @Override
-                    public void addCameraListener(CameraListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void addCameraListener(final CameraListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.addCameraListener(l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void removeCameraListener(CameraListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void removeCameraListener(final CameraListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.removeCameraListener(l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void startCamera(int numFrames, double interval, int width, int height, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void startCamera(final int numFrames, final double interval, final int width, final int height, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.startCamera(numFrames, interval, width, height);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void stopCamera(FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void stopCamera(final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.stopCamera();
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void getCameraStatus(FunctionObserver<CameraState> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void getCameraStatus(final FunctionObserver<CameraState> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.getCameraStatus());
+                            }
+                        });
                     }
 
                     @Override
-                    public void addSensorListener(int channel, SensorListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void addSensorListener(final int channel, final SensorListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.addSensorListener(channel, l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void removeSensorListener(int channel, SensorListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void removeSensorListener(final int channel, final SensorListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.removeSensorListener(channel, l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void setSensorType(int channel, SensorType type, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void setSensorType(final int channel, final SensorType type, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.setSensorType(channel, type);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void getSensorType(int channel, FunctionObserver<SensorType> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void getSensorType(final int channel, final FunctionObserver<SensorType> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.getSensorType(channel));
+                            }
+                        });
                     }
 
                     @Override
-                    public void getNumSensors(FunctionObserver<Integer> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void getNumSensors(final FunctionObserver<Integer> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.getNumSensors());
+                            }
+                        });
                     }
 
                     @Override
-                    public void addVelocityListener(VelocityListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void addVelocityListener(final VelocityListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.addVelocityListener(l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void removeVelocityListener(VelocityListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void removeVelocityListener(final VelocityListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.removeVelocityListener(l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void setVelocity(Twist velocity, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void setVelocity(final Twist velocity, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.setVelocity(velocity);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void getVelocity(FunctionObserver<Twist> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void getVelocity(final FunctionObserver<Twist> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.getVelocity());
+                            }
+                        });
                     }
 
                     @Override
-                    public void addWaypointListener(WaypointListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void addWaypointListener(final WaypointListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.addWaypointListener(l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void removeWaypointListener(WaypointListener l, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void removeWaypointListener(final WaypointListener l, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.removeWaypointListener(l);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void startWaypoints(UtmPose[] waypoint, String controller, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void startWaypoints(final UtmPose[] waypoint, final String controller, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.startWaypoints(waypoint, controller);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void stopWaypoints(FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void stopWaypoints(final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.stopWaypoints();
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void getWaypoints(FunctionObserver<UtmPose[]> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void getWaypoints(final FunctionObserver<UtmPose[]> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.getWaypoints());
+                            }
+                        });
                     }
 
                     @Override
-                    public void getWaypointStatus(FunctionObserver<WaypointState> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void getWaypointStatus(final FunctionObserver<WaypointState> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.getWaypointStatus());
+                            }
+                        });
                     }
 
                     @Override
-                    public void isConnected(FunctionObserver<Boolean> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void isConnected(final FunctionObserver<Boolean> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.isConnected());
+                            }
+                        });
                     }
 
                     @Override
-                    public void isAutonomous(FunctionObserver<Boolean> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void isAutonomous(final FunctionObserver<Boolean> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.isAutonomous());
+                            }
+                        });
                     }
 
                     @Override
-                    public void setAutonomous(boolean auto, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void setAutonomous(final boolean auto, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.setAutonomous(auto);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void setGains(int axis, double[] gains, FunctionObserver<Void> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void setGains(final int axis, final double[] gains, final FunctionObserver<Void> obs) {
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                server.setGains(axis, gains);
+                                if (obs != null) obs.completed(null);
+                            }
+                        });
                     }
 
                     @Override
-                    public void getGains(int axis, FunctionObserver<double[]> obs) {
-                        throw new UnsupportedOperationException("Not supported yet.");
+                    public void getGains(final int axis, final FunctionObserver<double[]> obs) {
+                        if (obs == null) return;
+                        
+                        executor.submit(new Runnable() {
+                            @Override
+                            public void run() {
+                                obs.completed(server.getGains(axis));
+                            }
+                        });
                     }
                 };
             }
