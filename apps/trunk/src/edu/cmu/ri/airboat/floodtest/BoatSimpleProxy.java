@@ -419,25 +419,11 @@ public class BoatSimpleProxy extends Thread {
             }
         }
 
-         _server.setAutonomous(true, null);
-                 
-        _server.isAutonomous(new FunctionObserver<Boolean>() {
-
-            public void completed(Boolean v) {
-                if (!v) {
-                    _server.setAutonomous(true, null);
-                }
-            }
-
-            public void failed(FunctionError fe) {
-                System.out.println("Don't know what to do, setting autonomous failed:  " + fe);
-            }
-        });
-          
         currentWaypoint = wputm;
         // @todo Register a waypoint listener to get the same status updates (and know at the end of the waypoints)
         
         
+        _server.setAutonomous(true, null);
         _server.startWaypoints(new UtmPose[] {wputm}, null, null);
 
 /*, new WaypointObserver() {
