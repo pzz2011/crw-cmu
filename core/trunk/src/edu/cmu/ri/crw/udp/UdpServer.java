@@ -9,8 +9,10 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +50,8 @@ public class UdpServer {
     private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
 
     final DatagramSocket _socket;
-    final DelayQueue<QueuedResponse> _responses;
+    final DelayQueue<QueuedResponse> _responses = new DelayQueue<QueuedResponse>();
+    final List<Long> _oldTickets = new ArrayList<Long>(UdpConstants.TICKET_CACHE_SIZE);
     RequestHandler _handler;
     
     public UdpServer() {
@@ -60,9 +63,7 @@ public class UdpServer {
             logger.severe("Unable to open desired UDP socket.");
             throw new RuntimeException("Unable to open desired UDP socket.", e);
         }
-        
         _socket = socket;
-        _responses = new DelayQueue<QueuedResponse>();
     }
     
     public UdpServer(int port) {
@@ -74,9 +75,7 @@ public class UdpServer {
             logger.severe("Unable to open desired UDP socket.");
             throw new RuntimeException("Unable to open desired UDP socket.", e);
         }
-        
         _socket = socket;
-        _responses = new DelayQueue<QueuedResponse>();
     }
     
     public void start() {
@@ -274,9 +273,18 @@ public class UdpServer {
                             // TODO: more elegant error message
                             throw new RuntimeException("This shouldn't happen.", e);
                         }
+                        
+                        // If we have seen this ticket before, ignore it
+                        if (_oldTickets.contains(request.ticket)) {
+                            continue;
+                        } else {            
+                            if (_oldTickets.size() >= UdpConstants.TICKET_CACHE_SIZE) 
+                                _oldTickets.remove(0);
+                            _oldTickets.add(request.ticket);
+                        }
                     }
                     
-                    // Pass this request along to the handler
+                    // Pass this request along to the handler 
                     if (_handler != null) {
                         _handler.received(request);
                     }
