@@ -32,7 +32,7 @@ public class FastSimpleBoatSimulator extends SimpleBoatSimulator {
             final double dt = (double) UPDATE_INTERVAL_MS / 1000.0;
 
             // Retrieve the appropriate controller in initializer
-            VehicleController vc = SimpleBoatController.STOP.controller;
+            VehicleController vc = SimpleBoatController.POINT_AND_SHOOT.controller;
             {
                 try {
                     vc = SimpleBoatController.valueOf(controller).controller;
