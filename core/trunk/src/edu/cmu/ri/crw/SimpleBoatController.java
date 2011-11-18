@@ -64,6 +64,11 @@ public enum SimpleBoatController {
             // Set the desired velocity
             server.setVelocity(twist);
         }
+        
+        @Override
+        public String toString() {
+            return SimpleBoatController.POINT_AND_SHOOT.toString();
+        }
     }),
     
     /**
@@ -76,6 +81,11 @@ public enum SimpleBoatController {
         public void update(VehicleServer server, double dt) {
             server.setVelocity(new Twist());
 
+        }
+        
+        @Override
+        public String toString() {
+            return SimpleBoatController.STOP.toString();
         }
     }),
     
@@ -182,6 +192,10 @@ public enum SimpleBoatController {
             return novelty;
         }
         
+        @Override
+        public String toString() {
+            return SimpleBoatController.SHOOT_ON_MOVE.toString();
+        }      
     });
     
     /**
