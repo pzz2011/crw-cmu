@@ -262,7 +262,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             }
             
             // For two-way commands (functions), check for a ticket
-            FunctionObserver obs = _ticketMap.get(req.ticket);
+            FunctionObserver obs = _ticketMap.remove(req.ticket);
             if (obs == null) return;
             
             // If one exists, dispatch the command
@@ -331,7 +331,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     @Override
     public void timeout(long ticket, SocketAddress destination) {
-        FunctionObserver obs = _ticketMap.get(ticket);
+        FunctionObserver obs = _ticketMap.remove(ticket);
         if (obs != null) {
             obs.failed(FunctionObserver.FunctionError.TIMEOUT);
         }
