@@ -23,10 +23,10 @@ public class UdpConstants {
     public static final int REGISTRATION_RATE_MS = 1000;
     public static final int REGISTRATION_TIMEOUT_COUNT = 5;
 
-    public static final int RETRY_RATE_MS = 500;
-    public static final long RETRY_RATE_NS = TimeUnit.NANOSECONDS.convert(RETRY_RATE_MS, TimeUnit.MILLISECONDS);
-    public static final int RETRY_COUNT = 3;
-    public static final long TIMEOUT_NS = (RETRY_COUNT + 1) * RETRY_RATE_NS;
+    public static final long INITIAL_RETRY_RATE_NS = TimeUnit.NANOSECONDS.convert(300, TimeUnit.MILLISECONDS);
+    public static final long RETRANSMISSION_DELAY_NS = TimeUnit.NANOSECONDS.convert(5, TimeUnit.MILLISECONDS);;
+    public static final int RETRY_COUNT = 4;
+    public static final long TIMEOUT_NS = (RETRY_COUNT + 1) * INITIAL_RETRY_RATE_NS;
     public static final int NO_TICKET = -1;
     public static final int TICKET_CACHE_SIZE = 100;
 
