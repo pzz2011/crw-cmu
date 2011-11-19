@@ -52,6 +52,10 @@ public class UdpServer {
     final DatagramSocket _socket;
     final DelayQueue<QueuedResponse> _responses = new DelayQueue<QueuedResponse>();
     final List<Long> _oldTickets = new ArrayList<Long>(UdpConstants.TICKET_CACHE_SIZE);
+    
+    final Object _retransmissionLock = new Object();
+    long _retransmissionTimeout = UdpConstants.INITIAL_RETRY_RATE_NS;
+    
     RequestHandler _handler;
     
     public UdpServer() {
@@ -191,17 +195,20 @@ public class UdpServer {
         public final SocketAddress destination;
         public final byte[] bytes;
         public final long ticket;
-        public int ttl = UdpConstants.RETRY_COUNT;
-        public long timeout = System.nanoTime() + UdpConstants.RETRY_RATE_NS;
+        public final long sentTime = System.nanoTime();
+        private int ttl = UdpConstants.RETRY_COUNT;
+        private long timeout;
         
-        public QueuedResponse(Response resp) {
+        public QueuedResponse(Response resp, long delay) {
             destination = resp.destination;
             bytes = resp.getBytes();
             ticket = resp.ticket;
+            
+            resetDelay(delay);
         }
 
-        public void resetDelay() {
-            timeout = System.nanoTime() + UdpConstants.RETRY_RATE_NS;
+        public final void resetDelay(long delay) {
+            timeout = System.nanoTime() + delay;
         }
 
         @Override
@@ -324,7 +331,7 @@ public class UdpServer {
                 // Decrement TTL and reset timeout for retransmission
                 if (response.ttl > 0) {
                     response.ttl--;
-                    response.resetDelay();
+                    response.resetDelay(getRetransmissionTimeout());
                     _responses.offer(response);
                 } else {
                     // If the TTL is at zero, report a transmission loss
@@ -333,6 +340,31 @@ public class UdpServer {
                     }
                 }
             }
+        }
+    }
+    
+    /**
+     * Retrieves the current retransmission timeout, which is based on a 
+     * round-trip time average plus a retransmission delay.
+     * 
+     * @return the current retransmission timeout
+     */
+    public long getRetransmissionTimeout() {
+        synchronized(_retransmissionLock) {
+            return _retransmissionTimeout;
+        }
+    }
+    
+    /**
+     * Updates the retransmission timeout using a round-trip time measurement.
+     * 
+     * @param rtt a measurement of round-trip time (RTT)
+     */
+    protected void learnRetransmissionTimeout(long rtt) {
+        synchronized(_retransmissionLock) {
+            _retransmissionTimeout *= 9;
+            _retransmissionTimeout /= 10;
+            _retransmissionTimeout += (rtt + UdpConstants.RETRANSMISSION_DELAY_NS)/10;
         }
     }
 
@@ -344,7 +376,7 @@ public class UdpServer {
      */
     public void respond(Response response) {
         try {
-            QueuedResponse qr = new QueuedResponse(response);
+            QueuedResponse qr = new QueuedResponse(response, getRetransmissionTimeout());
             _responses.add(qr);
             _socket.send(qr.toPacket());
             //System.out.println("RESPOND " + qr.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + qr.destination);
@@ -366,7 +398,7 @@ public class UdpServer {
     public void bcast(Response response, Collection<SocketAddress> destinations) {
         try {
             // TODO: this shouldn't generate a ticket!
-            DatagramPacket packet = new QueuedResponse(response).toPacket();
+            DatagramPacket packet = new QueuedResponse(response, getRetransmissionTimeout()).toPacket();
             
             for (SocketAddress dest : destinations) {
                 packet.setSocketAddress(dest);
@@ -390,7 +422,7 @@ public class UdpServer {
     public void send(Response response) {
         try {
             // TODO: this shouldn't generate a ticket!
-            DatagramPacket packet = new QueuedResponse(response).toPacket();
+            DatagramPacket packet = new QueuedResponse(response, getRetransmissionTimeout()).toPacket();
             _socket.send(packet);
             
             //System.out.println("SEND " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
@@ -411,8 +443,13 @@ public class UdpServer {
         Iterator<QueuedResponse> itr = _responses.iterator();
 
         while(itr.hasNext()) {
-            if (itr.next().ticket == ticket) {
-                itr.remove(); // TODO: should this stop after the first one?
+            QueuedResponse resp = itr.next();
+            if (resp.ticket == ticket) {
+                 // TODO: should this stop after the first one?
+                itr.remove();
+                
+                // Learn the new retransmission rate
+                learnRetransmissionTimeout(System.nanoTime() - resp.sentTime);
             }
         }
     }
