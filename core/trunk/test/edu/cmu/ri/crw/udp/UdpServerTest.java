@@ -68,7 +68,7 @@ public class UdpServerTest {
         resp.stream.writeInt(payload1);
         resp.stream.writeDouble(payload2);
         
-        QueuedResponse qr = new QueuedResponse(resp);
+        QueuedResponse qr = new QueuedResponse(resp, UdpConstants.INITIAL_RETRY_RATE_NS);
         assertEquals(ticket, qr.ticket);
         assertEquals(dest, qr.destination);
         
