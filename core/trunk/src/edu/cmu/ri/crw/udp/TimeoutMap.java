@@ -75,8 +75,9 @@ public class TimeoutMap {
         _ticketTimeouts.put(new Timeout(ticket));
     }
     
-    public synchronized FunctionObserver get(long ticket) {
-        return _tickets.get(ticket);
+    public synchronized FunctionObserver remove(long ticket) {
+        // TODO: Optimize removal to disable timeouts
+        return _tickets.remove(ticket);
     }
     
     /**
@@ -87,7 +88,8 @@ public class TimeoutMap {
      */
     private synchronized void timeout(long ticket) {
         FunctionObserver obs = _tickets.remove(ticket);
-        obs.failed(FunctionObserver.FunctionError.TIMEOUT);
+        if (obs != null)
+            obs.failed(FunctionObserver.FunctionError.TIMEOUT);
     }
     
     public void shutdown() {
