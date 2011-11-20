@@ -191,7 +191,7 @@ public class BoatDebugger extends javax.swing.JFrame {
     public static void main(String args[]) {
 
         // Disable DNS lookups
-        CrwSecurityManager.loadIfDNSIsSlow();
+        //CrwSecurityManager.loadIfDNSIsSlow();
 
         // Create a simulated boat and run a ROS server around it
         VehicleServer server = new SimpleBoatSimulator();
