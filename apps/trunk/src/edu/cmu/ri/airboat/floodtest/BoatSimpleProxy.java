@@ -13,6 +13,7 @@ import edu.cmu.ri.crw.PoseListener;
 import edu.cmu.ri.crw.SensorListener;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
+import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.SensorData;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
@@ -73,6 +74,7 @@ public class BoatSimpleProxy extends Thread {
     private boolean _waypointsWereUpdated;
     PoseListener _stateListener;
     SensorListener _sensorListener;
+    WaypointListener _waypointListener;
     int _boatNo;
     UtmPose _pose;
     volatile boolean _isShutdown = false;
@@ -253,6 +255,26 @@ public class BoatSimpleProxy extends Thread {
             }
         };
 
+
+        _waypointListener = new WaypointListener() {
+
+            public void waypointUpdate(WaypointState ws) {
+                if (ws.equals(WaypointState.DONE)) {
+
+                    if (state == StateEnum.AREA) {
+                        System.out.println("Repeating perimeter");
+                        setArea(currentArea);
+                        return;
+                    } else {
+                        System.out.println("Waypoints complete");
+                    }
+
+                }
+            }
+        };
+
+        _server.addWaypointListener(_waypointListener, null);
+
         System.out.println("New boat created, boat # " + _boatNo);
 
         //add Listeners
@@ -388,16 +410,7 @@ public class BoatSimpleProxy extends Thread {
         _server.startWaypoints(_waypoints.toArray(new UtmPose[_waypoints.size()]), null, new FunctionObserver() {
 
             public void completed(Object v) {
-                /*
-                if (state == StateEnum.AREA) {
-                    System.out.println("Repeating perimeter");
-                    setArea(currentArea);
-                    return;
-                } else {
-                    System.out.println("Waypoints complete");
-                }
-                 * 
-                 */
+
                 System.out.println("Completed called");
             }
 
@@ -413,22 +426,22 @@ public class BoatSimpleProxy extends Thread {
         ArrayList<Position> ps = new ArrayList<Position>();
         ps.add(p);
         setWaypoints(ps);
-        
+
         /*
         clearRenderables();
-
+        
         if (p == null) {
-            System.out.println("Null Position waypoint provided to BoatSimpleProxy");
-            return;
+        System.out.println("Null Position waypoint provided to BoatSimpleProxy");
+        return;
         }
-
+        
         UTMCoord utm = UTMCoord.fromLatLon(p.latitude, p.longitude);
         UtmPose wputm = new UtmPose(new Pose3D(utm.getEasting(), utm.getNorthing(), 0.0, 0.0, 0.0, 0.0), new Utm(utm.getZone(), utm.getHemisphere().contains("North")));
-
+        
         System.out.println("Setting waypoint for " + this + " to " + wputm);        
         
         setWaypoint(wputm);
-
+        
         state = StateEnum.WAYPOINT;
          * 
          */
@@ -437,21 +450,15 @@ public class BoatSimpleProxy extends Thread {
     public void setWaypoint(UtmPose wputm) {
 
         currentWaypoint = wputm;
-        
+
         // ArrayList<UtmPose> 
-        
+
         // @todo Register a waypoint listener to get the same status updates (and know at the end of the waypoints)
         _server.setAutonomous(true, null);
         _server.startWaypoints(new UtmPose[]{wputm}, null, new FunctionObserver() {
 
             public void completed(Object v) {
-                if (state == StateEnum.AREA) {
-                    System.out.println("Repeating perimeter");
-                    setArea(currentArea);
-                    return;
-                } else {
-                    System.out.println("Waypoints complete");
-                }
+                System.out.println("Waypoint call succeeded");
             }
 
             public void failed(FunctionError fe) {
@@ -459,7 +466,7 @@ public class BoatSimpleProxy extends Thread {
                 System.out.println("START WAYPOINTS FAILED");
             }
         });
-       
+
     }
 
     public void setArea(Polygon poly) {
