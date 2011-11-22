@@ -299,7 +299,8 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
 
     @Override
     public void timeout(long ticket, SocketAddress destination) {
-        logger.log(Level.WARNING, "No response for: {0} @ {1}", new Object[]{ticket, destination});
+        String warning = "No response for: " + ticket + " @ " + destination;
+        logger.warning(warning);
     }
 
     /**
