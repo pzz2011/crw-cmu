@@ -54,7 +54,7 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 	 * @param context the context of the calling Activity or Service
 	 * @return byte array containing a JPEG-encoded image, or zero-length array on failure
 	 */
-	public static byte[] takePhoto(final Context context) {
+	public static synchronized byte[] takePhoto(final Context context) {
 		return takePhoto(context, 512, 384);
 	}
 	
@@ -65,7 +65,7 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 	 * @param context the context of the calling Activity or Service
 	 * @return byte array containing a JPEG-encoded image, or zero-length array on failure
 	 */
-	public static byte[] takePhoto(final Context context, int width, int height) {
+	public static synchronized byte[] takePhoto(final Context context, int width, int height) {
 		
 		// Set up a structure to hold the JPEG data
 		final AtomicMarkableReference<byte[]> dataRef = new AtomicMarkableReference<byte[]>(null, false);
@@ -125,7 +125,7 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 	 * 
 	 * @param context the context of the calling Activity or Service
 	 */
-	public static void savePhoto(final Context context) {
+	public static synchronized void savePhoto(final Context context) {
 
 		// Try to schedule a picture to be taken immediately
 		Intent intent = new Intent(context, AirboatCameraActivity.class);
