@@ -1,5 +1,6 @@
 package edu.cmu.ri.crw.udp;
 
+import edu.cmu.ri.crw.CrwNetworkUtils;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -7,6 +8,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
@@ -118,9 +121,14 @@ public class UdpServer {
             _buffer = new ByteArrayInputStream(packet.getData());
             stream = new DataInputStream(_buffer);
 
-            // Extract the socket address from the packet
-            source = packet.getSocketAddress();
-
+            // Extract the socket address data from the packet
+            InetAddress foo = packet.getAddress();
+            int bar = packet.getPort();
+            
+            // Put in some dummy hostname and reconstruct
+            CrwNetworkUtils.injectHostname(foo, "DO_NOT_RESOLVE");
+            source = new InetSocketAddress(foo, bar);
+            
             // Extract the ticket from the data payload
             long t = UdpConstants.NO_TICKET;
             try {
