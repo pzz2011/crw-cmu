@@ -4,8 +4,19 @@
   android:layout_width="fill_parent"
   android:layout_height="fill_parent"
   android:orientation="vertical">
-<SurfaceView android:id="@+id/surface_camera"
-android:layout_width="fill_parent" android:layout_height="10dip"
-android:layout_weight="1">
-</SurfaceView>
+
+    <ImageView
+        android:id="@+id/camera_image"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:scaleType="center"
+        android:src="@drawable/camera_icon" />
+
+	<SurfaceView
+	    android:id="@+id/surface_camera"
+	    android:layout_width="fill_parent" 
+	    android:layout_height="100dip"
+	    android:layout_weight="0" />
+
 </LinearLayout>
