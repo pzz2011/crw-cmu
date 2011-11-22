@@ -251,7 +251,8 @@ public class UdpServer {
                 try {
                     _socket.receive(_packet);
                 } catch (SocketException e) {
-                    // The socket was closed, as per normal shutdown
+                    if (!e.getMessage().equalsIgnoreCase("Socket closed"))
+                        logger.log(Level.WARNING, "Failed to receive packet, exiting receiver", e);
                     return;
                 } catch (IOException e) {
                     logger.log(Level.WARNING, "Failed to receive packet, exiting receiver", e);
@@ -330,6 +331,12 @@ public class UdpServer {
                 try {
                     //System.out.println("RESENDING [" + response.ttl + "]: " + response.ticket + " to " + response.destination);
                     _socket.send(response.toPacket());
+                } catch(SocketException e) { 
+                    if (e.getMessage().equalsIgnoreCase("Socket is closed")) {
+                        logger.log(Level.WARNING, "Message dropped, server was shutdown.");
+                    } else {
+                        logger.log(Level.WARNING, "Failed to respond.", e);
+                    }
                 } catch (IOException e) {
                     // TODO: figure out which errors we need to return on or ignore here
                     logger.log(Level.WARNING, "Failed to resend data.", e);
@@ -389,7 +396,11 @@ public class UdpServer {
             _socket.send(qr.toPacket());
             //System.out.println("RESPOND " + qr.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + qr.destination);
         } catch (SocketException e) {
-            logger.log(Level.WARNING, "Failed to respond.", e);
+            if (e.getMessage().equalsIgnoreCase("Socket is closed")) {
+                logger.log(Level.WARNING, "Message dropped, server was shutdown.");
+            } else {
+                logger.log(Level.WARNING, "Failed to respond.", e);
+            }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Failed to respond.", e);
         }
@@ -415,7 +426,11 @@ public class UdpServer {
             
             //System.out.println("BCAST " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
         } catch (SocketException e) {
-            logger.log(Level.WARNING, "Failed to respond.", e);
+            if (e.getMessage().equalsIgnoreCase("Socket is closed")) {
+                logger.log(Level.WARNING, "Message dropped, server was shutdown.");
+            } else {
+                logger.log(Level.WARNING, "Failed to respond.", e);
+            }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Failed to respond.", e);
         }
@@ -435,7 +450,11 @@ public class UdpServer {
             
             //System.out.println("SEND " + response.ticket + " FROM " + _socket.getLocalSocketAddress() + " TO " + packet.getSocketAddress());
         } catch (SocketException e) {
-            logger.log(Level.WARNING, "Failed to respond.", e);
+            if (e.getMessage().equalsIgnoreCase("Socket is closed")) {
+                logger.log(Level.WARNING, "Message dropped, server was shutdown.");
+            } else {
+                logger.log(Level.WARNING, "Failed to respond.", e);
+            }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Failed to respond.", e);
         }
