@@ -53,7 +53,9 @@ public class AirboatImpl extends AbstractVehicleServer {
 	protected final Object _navigationLock = new Object();
 	protected TimerTask _navigationTask = null;
 
-	private final Timer _timer = new Timer();
+	private final Timer _updateTimer = new Timer();
+	private final Timer _navigationTimer = new Timer();
+	private final Timer _captureTimer = new Timer();
 
 	/**
 	 * Defines the PID gains that will be returned if there is an error.
@@ -123,7 +125,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 		_arduinoAddr = addr;
 
 		// Start a regular update function
-		_timer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
+		_updateTimer.scheduleAtFixedRate(_updateTask, 0, UPDATE_INTERVAL_MS);
 	}
 
 	/**
@@ -460,7 +462,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 			// Schedule this task for execution
 			_captureTask = newCaptureTask;
-			_timer.scheduleAtFixedRate(_captureTask, 0,
+			_captureTimer.scheduleAtFixedRate(_captureTask, 0,
 					(long) (interval * 1000.0));
 		}
 
@@ -591,7 +593,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 			// Schedule this task for execution
 			_navigationTask = newNavigationTask;
-			_timer.scheduleAtFixedRate(_navigationTask, 0, UPDATE_INTERVAL_MS);
+			_navigationTimer.scheduleAtFixedRate(_navigationTask, 0, UPDATE_INTERVAL_MS);
 		}
 
 		// Report the new waypoint in the log file
@@ -671,7 +673,13 @@ public class AirboatImpl extends AbstractVehicleServer {
 		_isAutonomous.set(false);
 		_isConnected.set(false);
 
-		_timer.cancel();
-		_timer.purge();
+		_updateTimer.cancel();
+		_updateTimer.purge();
+		
+		_navigationTimer.cancel();
+		_navigationTimer.purge();
+		
+		_captureTimer.cancel();
+		_captureTimer.purge();
 	}
 }
