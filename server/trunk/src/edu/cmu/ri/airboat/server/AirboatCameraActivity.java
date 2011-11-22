@@ -196,19 +196,46 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 		_isSaved = getIntent().getBooleanExtra(SAVE_EXTRA, false);
 	}
 	
+	@Override
+	public void onPause() {
+		super.onPause();
+
+		// return empty image and exit
+		final Intent intent = new Intent();
+		intent.setAction(PICTURE_INTENT);
+		intent.putExtra(IMAGE_EXTRA, new byte[0]);
+		sendBroadcast(intent);
+		setResult(RESULT_CANCELED, intent);
+		finish();
+	}
+	
 	public void surfaceCreated(SurfaceHolder holder) {
-		_camera = Camera.open();
-		
-		// Set desired camera parameters
-		Camera.Parameters p = _camera.getParameters();
-		p.setPictureFormat(PixelFormat.JPEG);
-		p.setPictureSize(_width, _height);
-		p.setJpegQuality(_quality);
-		_camera.setParameters(p);
+		try {
+			// Attempt to open camera
+			_camera = Camera.open();
+			
+			// Set desired camera parameters
+			Camera.Parameters p = _camera.getParameters();
+			p.setPictureFormat(PixelFormat.JPEG);
+			p.setPictureSize(_width, _height);
+			p.setJpegQuality(_quality);
+			_camera.setParameters(p);
+		} catch (RuntimeException e) {
+			Log.w(TAG, "Unable to connect to camera.", e);
+
+			// If opening the camera fails, return empty image and exit
+			final Intent intent = new Intent();
+			intent.setAction(PICTURE_INTENT);
+			intent.putExtra(IMAGE_EXTRA, new byte[0]);
+			sendBroadcast(intent);
+			setResult(RESULT_CANCELED, intent);
+			finish();
+		}
 	}
 	
 	public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
-		
+		if (_camera == null) return;
+
 		// stopPreview() will crash if preview is not running
 		if (_isPreviewRunning) {
 			_camera.stopPreview();
@@ -227,9 +254,12 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 	}
 
 	public void surfaceDestroyed(SurfaceHolder holder) {
-		_camera.stopPreview();
-		_isPreviewRunning = false;
-		_camera.release();
+		if (_camera != null) {
+			_camera.stopPreview();
+			_camera.release();
+		}
+		
+		_isPreviewRunning = false;	
 	}
 		
 	Camera.PictureCallback mJpegPictureCallback = new Camera.PictureCallback() {
