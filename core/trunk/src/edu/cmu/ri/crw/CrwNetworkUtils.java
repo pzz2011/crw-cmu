@@ -112,15 +112,16 @@ public class CrwNetworkUtils {
          * and converts it into the corresponding InetSocketAddress. Returns 
          * null if the string cannot be converted.
          * 
-         * @param addr the corresponding socket address, or null on failure
+         * @param addrStr the corresponding socket address, or null on failure
          */
-        public static InetSocketAddress toInetSocketAddress(String addr) {
-            String[] addrParts = addr.split(":");
+        public static InetSocketAddress toInetSocketAddress(String addrStr) {
+            String[] addrParts = addrStr.split(":");
             if (addrParts.length != 2) return null;
             
             try {
                 int port = Integer.parseInt(addrParts[1]);
-                return new InetSocketAddress(addrParts[0], port);
+                InetSocketAddress addr = new InetSocketAddress(addrParts[0], port);
+                return (addr.isUnresolved()) ? null : addr;
             } catch (NumberFormatException e) {
                 return null;
             } catch (IllegalArgumentException e) {
