@@ -11,7 +11,6 @@ import edu.cmu.ri.crw.FunctionObserver.FunctionError;
 import edu.cmu.ri.crw.ImageListener;
 import edu.cmu.ri.crw.PoseListener;
 import edu.cmu.ri.crw.SensorListener;
-import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.SensorData;
@@ -31,6 +30,8 @@ import gov.nasa.worldwind.render.markers.BasicMarkerAttributes;
 import gov.nasa.worldwind.render.markers.BasicMarkerShape;
 import gov.nasa.worldwind.render.markers.Marker;
 import java.awt.Color;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -326,6 +327,13 @@ public class BoatSimpleProxy extends Thread {
                 try {
                     BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(ci));
                     // System.out.println("Got image ... ");
+
+                    // Flip the image vertically
+                    AffineTransform tx = AffineTransform.getScaleInstance(1, -1);
+                    tx.translate(0, -image.getHeight(null));
+                    AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+                    image = op.filter(image, null);
+
                     if (image != null) {
                         ImagePanel.addImage(image, _pose);
 
@@ -407,7 +415,7 @@ public class BoatSimpleProxy extends Thread {
         // setWaypoint(_waypoints.poll());
 
         _server.setAutonomous(true, null);
-        _server.startWaypoints(_waypoints.toArray(new UtmPose[_waypoints.size()]), null, new FunctionObserver() {
+        _server.startWaypoints(_waypoints.toArray(new UtmPose[_waypoints.size()]), "POINT_AND_SHOOT", new FunctionObserver() {
 
             public void completed(Object v) {
 
@@ -455,7 +463,7 @@ public class BoatSimpleProxy extends Thread {
 
         // @todo Register a waypoint listener to get the same status updates (and know at the end of the waypoints)
         _server.setAutonomous(true, null);
-        _server.startWaypoints(new UtmPose[]{wputm}, null, new FunctionObserver() {
+        _server.startWaypoints(new UtmPose[]{wputm}, "POINT_AND_SHOOT", new FunctionObserver() {
 
             public void completed(Object v) {
                 System.out.println("Waypoint call succeeded");

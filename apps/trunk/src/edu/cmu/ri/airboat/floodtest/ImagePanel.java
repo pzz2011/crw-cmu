@@ -52,13 +52,7 @@ public class ImagePanel extends javax.swing.JPanel {
     }
 
     public static void addImage(BufferedImage img, UtmPose pose) {
-
-        // Flip the image vertically
-        AffineTransform tx = AffineTransform.getScaleInstance(1, -1);
-        tx.translate(0, -img.getHeight(null));
-        AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
-        img = op.filter(img, null);
-
+        
         if (imagesDir != null) {
             try {
                 File outputfile = new File(imagesDir.getAbsolutePath() + File.separator + "BoatImg" + (new Date()) + ".png");
