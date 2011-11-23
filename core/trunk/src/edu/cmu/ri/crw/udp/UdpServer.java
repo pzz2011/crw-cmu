@@ -172,6 +172,31 @@ public class UdpServer {
                 throw new RuntimeException("Failed to write ticket to response buffer", e);
             }
         }
+        
+        private Response(long t, SocketAddress d, DataOutputStream s, ByteArrayOutputStream b) {
+            _buffer = b;
+            stream = s;
+            destination = d;
+            ticket = t;
+        }
+        
+        /**
+         * Allows a response to be copied, except with a new destination address
+         * and ticket number.  This is more efficient in cases where the same
+         * data must be sent to multiple consumers, at different addresses,
+         * since the underlying data stream is shared.
+         * 
+         * It is a very bad idea to add any objects to the response stream after
+         * it has been copied in this way.
+         * 
+         * @param t the new ticket number
+         * @param d the new destination address
+         * @return a response containing the same data as this one, but with a 
+         * different destination address and ticket number
+         */
+        protected Response copyToNewDest(long t, SocketAddress d) {
+            return new Response(t, d, stream, _buffer);
+        }
 
         public void reset() {
             try {

@@ -54,7 +54,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     protected SocketAddress _vehicleServer;
 
     final Timer _timer = new Timer(true);
-    final AtomicLong _ticketCounter = new AtomicLong(new Random().nextLong() << 32); // Start ticket with random offset to prevent collisions across multiple clients
+    
+     // Start ticket with random offset to prevent collisions across multiple clients
+    final AtomicLong _ticketCounter = new AtomicLong(new Random().nextLong() << 32);
     final TimeoutMap _ticketMap = new TimeoutMap();
     
     final Object _imageReassemblyLock = new Object();
