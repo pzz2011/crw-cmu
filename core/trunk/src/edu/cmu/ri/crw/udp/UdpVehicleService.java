@@ -23,8 +23,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,6 +43,9 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
     protected VehicleServer _vehicleServer;
     protected final Object _serverLock = new Object();
     protected final AtomicInteger _imageSeq = new AtomicInteger();
+    
+     // Start ticket with random offset to prevent collisions across multiple clients
+    protected final AtomicLong _ticketCounter = new AtomicLong(new Random().nextLong() << 32);
     
     protected final UdpServer _udpServer;
 
@@ -369,7 +374,9 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
 
                     // Send to all listeners
                     synchronized(_imageListeners) {
-                        _udpServer.bcast(resp, _imageListeners.keySet());
+                        for (SocketAddress il : _imageListeners.keySet()) {
+                            _udpServer.respond(resp.copyToNewDest(_ticketCounter.incrementAndGet(), il));
+                        }
                     }
                 }
             } catch (IOException e) {
