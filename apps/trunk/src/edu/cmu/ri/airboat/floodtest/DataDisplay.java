@@ -235,11 +235,21 @@ public class DataDisplay {
     public void setShowMean(boolean showMean) {
         this.showMean = showMean;
     }
-
+    
+    private Hashtable<String, Integer> baseIndicies = new Hashtable<String, Integer>();
+    
     public void newObservation(Observation o, int index) {
         observations.add(o);
 
         LocationInfo[][] li = null; 
+        
+        // @todo This will work because there is a loop sending the pieces of data, but too dangerous
+        Integer baseI = baseIndicies.get(o.variable);
+        if (baseI == null) {
+            baseI = locInfo.size();
+            baseIndicies.put(o.variable, baseI);
+        }
+        index += baseI;
         
         try {
             li = locInfo.get(index);
