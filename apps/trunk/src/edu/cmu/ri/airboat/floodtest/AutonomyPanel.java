@@ -65,6 +65,7 @@ public class AutonomyPanel extends javax.swing.JPanel {
             }
         });
 
+        dataSelectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "None" }));
         dataSelectCombo.setEnabled(false);
 
         popupB.setText("External");
@@ -209,8 +210,8 @@ public class AutonomyPanel extends javax.swing.JPanel {
             initSensorB.setEnabled(true);
         }
     }
-
     static String BUOY_INFO_START_KEY = "BUOY_INFO_START_KEY";
+
     static void setBuoyDetectionArea(Polygon pgon) {
 
         SensingBoatSelect sbs = new SensingBoatSelect(null, true);
@@ -223,7 +224,7 @@ public class AutonomyPanel extends javax.swing.JPanel {
             JFileChooser fileChooser = new JFileChooser();
 
             try {
-                fileChooser.setCurrentDirectory(new File(Preferences.userRoot().get(BUOY_INFO_START_KEY, "/")));                
+                fileChooser.setCurrentDirectory(new File(Preferences.userRoot().get(BUOY_INFO_START_KEY, "/")));
             } catch (AccessControlException e) {
             }
 
@@ -231,19 +232,21 @@ public class AutonomyPanel extends javax.swing.JPanel {
             File file = fileChooser.getSelectedFile();
 
             Preferences.userRoot().put(BUOY_INFO_START_KEY, file.getParent());
-            
+
             if (file != null) {
 
                 try {
                     BufferedReader br = new BufferedReader(new FileReader(file));
                     String markerInfo = null;
                     while ((markerInfo = br.readLine()) != null) {
-                        StringTokenizer tok = new StringTokenizer(markerInfo);
-                        double lat = Double.parseDouble(tok.nextToken());
-                        double lon = Double.parseDouble(tok.nextToken());
-                        LatLon latLon = new LatLon(Angle.fromDegrees(lat), Angle.fromDegrees(lon));
-                        // @todo Check for buoys within sensing area
-                        markerLocs.add(latLon);
+                        if (!markerInfo.startsWith("#")) {
+                            StringTokenizer tok = new StringTokenizer(markerInfo);
+                            double lat = Double.parseDouble(tok.nextToken());
+                            double lon = Double.parseDouble(tok.nextToken());
+                            LatLon latLon = new LatLon(Angle.fromDegrees(lat), Angle.fromDegrees(lon));
+                            // @todo Check for buoys within sensing area
+                            markerLocs.add(latLon);
+                        }
                     }
 
                     BoatSimpleProxy.initBuoyDetection(markerLocs, pgon);

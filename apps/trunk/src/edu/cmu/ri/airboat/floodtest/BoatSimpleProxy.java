@@ -11,6 +11,7 @@ import edu.cmu.ri.crw.FunctionObserver.FunctionError;
 import edu.cmu.ri.crw.ImageListener;
 import edu.cmu.ri.crw.PoseListener;
 import edu.cmu.ri.crw.SensorListener;
+import edu.cmu.ri.crw.VehicleServer.SensorType;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.SensorData;
@@ -37,6 +38,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -201,7 +203,7 @@ public class BoatSimpleProxy extends Thread {
 
         _sensorListener = new SensorListener() {
 
-            boolean first = true;
+            HashMap<String, Object> seen = new HashMap<String, Object>();
 
             public void receivedSensor(SensorData sd) {
 
@@ -210,13 +212,11 @@ public class BoatSimpleProxy extends Thread {
                 //There shouldn't be too much error with regards to the
                 //position of the sampling point
 
-                if (first) {
+                if (!seen.containsKey(sd.type.toString())) {
                     // @todo Inelegant creation of the model, need to get feed names.
-                    first = false;
-                    DefaultComboBoxModel model = new DefaultComboBoxModel();
-                    model.addElement("None");
+                    DefaultComboBoxModel model = (DefaultComboBoxModel)AutonomyPanel.dataSelectCombo.getModel(); // new DefaultComboBoxModel();                    
                     for (int i = 0; i < sd.data.length; i++) {
-                        model.addElement(i);
+                        model.addElement(sd.type.toString() + ":" + i);
                     }
                     AutonomyPanel.dataSelectCombo.setModel(model);
                 }
@@ -281,9 +281,9 @@ public class BoatSimpleProxy extends Thread {
         //add Listeners
         _server.addPoseListener(_stateListener, null);
 
-        // This is causing a null pointer exception
-        // _server.addSensorListener(0, _sensorListener);
         // Cheating dummy data
+        // @todo Only should be on for simulation
+        /*
         (new Thread() {
 
             Random rand = new Random();
@@ -293,7 +293,11 @@ public class BoatSimpleProxy extends Thread {
 
                     SensorData sd = new SensorData();
                     // @todo Observation
-                    // sd.type = (byte) 0;
+                    if (rand.nextBoolean())
+                        sd.type = SensorType.TE;
+                    else
+                        sd.type = SensorType.WATERCANARY;
+                    
                     sd.data = new double[4];
                     for (int i = 0; i < sd.data.length; i++) {
                         sd.data[i] = rand.nextDouble();
@@ -308,7 +312,7 @@ public class BoatSimpleProxy extends Thread {
                 }
             }
         }).start();
-
+         */
     }
 
     private void startCamera() {
@@ -338,7 +342,7 @@ public class BoatSimpleProxy extends Thread {
                         ImagePanel.addImage(image, _pose);
 
                         if (buoyManager != null) {
-                            buoyManager.newImaage(image, _pose);
+                            buoyManager.newImage(image, _pose);
                         }
 
                         latestImg = image;
