@@ -17,6 +17,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JDialog;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 /**
@@ -38,17 +40,24 @@ public class DataDisplayPopup extends javax.swing.JFrame {
 
         @Override
         public Dimension getPreferredSize() {
-            return new Dimension(400,400);
+            return new Dimension(400, 400);
         }
-        
     };
 
     /** Creates new form DataDisplayPopup */
     public DataDisplayPopup() {
-        initComponents();
 
         // @todo Another hack to fix when doing DataDisplay properly
         dp = BoatSimpleProxy.dataDisplay;
+
+        if (dp == null || dp.locInfo == null || dp.locInfo.size() == 0) {
+            System.out.println("No data yet");
+            JOptionPane.showMessageDialog(null, null, "No available data", JOptionPane.OK_OPTION);
+            return;
+        }
+
+        initComponents();
+
 
         DefaultComboBoxModel model = new DefaultComboBoxModel();
         for (int i = 0; i < dp.locInfo.size(); i++) {
@@ -59,7 +68,7 @@ public class DataDisplayPopup extends javax.swing.JFrame {
 
         displayP.setLayout(new BorderLayout());
         displayP.add(imgP, BorderLayout.CENTER);
-        
+
         imgP.addMouseMotionListener(new MouseMotionAdapter() {
 
             @Override
@@ -74,8 +83,9 @@ public class DataDisplayPopup extends javax.swing.JFrame {
             }
         });
 
+        setVisible(true);
     }
-    
+
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
