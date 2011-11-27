@@ -7,7 +7,7 @@ How the boats work:
   * [HardwareInterface Hardware Interfaces]
   * [CoordinateFrames Coordinate Frames] 
   * [MaterialsOverview Materials Overview]
-  * [SensorConnectors Sensor Connectors]
+  * [SensorConnectors Sensors]
 
 
 Using the boats:
