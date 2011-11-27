@@ -299,6 +299,8 @@ public class BoatSimpleProxy extends Thread {
             public void run() {
                 while (true) {
 
+                    System.out.println("GNERATING FAKE SENSOR DATA");
+                    
                     SensorData sd = new SensorData();
                     // @todo Observation
                     if (rand.nextBoolean()) {
