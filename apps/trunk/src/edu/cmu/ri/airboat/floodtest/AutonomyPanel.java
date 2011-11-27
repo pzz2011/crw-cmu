@@ -216,7 +216,7 @@ public class AutonomyPanel extends javax.swing.JPanel {
 
         SensingBoatSelect sbs = new SensingBoatSelect(null, true);
         sbs.setVisible(true);
-
+                        
         if (sbs.approved) {
 
             ArrayList<LatLon> markerLocs = new ArrayList<LatLon>();
@@ -244,8 +244,11 @@ public class AutonomyPanel extends javax.swing.JPanel {
                             double lat = Double.parseDouble(tok.nextToken());
                             double lon = Double.parseDouble(tok.nextToken());
                             LatLon latLon = new LatLon(Angle.fromDegrees(lat), Angle.fromDegrees(lon));
-                            // @todo Check for buoys within sensing area
-                            markerLocs.add(latLon);
+
+                            // Only buoys in area
+                            if (BoatSimpleProxy.isLocationInside(latLon, pgon.getOuterBoundary())) {                            
+                                markerLocs.add(latLon);
+                            }
                         }
                     }
 
@@ -253,10 +256,19 @@ public class AutonomyPanel extends javax.swing.JPanel {
 
                     buoyDetectionB.setEnabled(false);
                     checkBuoyB.setEnabled(true);
+                    
+                    ArrayList<BoatSimpleProxy> selected = sbs.getSelected();
+                    for (BoatSimpleProxy boatSimpleProxy : selected) {
+                        boatSimpleProxy.setAutonomousBuoy();
+                    }
+                    
                 } catch (Exception e) {
                     System.out.println("Starting buoy detection failed: " + e);
+                    e.printStackTrace();
                 }
             }
+            
+            
         }
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables

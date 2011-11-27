@@ -53,6 +53,34 @@ public class BuoyManager {
             buoyIDModel.offer(pimg);
         }
     }
+    
+    private ArrayList<LatLon> sent = new ArrayList<LatLon>();    
+    public LatLon getNearestRequiring(LatLon curr) {
+        LatLon ret = null;
+        
+        UTMCoord utm = UTMCoord.fromLatLon(curr.latitude, curr.longitude);
+        Pose3D currP = new Pose3D(new double [] { utm.getEasting(), utm.getNorthing(), 0.0}, new double [] {0.0, 0.0, 0.0} );
+         
+        double minDist = Double.MAX_VALUE;
+        
+        for (BuoyIDModel buoyIDModel : models) {
+            if (!buoyIDModel.isDone() && buoyIDModel.imgs.size() < 20 && !sent.contains(buoyIDModel.loc)) {
+                double d = planarDistanceSq(buoyIDModel.loc3D, currP);
+                if (d < minDist) {
+                    minDist = d;
+                    ret = buoyIDModel.getLoc();
+                }
+            }
+        }
+        
+        sent.add(ret);
+        if (sent.size() == models.size()) {
+            // If someone has been sent to every buoy, reset and send again as required.
+            sent.clear();
+        }
+        
+        return ret;
+    }
 
     public class BuoyIDModel {
 
