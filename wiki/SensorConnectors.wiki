@@ -1,4 +1,4 @@
-#summary sensor db9 pin specifications.
+#summary DB9 pin specifications for sensors.
 
 = 5TE Sensor =
 
