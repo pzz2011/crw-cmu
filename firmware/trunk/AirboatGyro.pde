@@ -48,12 +48,9 @@ void readFrom(int device, byte address, int num, byte buff[]) {
   Wire.beginTransmission(device);
   Wire.requestFrom(device, num);   
 
-  int i = 0;
-  while(Wire.available())
-  { 
+  for (int i = 0; Wire.available() && i < num; ++i)
     buff[i] = Wire.receive();
-    i++;
-  }
+    
   Wire.endTransmission();
 }
 
@@ -66,7 +63,7 @@ void estimateGyroBias(double gyroBias[])
 
   delay(10000);             // Lets wait for sometime to settle down before calibrating
 
-  for(int i = 0; i < 1000; i++)
+  for(int i = 0; i < 1000; ++i)
   {
     readFrom(GYRO_ADDR, regAddress, TO_READ, buff);
     xSamples += ((buff[2] << 8) | buff[3]);
