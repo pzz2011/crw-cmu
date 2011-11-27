@@ -291,36 +291,37 @@ public class BoatSimpleProxy extends Thread {
 
         // Cheating dummy data
         // @todo Only should be on for simulation
-        /*
+
         (new Thread() {
-        
-        Random rand = new Random();
-        
-        public void run() {
-        while (true) {
-        
-        SensorData sd = new SensorData();
-        // @todo Observation
-        if (rand.nextBoolean())
-        sd.type = SensorType.TE;
-        else
-        sd.type = SensorType.WATERCANARY;
-        
-        sd.data = new double[4];
-        for (int i = 0; i < sd.data.length; i++) {
-        sd.data[i] = rand.nextDouble();
-        }
-        
-        _sensorListener.receivedSensor(sd);
-        
-        try {
-        sleep(1000L);
-        } catch (InterruptedException e) {
-        }
-        }
-        }
+
+            Random rand = new Random();
+
+            public void run() {
+                while (true) {
+
+                    SensorData sd = new SensorData();
+                    // @todo Observation
+                    if (rand.nextBoolean()) {
+                        sd.type = SensorType.TE;
+                    } else {
+                        sd.type = SensorType.WATERCANARY;
+                    }
+
+                    sd.data = new double[4];
+                    for (int i = 0; i < sd.data.length; i++) {
+                        sd.data[i] = rand.nextDouble();
+                    }
+
+                    _sensorListener.receivedSensor(sd);
+
+                    try {
+                        sleep(1000L);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
         }).start();
-         */
+
     }
 
     private void startCamera() {

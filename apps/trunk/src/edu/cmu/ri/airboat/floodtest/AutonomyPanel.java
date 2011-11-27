@@ -128,7 +128,8 @@ public class AutonomyPanel extends javax.swing.JPanel {
     private void popupBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_popupBActionPerformed
         DataDisplayPopup w = new DataDisplayPopup();
 
-        w.setVisible(true);
+        // This is done by the DataDisplayPopup so it can fail if no data
+        // w.setVisible(true);
 
     }//GEN-LAST:event_popupBActionPerformed
 
