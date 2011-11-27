@@ -106,8 +106,8 @@ public class OperatorConsole {
 
         // System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Airboat Control");
 
-        java.awt.EventQueue.invokeLater(new Runnable() {
-
+        java.awt.EventQueue.invokeLater(new Runnable() {                        
+            
             public void run() {
                 // Create an AppFrame and immediately make it visible. As per Swing convention, this
                 // is done within an invokeLater call so that it executes on an AWT thread.
@@ -171,6 +171,9 @@ public class OperatorConsole {
             Configuration.setValue(AVKey.INITIAL_LATITUDE, 40.44515205369163);
             Configuration.setValue(AVKey.INITIAL_LONGITUDE, -80.01877404355538);
             Configuration.setValue(AVKey.INITIAL_ALTITUDE, 3000.0);
+            
+            // Set this when offline
+            // Configuration.setValue(AVKey.OFFLINE_MODE, "true");
 
             wwd = new WorldWindowGLJPanel();
             wwd.setPreferredSize(new java.awt.Dimension(1000, 800));
