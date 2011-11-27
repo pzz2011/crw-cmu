@@ -86,7 +86,11 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 				}
 				
 				// Unregister this listener
-				context.unregisterReceiver(this);
+				try { 
+					context.unregisterReceiver(this);
+				} catch (IllegalArgumentException e) {
+					Log.w(TAG, "PictureReceiver failed to unregister.", e);
+				}
 			}
 		};
 		context.registerReceiver(receiver, pictureFilter);
