@@ -52,7 +52,7 @@ public class DataDisplayPopup extends javax.swing.JFrame {
 
         if (dp == null || dp.locInfo == null || dp.locInfo.size() == 0) {
             System.out.println("No data yet");
-            JOptionPane.showMessageDialog(null, null, "No available data", JOptionPane.OK_OPTION);
+            JOptionPane.showMessageDialog(null, "No sensor data available, try again after boats return data", "No available data", JOptionPane.OK_OPTION);
             return;
         }
 
