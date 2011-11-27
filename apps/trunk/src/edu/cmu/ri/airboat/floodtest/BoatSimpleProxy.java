@@ -89,7 +89,7 @@ public class BoatSimpleProxy extends Thread {
     //
     public enum StateEnum {
 
-        IDLE, WAYPOINT, PATH, AREA
+        IDLE, WAYPOINT, PATH, AREA, AUTONOMOUS_BUOY, AUTONOMOUS_SENSING
     };
     // Set this to false to turn off the false safe
     final boolean USE_SOFTWARE_FAIL_SAFE = true;
@@ -163,6 +163,10 @@ public class BoatSimpleProxy extends Thread {
                     marker.setPosition(p);
                     marker.setHeading(Angle.fromRadians(Math.PI / 2.0 - _pose.pose.getRotation().toYaw()));
 
+
+                    // Update state variables
+                    currLoc = p;
+
                     /** @todo FIX
                     UtmPose wpPose = _server.getWaypoint();
                     
@@ -214,7 +218,7 @@ public class BoatSimpleProxy extends Thread {
 
                 if (!seen.containsKey(sd.type.toString())) {
                     // @todo Inelegant creation of the model, need to get feed names.
-                    DefaultComboBoxModel model = (DefaultComboBoxModel)AutonomyPanel.dataSelectCombo.getModel(); // new DefaultComboBoxModel();                    
+                    DefaultComboBoxModel model = (DefaultComboBoxModel) AutonomyPanel.dataSelectCombo.getModel(); // new DefaultComboBoxModel();                    
                     for (int i = 0; i < sd.data.length; i++) {
                         model.addElement(sd.type.toString() + ":" + i);
                     }
@@ -266,6 +270,10 @@ public class BoatSimpleProxy extends Thread {
                         System.out.println("Repeating perimeter");
                         setArea(currentArea);
                         return;
+                    } else if (state == StateEnum.AUTONOMOUS_BUOY) {
+                        System.out.println("Next buoy");
+                        planAutonomousBuoy();
+                        return;
                     } else {
                         System.out.println("Waypoints complete");
                     }
@@ -285,32 +293,32 @@ public class BoatSimpleProxy extends Thread {
         // @todo Only should be on for simulation
         /*
         (new Thread() {
-
-            Random rand = new Random();
-
-            public void run() {
-                while (true) {
-
-                    SensorData sd = new SensorData();
-                    // @todo Observation
-                    if (rand.nextBoolean())
-                        sd.type = SensorType.TE;
-                    else
-                        sd.type = SensorType.WATERCANARY;
-                    
-                    sd.data = new double[4];
-                    for (int i = 0; i < sd.data.length; i++) {
-                        sd.data[i] = rand.nextDouble();
-                    }
-
-                    _sensorListener.receivedSensor(sd);
-
-                    try {
-                        sleep(1000L);
-                    } catch (InterruptedException e) {
-                    }
-                }
-            }
+        
+        Random rand = new Random();
+        
+        public void run() {
+        while (true) {
+        
+        SensorData sd = new SensorData();
+        // @todo Observation
+        if (rand.nextBoolean())
+        sd.type = SensorType.TE;
+        else
+        sd.type = SensorType.WATERCANARY;
+        
+        sd.data = new double[4];
+        for (int i = 0; i < sd.data.length; i++) {
+        sd.data[i] = rand.nextDouble();
+        }
+        
+        _sensorListener.receivedSensor(sd);
+        
+        try {
+        sleep(1000L);
+        } catch (InterruptedException e) {
+        }
+        }
+        }
         }).start();
          */
     }
@@ -332,22 +340,26 @@ public class BoatSimpleProxy extends Thread {
                     BufferedImage image = ImageIO.read(new java.io.ByteArrayInputStream(ci));
                     // System.out.println("Got image ... ");
 
-                    // Flip the image vertically
-                    AffineTransform tx = AffineTransform.getScaleInstance(1, -1);
-                    tx.translate(0, -image.getHeight(null));
-                    AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
-                    image = op.filter(image, null);
-
                     if (image != null) {
-                        ImagePanel.addImage(image, _pose);
+                        // Flip the image vertically
+                        AffineTransform tx = AffineTransform.getScaleInstance(1, -1);
+                        tx.translate(0, -image.getHeight(null));
+                        AffineTransformOp op = new AffineTransformOp(tx, AffineTransformOp.TYPE_NEAREST_NEIGHBOR);
+                        image = op.filter(image, null);
 
-                        if (buoyManager != null) {
-                            buoyManager.newImage(image, _pose);
+                        if (image != null) {
+                            ImagePanel.addImage(image, _pose);
+
+                            if (buoyManager != null) {
+                                buoyManager.newImage(image, _pose);
+                            }
+
+                            latestImg = image;
+                        } else {
+                            System.err.println("Failed to decode image.");
                         }
-
-                        latestImg = image;
                     } else {
-                        System.err.println("Failed to decode image.");
+                        System.out.println("Image was null in receivedImage");
                     }
                 } catch (IOException ex) {
                     System.err.println("Failed to decode image: " + ex);
@@ -562,7 +574,24 @@ public class BoatSimpleProxy extends Thread {
 
     public static void initBuoyDetection(ArrayList<LatLon> buoys, Polygon pgon) {
         buoyManager = new BuoyManager(buoys, pgon);
+    }
 
+    public void setAutonomousBuoy() {
+
+        // @todo If was something else, change
+
+        state = StateEnum.AUTONOMOUS_BUOY;
+        planAutonomousBuoy();
+
+    }
+
+    public void planAutonomousBuoy() {
+        System.out.println("Planning autonomous");
+
+        LatLon next = buoyManager.getNearestRequiring(currLoc);
+        if (next != null) {
+            setWaypoint(new Position(next, 0.0));
+        }
     }
 
     public static void showBuoyCheckFrame() {
@@ -607,6 +636,59 @@ public class BoatSimpleProxy extends Thread {
 
     public UdpVehicleServer getVehicleServer() {
         return _server;
+    }
+
+    /**
+     * From: http://forum.worldwindcentral.com/showthread.php?t=20739
+     * @param point
+     * @param positions
+     * @return 
+     */
+    public static boolean isLocationInside(LatLon point, ArrayList<? extends LatLon> positions) {
+        if (point == null) {
+            System.out.println("Cannot check null point");
+            return false;
+        }
+
+        boolean result = false;
+        LatLon p1 = positions.get(0);
+        for (int i = 1; i < positions.size(); i++) {
+            LatLon p2 = positions.get(i);
+
+            // Developed for clarity
+            //            double lat = point.getLatitude().degrees;
+            //            double lon = point.getLongitude().degrees;
+            //            double lat1 = p1.getLatitude().degrees;
+            //            double lon1 = p1.getLongitude().degrees;
+            //            double lat2 = p2.getLatitude().degrees;
+            //            double lon2 = p2.getLongitude().degrees;
+            //            if ( ((lat2 <= lat && lat < lat1) || (lat1 <= lat && lat < lat2))
+            //                    && (lon < (lon1 - lon2) * (lat - lat2) / (lat1 - lat2) + lon2) )
+            //                result = !result;
+
+            if (((p2.getLatitude().degrees <= point.getLatitude().degrees
+                    && point.getLatitude().degrees < p1.getLatitude().degrees)
+                    || (p1.getLatitude().degrees <= point.getLatitude().degrees
+                    && point.getLatitude().degrees < p2.getLatitude().degrees))
+                    && (point.getLongitude().degrees < (p1.getLongitude().degrees - p2.getLongitude().degrees)
+                    * (point.getLatitude().degrees - p2.getLatitude().degrees)
+                    / (p1.getLatitude().degrees - p2.getLatitude().degrees) + p2.getLongitude().degrees)) {
+                result = !result;
+            }
+
+            p1 = p2;
+        }
+        return result;
+    }
+
+    public static boolean isLocationInside(LatLon point, Iterable<? extends LatLon> positions) {
+        ArrayList<LatLon> boundary = new ArrayList<LatLon>();
+
+        for (LatLon latLon : positions) {
+            boundary.add(latLon);
+        }
+
+        return isLocationInside(point, boundary);
     }
 
     @Override

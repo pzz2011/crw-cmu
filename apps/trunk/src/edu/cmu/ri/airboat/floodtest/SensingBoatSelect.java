@@ -11,6 +11,8 @@
 package edu.cmu.ri.airboat.floodtest;
 
 import java.awt.GridLayout;
+import java.util.ArrayList;
+import java.util.Hashtable;
 import javax.swing.JRadioButton;
 
 /**
@@ -20,7 +22,7 @@ import javax.swing.JRadioButton;
 public class SensingBoatSelect extends javax.swing.JDialog {
 
     public boolean approved = false;
-    
+    private Hashtable<JRadioButton, BoatSimpleProxy> mapping = new Hashtable<JRadioButton, BoatSimpleProxy>();
     /** Creates new form SensingBoatSelect */
     public SensingBoatSelect(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
@@ -31,6 +33,7 @@ public class SensingBoatSelect extends javax.swing.JDialog {
         for (BoatSimpleProxy boatSimpleProxy : pm.getAll()) {
             JRadioButton rb = new JRadioButton(boatSimpleProxy.toString());
             buttonP.add(rb);
+            mapping.put(rb, boatSimpleProxy);
         }
         
     }
@@ -120,6 +123,23 @@ public class SensingBoatSelect extends javax.swing.JDialog {
 
     }//GEN-LAST:event_OKBActionPerformed
 
+    /**
+     * Get the selected proxies
+     * 
+     * @return 
+     */
+    public ArrayList<BoatSimpleProxy> getSelected() {
+        ArrayList<BoatSimpleProxy> selected = new ArrayList<BoatSimpleProxy>();
+        
+        for (JRadioButton rb : mapping.keySet()) {
+            if (rb.isSelected()) {
+                selected.add(mapping.get(rb));
+            }
+        }
+        
+        return selected;
+    }
+    
     /**
      * @param args the command line arguments
      */
