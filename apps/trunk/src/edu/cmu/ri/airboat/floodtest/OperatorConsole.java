@@ -318,6 +318,8 @@ public class OperatorConsole {
 
                     Position pickPos = getPickPosition();
 
+                    if (pickPos == null) return;
+                    
                     // @todo Change this, should not be able to set buoys or sensing, if no proxy exists (which means one would be selected)
                     if (selectedProxy == null && (!settingWaterLevel && !assigningSensingArea && !assigningBuoyDetectionArea)) {
 
