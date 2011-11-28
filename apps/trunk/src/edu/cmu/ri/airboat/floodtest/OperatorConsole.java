@@ -173,7 +173,7 @@ public class OperatorConsole {
             Configuration.setValue(AVKey.INITIAL_ALTITUDE, 3000.0);
             
             // Set this when offline
-            // Configuration.setValue(AVKey.OFFLINE_MODE, "true");
+            Configuration.setValue(AVKey.OFFLINE_MODE, "true");
 
             wwd = new WorldWindowGLJPanel();
             wwd.setPreferredSize(new java.awt.Dimension(1000, 800));
