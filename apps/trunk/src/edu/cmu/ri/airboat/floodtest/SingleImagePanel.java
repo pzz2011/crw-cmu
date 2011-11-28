@@ -69,6 +69,7 @@ public class SingleImagePanel extends javax.swing.JPanel {
         });
 
         buoyB.setText("Buoy");
+        buoyB.setEnabled(false);
         buoyB.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 buoyBActionPerformed(evt);
