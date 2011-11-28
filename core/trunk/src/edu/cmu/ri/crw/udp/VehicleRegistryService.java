@@ -3,6 +3,8 @@ package edu.cmu.ri.crw.udp;
 import edu.cmu.ri.crw.udp.UdpServer.Request;
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -21,7 +23,6 @@ public class VehicleRegistryService {
     private static final Logger logger = Logger.getLogger(VehicleRegistryService.class.getName());
     
     public static final int DEFAULT_UDP_PORT = 6077;
-    public static final int DEFAULT_WEB_PORT = 8080;
     
     protected final UdpServer _udpServer;
     protected final Timer _registrationTimer = new Timer();
@@ -34,10 +35,10 @@ public class VehicleRegistryService {
     }
     
     public VehicleRegistryService() {
-        this(DEFAULT_UDP_PORT, DEFAULT_WEB_PORT);
+        this(DEFAULT_UDP_PORT);
     }
     
-    public VehicleRegistryService(int udpPort, int webPort) {
+    public VehicleRegistryService(int udpPort) {
         _udpServer = new UdpServer(udpPort);
         _udpServer.setHandler(_handler);
         _udpServer.start();
@@ -97,24 +98,51 @@ public class VehicleRegistryService {
                         client.getValue().ttl--;
                     }
                 }
-            }
-            
-            synchronized(_clients) {
-                System.out.println("GOT:");
-                for (Client client : _clients.values()) {
-                    System.out.println("\t" + client.name +  " @ " + client.addr);
-                }
-            }
+            }            
         }
     };
     
     /**
+     * Returns a map containing the current set of clients.
+     * 
+     * @return a map from the socket address of clients to their text names
+     */
+    public Map<SocketAddress, String> getClients() {
+        HashMap<SocketAddress, String> map = new LinkedHashMap<SocketAddress, String>();
+        
+        synchronized(_clients) {
+            for (Client client : _clients.values()) {
+                map.put(client.addr, client.name);
+            }
+        }
+        
+        return map;
+    }
+    
+    /**
      * Simple startup script that runs the VehicleRegistryService using the
-     * default web port and udp port.
+     * default udp port and prints a list of connected clients.
      * 
      * @param args these arguments will be ignored
      */
     public static void main(String args[]) {
-        VehicleRegistryService service = new VehicleRegistryService();
+        final VehicleRegistryService service = new VehicleRegistryService();
+        
+        // Periodically print the registered clients
+        Timer printer = new Timer();
+        printer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                Collection<Map.Entry<SocketAddress, String>> clients = service.getClients().entrySet();
+                if (clients.size() > 0) {                
+                    System.out.println("CLIENT LIST:");
+                    for (Map.Entry<SocketAddress, String> e : clients) {
+                        System.out.println("\t" + e.getValue() + " : " + e.getKey());
+                    }
+                } else {
+                    System.out.println("NO CLIENTS.");
+                }
+            }
+        }, 0, 1000);
     }
 }
