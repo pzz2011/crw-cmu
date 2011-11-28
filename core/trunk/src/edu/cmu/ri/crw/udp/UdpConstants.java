@@ -24,7 +24,7 @@ public class UdpConstants {
     public static final int REGISTRATION_TIMEOUT_COUNT = 5;
 
     public static final long INITIAL_RETRY_RATE_NS = TimeUnit.NANOSECONDS.convert(200, TimeUnit.MILLISECONDS);
-    public static final long RETRANSMISSION_DELAY_NS = TimeUnit.NANOSECONDS.convert(5, TimeUnit.MILLISECONDS);;
+    public static final long RETRANSMISSION_DELAY_NS = TimeUnit.NANOSECONDS.convert(20, TimeUnit.MILLISECONDS);;
     public static final int RETRY_COUNT = 4;
     public static final long TIMEOUT_NS = (RETRY_COUNT + 1) * INITIAL_RETRY_RATE_NS;
     public static final int NO_TICKET = -1;
