@@ -386,7 +386,7 @@ public class UdpServer {
         synchronized(_retransmissionLock) {
             _retransmissionTimeout *= 9;
             _retransmissionTimeout /= 10;
-            _retransmissionTimeout += (rtt + UdpConstants.RETRANSMISSION_DELAY_NS)/10;
+            _retransmissionTimeout += (2*rtt + UdpConstants.RETRANSMISSION_DELAY_NS)/10;
         }
     }
 
