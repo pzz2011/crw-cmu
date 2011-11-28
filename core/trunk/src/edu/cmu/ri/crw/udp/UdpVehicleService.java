@@ -362,20 +362,21 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     // Compute the length of this piece
                     int pieceLen = (pieceIdx + 1 < totalIdx) ? UdpConstants.MAX_PAYLOAD_SIZE : image.length - pieceIdx*UdpConstants.MAX_PAYLOAD_SIZE;
                     
-                    // Construct message
-                    Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
-                    resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_IMAGE.str);
-                    resp.stream.writeInt(imageSeq);
-                    resp.stream.writeInt(totalIdx);
-                    resp.stream.writeInt(pieceIdx);
-                    
-                    resp.stream.writeInt(pieceLen);
-                    resp.stream.write(image, pieceIdx*UdpConstants.MAX_PAYLOAD_SIZE, pieceLen);
-
                     // Send to all listeners
                     synchronized(_imageListeners) {
                         for (SocketAddress il : _imageListeners.keySet()) {
-                            _udpServer.respond(resp.copyToNewDest(_ticketCounter.incrementAndGet(), il));
+                            // Construct message
+                            // TODO: find a more efficient way to handle this serialization
+                            Response resp = new Response(_ticketCounter.incrementAndGet(), il);
+                            resp.stream.writeUTF(UdpConstants.COMMAND.CMD_SEND_IMAGE.str);
+                            resp.stream.writeInt(imageSeq);
+                            resp.stream.writeInt(totalIdx);
+                            resp.stream.writeInt(pieceIdx);
+
+                            resp.stream.writeInt(pieceLen);
+                            resp.stream.write(image, pieceIdx*UdpConstants.MAX_PAYLOAD_SIZE, pieceLen);
+
+                            _udpServer.respond(resp);
                         }
                     }
                 }
