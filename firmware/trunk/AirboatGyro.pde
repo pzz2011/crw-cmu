@@ -4,8 +4,8 @@
  * Contains control and update code interfacing with an ITG-3200
  * digital gyro.  Updates the yaw velocity in the main code module.
  */
-
-#include <Wire.h>
+// Source: http://www.dsscircuits.com/articles/arduino-i2c-master-library.html
+#include "I2C.h"
 
 // Define the char codes for the Amarino callback
 #define RECV_GYRO_FN 'g'
@@ -16,7 +16,8 @@
 #define DLPF_FS 0x16
 #define INT_CFG 0x17
 #define PWR_MGM 0x3E
-#define TO_READ 8 // 2 bytes for each gyro axis x, y, z & temp
+#define GYRO_DATA_LEN 8 // 2 bytes for each gyro axis x, y, z & temp
+#define GYRO_TIMEOUT_MS 100 // Set timeout for aborting a transmission
 
 // Gyro average
 int gyro_cnt = 0;
@@ -27,45 +28,18 @@ double z_avg = 0;
 // Stores the bias values for the gyro
 double gyroBias[3];
 
-/**
- * Sends an addressed byte command to the gyro.
- */
-void writeTo(int device, byte address, byte val) {
-  Wire.beginTransmission(device);
-  Wire.send(address);
-  Wire.send(val);
-  Wire.endTransmission();
-}
-
-/**
- * Reads a number of bytes from a specified address on the gyro.
- */
-void readFrom(int device, byte address, int num, byte buff[]) {
-  Wire.beginTransmission(device); 
-  Wire.send(address);
-  Wire.endTransmission();
-
-  Wire.beginTransmission(device);
-  Wire.requestFrom(device, num);   
-
-  for (int i = 0; Wire.available() && i < num; ++i)
-    buff[i] = Wire.receive();
-    
-  Wire.endTransmission();
-}
-
 void estimateGyroBias(double gyroBias[])
 {
   int regAddress = 0x1B;
   long int xSamples = 0, ySamples = 0, zSamples = 0;
   double bias[3];
-  byte buff[TO_READ];
+  byte buff[GYRO_DATA_LEN];
 
-  delay(10000);             // Lets wait for sometime to settle down before calibrating
+  delay(10000); // Lets wait for sometime to settle down before calibrating
 
   for(int i = 0; i < 1000; ++i)
   {
-    readFrom(GYRO_ADDR, regAddress, TO_READ, buff);
+    I2c.read(GYRO_ADDR, regAddress, GYRO_DATA_LEN, buff);
     xSamples += ((buff[2] << 8) | buff[3]);
     ySamples += ((buff[4] << 8) | buff[5]);
     zSamples += ((buff[6] << 8) | buff[7]);
@@ -78,7 +52,8 @@ void estimateGyroBias(double gyroBias[])
 
 void initGyro()
 {
-  Wire.begin();
+  I2c.begin();
+  I2c.timeOut(GYRO_TIMEOUT_MS); 
 
   /*****************************************
    * ITG 3200
@@ -92,14 +67,13 @@ void initGyro()
    * no interrupt
    ******************************************/
 
-  writeTo(GYRO_ADDR, PWR_MGM, 0x00);
-  writeTo(GYRO_ADDR, SMPLRT_DIV, 0x07); // EB, 50, 80, 7F, DE, 23, 20, FF
-  writeTo(GYRO_ADDR, DLPF_FS, 0x1E); // +/- 2000 dgrs/sec, 1KHz, 1E, 19
-  writeTo(GYRO_ADDR, INT_CFG, 0x00);
+  I2c.write(GYRO_ADDR, PWR_MGM, 0x00);
+  I2c.write(GYRO_ADDR, SMPLRT_DIV, 0x07); // EB, 50, 80, 7F, DE, 23, 20, FF
+  I2c.write(GYRO_ADDR, DLPF_FS, 0x1E); // +/- 2000 dgrs/sec, 1KHz, 1E, 19
+  I2c.write(GYRO_ADDR, INT_CFG, 0x00);
 
   estimateGyroBias(gyroBias);
 }
-
 
 void updateGyro()
 {
@@ -114,9 +88,9 @@ void updateGyro()
   int regAddress = 0x1B;
   float temp, x, y, z;
   float x_decoded, y_decoded, z_decoded, temp_decoded;
-  byte buff[TO_READ];
+  byte buff[GYRO_DATA_LEN];
 
-  readFrom(GYRO_ADDR, regAddress, TO_READ, buff);
+  I2c.read(GYRO_ADDR, regAddress, GYRO_DATA_LEN, buff);
 
   // Unpack each axis, removing the steady-state bias
   temp = (buff[0] << 8) | buff[1];
