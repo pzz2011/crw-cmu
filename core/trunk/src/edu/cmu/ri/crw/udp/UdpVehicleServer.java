@@ -129,8 +129,6 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             int imageSeq = req.stream.readInt();
             int totalIdx = req.stream.readInt();
             int pieceIdx = req.stream.readInt();
-            byte[] image = new byte[req.stream.readInt()];
-            req.stream.readFully(image);
             
             // If this is a new image, reset the table
             if (_imageReassemblyTicket != imageSeq) {
@@ -138,8 +136,14 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                 _imageReassemblyTable = new byte[totalIdx][];
             }
             
-            // Put the piece in the corresponding slot
-            _imageReassemblyTable[pieceIdx] = image;
+            // Put the piece in the corresponding slot if we don't have it
+            if (_imageReassemblyTable[pieceIdx] == null) {
+                byte[] image = new byte[req.stream.readInt()];
+                req.stream.readFully(image);
+                _imageReassemblyTable[pieceIdx] = image;
+            } else {
+                return null;
+            }
             
             // Get total image length.  If the pieces aren't done, return null
             int totalLength = 0;
