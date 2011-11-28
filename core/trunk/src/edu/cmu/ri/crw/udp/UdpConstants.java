@@ -34,6 +34,7 @@ public class UdpConstants {
     public static final int MAX_PACKET_SIZE = 65507;
     public static final int MAX_PAYLOAD_SIZE = MAX_PACKET_SIZE - 200;
     public static final String CMD_ACKNOWLEDGE = "OK";
+    public static final String CMD_REGISTER = "HI";
 
     /**
      * Enumeration of tunneled commands and the strings used in the UDP packet
