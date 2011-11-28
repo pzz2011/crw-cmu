@@ -387,11 +387,10 @@ public class BoatSimpleProxy extends Thread {
     }
 
     public void stopBoat() {
-        // @todo How to stop the boat
 
         _waypoints.clear();
         _server.stopWaypoints(null);
-
+        _server.stopCamera(null);
         clearRenderables();
 
         state = StateEnum.IDLE;
