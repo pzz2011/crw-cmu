@@ -114,6 +114,7 @@ public class CrwNetworkUtils {
      * @param addrStr the corresponding socket address, or null on failure
      */
     public static InetSocketAddress toInetSocketAddress(String addrStr) {
+        if (addrStr == null) return null;
         String[] addrParts = addrStr.split(":");
         if (addrParts.length != 2) return null;
 
