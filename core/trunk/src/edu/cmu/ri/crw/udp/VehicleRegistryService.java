@@ -2,6 +2,7 @@ package edu.cmu.ri.crw.udp;
 
 import edu.cmu.ri.crw.udp.UdpServer.Request;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collection;
 import java.util.HashMap;
@@ -72,6 +73,18 @@ public class VehicleRegistryService {
                         // Update the registration count for this client
                         c.ttl = UdpConstants.REGISTRATION_TIMEOUT_COUNT;
                     }
+                } else if (command.equals(UdpConstants.CMD_CONNECT)) {
+                    // Unpack address to which to connect
+                    String hostname = req.stream.readUTF();
+                    int port = req.stream.readInt();
+                    InetSocketAddress addr = new InetSocketAddress(hostname, port);
+                    
+                    // Forward this connection request to the server in question
+                    UdpServer.Response resp = new UdpServer.Response(req.ticket, addr);
+                    resp.stream.writeUTF(command);
+                    resp.stream.writeUTF(((InetSocketAddress)req.source).getAddress().getHostAddress());
+                    resp.stream.writeInt(((InetSocketAddress)req.source).getPort());
+                    _udpServer.respond(resp);
                 } else {
                     logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
                 }
