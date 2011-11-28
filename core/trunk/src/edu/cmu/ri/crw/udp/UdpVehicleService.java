@@ -24,6 +24,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -56,17 +58,18 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
     protected final Map<Integer, Map<SocketAddress,Integer>> _sensorListeners = new TreeMap<Integer, Map<SocketAddress, Integer>>();
     protected final Map<SocketAddress, Integer> _velocityListeners = new LinkedHashMap<SocketAddress, Integer>();
     protected final Map<SocketAddress, Integer> _waypointListeners = new LinkedHashMap<SocketAddress, Integer>();
+    protected final Timer _registrationTimer = new Timer();
 
-    public UdpVehicleService() {
-        _udpServer = new UdpServer();
+    public UdpVehicleService(int port) {
+        _udpServer = (port > 0) ? new UdpServer(port) : new UdpServer();
         _udpServer.setHandler(this);
         _udpServer.start();
+        
+        _registrationTimer.scheduleAtFixedRate(_registrationTask, 0, UdpConstants.REGISTRATION_RATE_MS);
     }
     
-    public UdpVehicleService(int port) {
-        _udpServer = new UdpServer(port);
-        _udpServer.setHandler(this);
-        _udpServer.start();
+    public UdpVehicleService() {
+        this(-1);
     }
     
     public UdpVehicleService(VehicleServer server) {
@@ -314,6 +317,8 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
      */
     public void shutdown() {
         _udpServer.stop();
+        _registrationTimer.cancel();
+        _registrationTimer.purge();
     }
     
     // TODO: Clean up old streams!!
@@ -473,6 +478,53 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                 throw new RuntimeException("Failed to serialize camera");
             }
         }
-        
     }
+    
+    /**
+     * Takes a list of registered listeners and their timeout counts, and 
+     * decrements the timeouts.  If a listener count hits zero, it is removed.
+     * 
+     * @param registrationList the list that should be updated
+     */
+    protected void updateRegistrations(Map<SocketAddress, Integer> registrationList) {
+        synchronized(registrationList) {
+            for (Map.Entry<SocketAddress, Integer> e : registrationList.entrySet()) {
+                if (e.getValue() == 0) {
+                    registrationList.remove(e.getKey());
+                } else {
+                    e.setValue(e.getValue() - 1);
+                }
+            }
+        }
+    }
+    
+    protected TimerTask _registrationTask = new TimerTask() {
+        final Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
+        {
+            try {
+                resp.stream.writeUTF(UdpConstants.CMD_REGISTER);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to construct registration message.", e);
+            }
+        }
+        
+        @Override
+        public void run() {
+            // Send registration commands to all the specified registries
+            synchronized(_registries) {
+                _udpServer.bcast(resp, _registries);
+            }
+
+            // Update each of the registration lists to remove outdated listeners
+            updateRegistrations(_poseListeners);
+            updateRegistrations(_imageListeners);
+            updateRegistrations(_cameraListeners);
+            updateRegistrations(_velocityListeners);
+            updateRegistrations(_waypointListeners);
+            synchronized(_sensorListeners) {
+                for (Map<SocketAddress, Integer> sensorListener : _sensorListeners.values())
+                    updateRegistrations(sensorListener);
+            }
+        }
+    };
 }
