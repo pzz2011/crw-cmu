@@ -1,11 +1,10 @@
 package edu.cmu.ri.airboat.server;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.net.URL;
 import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -17,7 +16,6 @@ import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 
 import robotutils.Pose3D;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -44,6 +42,7 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 import at.abraxas.amarino.AmarinoIntent;
 import edu.cmu.ri.airboat.server.AirboatFailsafeService.AirboatFailsafeIntent;
+import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 
@@ -167,25 +166,13 @@ public class AirboatActivity extends Activity {
 					_isUpdating.set(true);
 					
 					try {
-						// Try to open the URI in the text box, if it succeeds, make 
-						// the box change color accordingly
-				        URL url = new URL(masterAddress.getText().toString());
-				        if (InetAddress.getByName(url.getHost()).isReachable(500)) {
-				        
-					        HttpURLConnection urlConn = (HttpURLConnection)url.openConnection();
-					        if (urlConn != null) {
-					        	urlConn.setConnectTimeout(500);
-					        	urlConn.setReadTimeout(500);
-						        urlConn.connect();
-						        if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NOT_IMPLEMENTED) {
-						        	textBkgnd = 0xFFCCFFCC;
-						        } else  { // not sure, maybe still good?
-						        	textBkgnd = 0xFFFFEECC;
-						        }
-						        urlConn.disconnect();
-					        }
-				        }
-				    } catch (Exception e) {}
+						// Try to open the host name in the text box, 
+						// if it succeeds, change color accordingly
+						InetSocketAddress addr = CrwNetworkUtils.toInetSocketAddress(masterAddress.getText().toString());
+						
+						if (addr != null && addr.getAddress().isReachable(500))
+							textBkgnd = 0xFFCCFFCC;
+				    } catch (IOException e) {}
 				    
 				    return textBkgnd;
 				}
@@ -304,7 +291,7 @@ public class AirboatActivity extends Activity {
 						// Try to open the host name in the text box, 
 						// if it succeeds, change color accordingly
 						String hostname = failsafeAddress.getText().toString();
-				        if (InetAddress.getByName(hostname).isReachable(500))
+				        if (hostname.trim().length() != 0 && InetAddress.getByName(hostname).isReachable(500))
 				        	textBkgnd = 0xFFCCFFCC;
 				    } catch (IOException e) {}
 				    
