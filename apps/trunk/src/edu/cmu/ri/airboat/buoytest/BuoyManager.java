@@ -64,6 +64,7 @@ public class BuoyManager {
         double minDist = Double.MAX_VALUE;
         
         for (BuoyIDModel buoyIDModel : models) {
+            // Balajee you might want to change this 20.
             if (!buoyIDModel.isDone() && buoyIDModel.imgs.size() < 20 && !sent.contains(buoyIDModel.loc)) {
                 double d = planarDistanceSq(buoyIDModel.loc3D, currP);
                 if (d < minDist) {
@@ -120,6 +121,7 @@ public class BuoyManager {
             
             // System.out.println("Dist = " + dist + ", raw angle = " + angle + " and adj. angle " + adjangle);                        
                         
+            // Balajee you might want to change this
             if (Math.abs(adjangle) < Math.PI/6.0 && dist < 100.0) {
                 imgs.add(pimg);
                 System.out.println("Useful image for " + this);
