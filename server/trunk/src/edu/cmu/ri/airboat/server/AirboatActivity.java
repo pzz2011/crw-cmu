@@ -157,6 +157,12 @@ public class AirboatActivity extends Activity {
 			final AtomicBoolean _isUpdated = new AtomicBoolean(false);
 			
 			final class TextUpdate extends AsyncTask<Void, Void, Integer> {
+				private String text;
+				
+				@Override
+				protected void onPreExecute() {
+					text = masterAddress.getText().toString();
+				}
 				
 				@Override
 				protected Integer doInBackground(Void... urls) {
@@ -168,7 +174,7 @@ public class AirboatActivity extends Activity {
 					try {
 						// Try to open the host name in the text box, 
 						// if it succeeds, change color accordingly
-						InetSocketAddress addr = CrwNetworkUtils.toInetSocketAddress(masterAddress.getText().toString());
+						InetSocketAddress addr = CrwNetworkUtils.toInetSocketAddress(text);
 						
 						if (addr != null && addr.getAddress().isReachable(500))
 							textBkgnd = 0xFFCCFFCC;
@@ -279,6 +285,12 @@ public class AirboatActivity extends Activity {
 			final AtomicBoolean _isUpdated = new AtomicBoolean(false);
 			
 			final class TextUpdate extends AsyncTask<Void, Void, Integer> {
+				private String hostname;
+				
+				@Override
+				protected void onPreExecute() {
+					hostname = failsafeAddress.getText().toString();
+				}
 				
 				@Override
 				protected Integer doInBackground(Void... urls) {
@@ -290,8 +302,7 @@ public class AirboatActivity extends Activity {
 					try {
 						// Try to open the host name in the text box, 
 						// if it succeeds, change color accordingly
-						String hostname = failsafeAddress.getText().toString();
-				        if (hostname.trim().length() != 0 && InetAddress.getByName(hostname).isReachable(500))
+						if (hostname.trim().length() != 0 && InetAddress.getByName(hostname).isReachable(500))
 				        	textBkgnd = 0xFFCCFFCC;
 				    } catch (IOException e) {}
 				    
