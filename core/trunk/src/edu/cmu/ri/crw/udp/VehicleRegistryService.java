@@ -33,6 +33,10 @@ public class VehicleRegistryService {
         SocketAddress addr;
     }
     
+    public VehicleRegistryService() {
+        this(DEFAULT_UDP_PORT, DEFAULT_WEB_PORT);
+    }
+    
     public VehicleRegistryService(int udpPort, int webPort) {
         _udpServer = new UdpServer(udpPort);
         _udpServer.setHandler(_handler);
@@ -94,6 +98,23 @@ public class VehicleRegistryService {
                     }
                 }
             }
+            
+            synchronized(_clients) {
+                System.out.println("GOT:");
+                for (Client client : _clients.values()) {
+                    System.out.println("\t" + client.name +  " @ " + client.addr);
+                }
+            }
         }
     };
+    
+    /**
+     * Simple startup script that runs the VehicleRegistryService using the
+     * default web port and udp port.
+     * 
+     * @param args these arguments will be ignored
+     */
+    public static void main(String args[]) {
+        VehicleRegistryService service = new VehicleRegistryService();
+    }
 }
