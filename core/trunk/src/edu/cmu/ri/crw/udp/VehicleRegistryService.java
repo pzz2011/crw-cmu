@@ -1,13 +1,12 @@
 package edu.cmu.ri.crw.udp;
 
+import edu.cmu.ri.crw.udp.UdpServer.Request;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.SocketAddress;
-import java.net.SocketException;
-import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,141 +17,80 @@ import java.util.logging.Logger;
  * 
  * @author Prasanna Velagapudi <psigen@gmail.com>
  */
-public class VehicleRegistryService {
-    private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
-    private static final Charset US_ASCII = Charset.forName("US_ASCII");
+public class VehicleRegistryService implements UdpServer.RequestHandler {
+    private static final Logger logger = Logger.getLogger(VehicleRegistryService.class.getName());
     
-    public static final int DEFAULT_PORT = 6077;
-    public static final int MAX_MESSAGE_SIZE = 32767;
+    public static final int DEFAULT_UDP_PORT = 6077;
+    public static final int DEFAULT_WEB_PORT = 8080;
     
-    public static final String CMD_REGISTER = "REGISTER";
-    public static final String CMD_UNREGISTER = "UNREGISTER";
-    public static final String CMD_CONNECT = "CONNECT";
-    public static final String CMD_LIST = "LIST";
+    protected final UdpServer _udpServer;
+    protected final Timer _registrationTimer = new Timer();
+    protected final Map<SocketAddress, Client> _clients = new LinkedHashMap<SocketAddress, Client>();
     
-    protected DatagramSocket _socket;    
-    protected final Map<String, SocketAddress> _clientName = new LinkedHashMap<String, SocketAddress>();
-    
-    public void start() {
-        start(DEFAULT_PORT);
+    static class Client {
+        int ttl;
+        String name;
+        SocketAddress addr;
     }
     
-    public synchronized void start(int port) {
-        if (isRunning()) return;
+    public VehicleRegistryService(int udpPort, int webPort) {
+        _udpServer = new UdpServer(udpPort);
+        _udpServer.setHandler(this);
+        _udpServer.start();
         
+        _registrationTimer.scheduleAtFixedRate(_registrationTask, 0, UdpConstants.REGISTRATION_RATE_MS);
+    }
+    
+    public void shutdown() {
+        _udpServer.stop();
+    }
+
+    @Override
+    public void received(Request req) {
         try {
-            _socket = new DatagramSocket(port);
-            new Thread(new DatagramListener(_socket)).start();
-            logger.log(Level.INFO, "Started vehicle registry on {0}", _socket.getLocalSocketAddress());
-        } catch (SocketException ex) {
-            logger.log(Level.INFO, "Failed to start vehicle registry.", ex);
+            final String command = req.stream.readUTF();
+            if (command.equals(UdpConstants.CMD_REGISTER)) {
+                synchronized(_clients) {
+                    // Look for client in table
+                    Client c = _clients.get(req.source);
+                    
+                    // If not found, create a new entry
+                    if (c == null) {
+                        c = new Client();
+                        c.addr = req.source;
+                        c.name = req.stream.readUTF();
+                        _clients.put(req.source, c);
+                    }
+                    
+                    // Update the registration count for this client
+                    c.ttl = UdpConstants.REGISTRATION_TIMEOUT_COUNT;
+                }
+            } else {
+                logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Failed to parse request: {0}", req.ticket);
         }
     }
-    
-    public boolean isRunning() {
-        return _socket.isBound() && !_socket.isClosed();
+
+    @Override
+    public void timeout(long ticket, SocketAddress destination) {
+        throw new UnsupportedOperationException("Registry should not receive timeouts.");
     }
     
-    public synchronized void stop() {
-        if (!isRunning()) return;
-        
-        _socket.close();
-    }
-
-    protected class DatagramListener implements Runnable {
-
-        private final DatagramSocket _socket;
-        private final byte[] _buffer = new byte[MAX_MESSAGE_SIZE];
-        private final DatagramPacket _packet = new DatagramPacket(_buffer, _buffer.length);
-        
-        public DatagramListener(DatagramSocket socket) {
-            _socket = socket;
-        }
-        
+    // Removes outdated registrations from client list
+    protected TimerTask _registrationTask = new TimerTask() {
         @Override
         public void run() {
-            try {
-                while(_socket.isBound() && !_socket.isClosed()) {
-                    _socket.receive(_packet);
-                    handlePacket(_packet);
-                }
-            } catch (IOException ex) {
-                logger.log(Level.WARNING, "Shutting down vehicle registry.", ex);
-            }
-        }        
-    }
-    
-    protected final void handlePacket(DatagramPacket packet) throws IOException {
-        
-        // Decode the information in the packet
-        SocketAddress srcAddr = packet.getSocketAddress();
-        String payload = new String(packet.getData(), US_ASCII);
-        String args[] = payload.split(" ");        
-        
-        PARSER:
-        {
-            if (args[0].equalsIgnoreCase(CMD_REGISTER)) {
-                if (args.length != 2) break PARSER;
-                String name = args[1];
-                
-                synchronized(_clientName) {
-                    _clientName.put(name, srcAddr);
-                }
-                
-                return;
-            } else if (args[0].equalsIgnoreCase(CMD_UNREGISTER)) {
-                if (args.length != 2) break PARSER;
-                String name = args[1];
-                
-                synchronized(_clientName) {
-                    _clientName.remove(name);
-                }
-                
-                return;
-            } else if (args[0].equalsIgnoreCase(CMD_CONNECT)) {
-                if (args.length != 2) break PARSER;
-                String destName = args[1];
-                
-                SocketAddress destAddr = null;
-                synchronized(_clientName) {
-                     destAddr = _clientName.get(destName);
-                     if (destAddr == null) break PARSER;
-                }
-                
-                // Send connect request to source
-                String requestSrc = CMD_CONNECT + " " + destAddr;
-                byte[] bufferSrc = requestSrc.getBytes(US_ASCII);
-                packet.setData(bufferSrc);
-                packet.setSocketAddress(srcAddr);
-                _socket.send(packet);
-                    
-                // Send connect request to destination
-                String requestDest = CMD_CONNECT + " " + srcAddr;
-                byte[] bufferDest = requestDest.getBytes(US_ASCII);
-                packet.setData(bufferDest);
-                packet.setSocketAddress(srcAddr);
-                _socket.send(packet);
-                
-                return;
-            } else if (args[0].equalsIgnoreCase(CMD_LIST)) {
-                if (args.length != 1) break PARSER;
-                
-                StringBuilder listing = new StringBuilder(CMD_LIST);
-                synchronized(_clientName) {
-                    for (String name : _clientName.keySet()) {
-                        listing.append(" ");
-                        listing.append(name);
+            synchronized(_clients) {
+                for (Map.Entry<SocketAddress, Client> client : _clients.entrySet()) {
+                    if (client.getValue().ttl == 0) {
+                        _clients.remove(client.getKey());
+                    } else {
+                        client.getValue().ttl--;
                     }
                 }
-                
-                byte[] buffer = listing.toString().getBytes(US_ASCII);
-                packet.setData(buffer);
-                packet.setSocketAddress(srcAddr);
-                _socket.send(packet);
             }
         }
-        
-        logger.log(Level.WARNING, "Invalid command: {0}", payload);
-        return;
-    }
+    };
 }
