@@ -17,7 +17,7 @@ import java.util.logging.Logger;
  * 
  * @author Prasanna Velagapudi <psigen@gmail.com>
  */
-public class VehicleRegistryService implements UdpServer.RequestHandler {
+public class VehicleRegistryService {
     private static final Logger logger = Logger.getLogger(VehicleRegistryService.class.getName());
     
     public static final int DEFAULT_UDP_PORT = 6077;
@@ -27,7 +27,7 @@ public class VehicleRegistryService implements UdpServer.RequestHandler {
     protected final Timer _registrationTimer = new Timer();
     protected final Map<SocketAddress, Client> _clients = new LinkedHashMap<SocketAddress, Client>();
     
-    static class Client {
+    protected static class Client {
         int ttl;
         String name;
         SocketAddress addr;
@@ -35,7 +35,7 @@ public class VehicleRegistryService implements UdpServer.RequestHandler {
     
     public VehicleRegistryService(int udpPort, int webPort) {
         _udpServer = new UdpServer(udpPort);
-        _udpServer.setHandler(this);
+        _udpServer.setHandler(_handler);
         _udpServer.start();
         
         _registrationTimer.scheduleAtFixedRate(_registrationTask, 0, UdpConstants.REGISTRATION_RATE_MS);
@@ -45,38 +45,41 @@ public class VehicleRegistryService implements UdpServer.RequestHandler {
         _udpServer.stop();
     }
 
-    @Override
-    public void received(Request req) {
-        try {
-            final String command = req.stream.readUTF();
-            if (command.equals(UdpConstants.CMD_REGISTER)) {
-                synchronized(_clients) {
-                    // Look for client in table
-                    Client c = _clients.get(req.source);
-                    
-                    // If not found, create a new entry
-                    if (c == null) {
-                        c = new Client();
-                        c.addr = req.source;
-                        c.name = req.stream.readUTF();
-                        _clients.put(req.source, c);
-                    }
-                    
-                    // Update the registration count for this client
-                    c.ttl = UdpConstants.REGISTRATION_TIMEOUT_COUNT;
-                }
-            } else {
-                logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
-            }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Failed to parse request: {0}", req.ticket);
-        }
-    }
+    private final UdpServer.RequestHandler _handler = new UdpServer.RequestHandler() {
+        
+        @Override
+        public void received(Request req) {
+            try {
+                final String command = req.stream.readUTF();
+                if (command.equals(UdpConstants.CMD_REGISTER)) {
+                    synchronized(_clients) {
+                        // Look for client in table
+                        Client c = _clients.get(req.source);
 
-    @Override
-    public void timeout(long ticket, SocketAddress destination) {
-        throw new UnsupportedOperationException("Registry should not receive timeouts.");
-    }
+                        // If not found, create a new entry
+                        if (c == null) {
+                            c = new Client();
+                            c.addr = req.source;
+                            c.name = req.stream.readUTF();
+                            _clients.put(req.source, c);
+                        }
+
+                        // Update the registration count for this client
+                        c.ttl = UdpConstants.REGISTRATION_TIMEOUT_COUNT;
+                    }
+                } else {
+                    logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
+                }
+            } catch (IOException e) {
+                logger.log(Level.WARNING, "Failed to parse request: {0}", req.ticket);
+            }
+        }
+
+        @Override
+        public void timeout(long ticket, SocketAddress destination) {
+            throw new UnsupportedOperationException("Registry should not receive timeouts.");
+        }
+    };
     
     // Removes outdated registrations from client list
     protected TimerTask _registrationTask = new TimerTask() {
