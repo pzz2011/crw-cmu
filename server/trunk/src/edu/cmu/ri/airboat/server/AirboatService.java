@@ -84,7 +84,7 @@ public class AirboatService extends Service {
 	
 	// Objects implementing actual functionality
 	private AirboatImpl _airboatImpl;
-	private UdpVehicleService _udpServer;
+	private UdpVehicleService _udpService;
 	
 	// Logger that pipes log information for airboat classes to file
 	private FileAppender _fileAppender; 
@@ -171,9 +171,6 @@ public class AirboatService extends Service {
 		}
     };
 
-	
-	
-	
 	/**
      * Class for clients to access.  Because we know this service always
      * runs in the same process as its clients, we don't deal with IPC.
@@ -243,7 +240,7 @@ public class AirboatService extends Service {
 		}
 			
 		// Ensure that we do not reinitialize if not necessary
-		if (_airboatImpl != null || _udpServer != null) {
+		if (_airboatImpl != null || _udpService != null) {
 			Log.w(TAG, "Attempted to start while running.");
 			return Service.START_STICKY;
 		}
@@ -290,16 +287,11 @@ public class AirboatService extends Service {
 		_arduinoAddr = intent.getStringExtra(BD_ADDR);
 		
 		// Check if the provided UDP registry parameter can be parsed
-		/*
-		String udpRegistryStr = (intent.hasExtra(UDP_REGISTRY_ADDR) ? intent.getStringExtra(UDP_REGISTRY_ADDR) : getString(R.string.master_default_addr));
+		String udpRegistryStr = intent.getStringExtra(UDP_REGISTRY_ADDR);
 		_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(udpRegistryStr);
-		if (_udpRegistryAddr == null) {
-			logger.warn("Unable to parse " + udpRegistryStr + " into UDP address.");
-			sendNotification("Registry address invalid: " + udpRegistryStr);
-			stopSelf();
-		}
-		*/
-
+		if (_udpRegistryAddr == null)
+			Log.w(TAG, "Unable to parse '" + udpRegistryStr + "' into UDP address.");
+		
         // Create a filter that listens to Amarino connection events
         IntentFilter amarinoFilter = new IntentFilter();
         amarinoFilter.addAction(AmarinoIntent.ACTION_CONNECTED_DEVICES);
@@ -316,13 +308,14 @@ public class AirboatService extends Service {
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				// Create a RosVehicleServer to expose the data object
+				// Create a UdpVehicleServer to expose the data object
 				try {
-					_udpServer = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);
-					//_udpServer.addRegistry(_udpRegistryAddr);
+					_udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);
+					if (_udpRegistryAddr != null) 
+						_udpService.addRegistry(_udpRegistryAddr);
 				} catch (Exception e) {
-					Log.e(TAG, "RosVehicleServer failed to launch", e);
-					sendNotification("RosVehicleServer failed: " + e.getMessage());
+					Log.e(TAG, "UdpVehicleService failed to launch", e);
+					sendNotification("UdpVehicleService failed: " + e.getMessage());
 					stopSelf();
 					return;
 				}
@@ -391,13 +384,13 @@ public class AirboatService extends Service {
 		Debug.stopMethodTracing();
 		
 		// Shutdown the ROS services
-		if (_udpServer != null) {
+		if (_udpService != null) {
 			try {
-				_udpServer.shutdown();
+				_udpService.shutdown();
 			} catch (Exception e) {
-				Log.e(TAG, "RosVehicleServer shutdown error", e);
+				Log.e(TAG, "UdpVehicleService shutdown error", e);
 			}
-			_udpServer = null;
+			_udpService = null;
 		}
 		
 		// Disconnect from the Android sensors
