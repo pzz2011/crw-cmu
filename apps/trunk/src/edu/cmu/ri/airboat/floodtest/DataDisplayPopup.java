@@ -58,6 +58,8 @@ public class DataDisplayPopup extends javax.swing.JFrame {
 
         initComponents();
 
+        xCountS.setValue(dp.getxCount());
+        yCountS.setValue(dp.getyCount());
 
         DefaultComboBoxModel model = new DefaultComboBoxModel();
         for (int i = 0; i < dp.locInfo.size(); i++) {
@@ -100,6 +102,9 @@ public class DataDisplayPopup extends javax.swing.JFrame {
         selectionCB = new javax.swing.JComboBox();
         refreshB = new javax.swing.JButton();
         valueL = new javax.swing.JLabel();
+        xCountS = new javax.swing.JSpinner();
+        yCountS = new javax.swing.JSpinner();
+        resetCountsB = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -127,6 +132,16 @@ public class DataDisplayPopup extends javax.swing.JFrame {
             }
         });
 
+        xCountS.setToolTipText("X");
+        xCountS.setName("X"); // NOI18N
+
+        resetCountsB.setText("Refactor");
+        resetCountsB.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                resetCountsBActionPerformed(evt);
+            }
+        });
+
         org.jdesktop.layout.GroupLayout jPanel2Layout = new org.jdesktop.layout.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -136,9 +151,19 @@ public class DataDisplayPopup extends javax.swing.JFrame {
                 .add(selectionCB, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 146, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                 .add(18, 18, 18)
                 .add(refreshB)
-                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, 404, Short.MAX_VALUE)
-                .add(valueL, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 219, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .add(jPanel2Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(jPanel2Layout.createSequentialGroup()
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, 404, Short.MAX_VALUE)
+                        .add(valueL, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 219, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap())
+                    .add(jPanel2Layout.createSequentialGroup()
+                        .add(50, 50, 50)
+                        .add(xCountS, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 64, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(yCountS, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 59, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .add(53, 53, 53)
+                        .add(resetCountsB)
+                        .add(310, 310, 310))))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
@@ -146,9 +171,14 @@ public class DataDisplayPopup extends javax.swing.JFrame {
                 .addContainerGap()
                 .add(jPanel2Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
                     .add(valueL)
-                    .add(jPanel2Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
-                        .add(selectionCB, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
-                        .add(refreshB)))
+                    .add(jPanel2Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
+                        .add(jPanel2Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                            .add(selectionCB, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(refreshB))
+                        .add(xCountS, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .add(jPanel2Layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(yCountS, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(resetCountsB))))
                 .addContainerGap(org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -156,7 +186,7 @@ public class DataDisplayPopup extends javax.swing.JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
+            .add(layout.createSequentialGroup()
                 .addContainerGap()
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
                     .add(org.jdesktop.layout.GroupLayout.LEADING, jPanel2, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -169,8 +199,7 @@ public class DataDisplayPopup extends javax.swing.JFrame {
                 .addContainerGap()
                 .add(displayP, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                 .add(18, 18, 18)
-                .add(jPanel2, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
+                .add(jPanel2, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         pack();
@@ -184,6 +213,11 @@ public class DataDisplayPopup extends javax.swing.JFrame {
         imgP.repaint();
     }//GEN-LAST:event_refreshBActionPerformed
 
+    private void resetCountsBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_resetCountsBActionPerformed
+        dp.setxCount((Integer)xCountS.getValue(), false);
+        dp.setyCount((Integer)yCountS.getValue(), true);
+    }//GEN-LAST:event_resetCountsBActionPerformed
+        
     /**
      * @param args the command line arguments
      */
@@ -199,7 +233,10 @@ public class DataDisplayPopup extends javax.swing.JFrame {
     private javax.swing.JPanel displayP;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JButton refreshB;
+    private javax.swing.JButton resetCountsB;
     private javax.swing.JComboBox selectionCB;
     private javax.swing.JLabel valueL;
+    private javax.swing.JSpinner xCountS;
+    private javax.swing.JSpinner yCountS;
     // End of variables declaration//GEN-END:variables
 }
