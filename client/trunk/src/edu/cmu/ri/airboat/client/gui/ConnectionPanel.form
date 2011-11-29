@@ -16,23 +16,37 @@
   <Layout>
     <DimensionLayout dim="0">
       <Group type="103" groupAlignment="0" attributes="0">
-          <Component id="connectCombo" alignment="0" pref="243" max="32767" attributes="0"/>
-          <Component id="connectedBox" alignment="0" pref="243" max="32767" attributes="0"/>
-          <Component id="autonomousBox" alignment="0" pref="243" max="32767" attributes="0"/>
-          <Component id="connectButton" alignment="0" pref="243" max="32767" attributes="0"/>
+          <Component id="connectedBox" alignment="1" pref="223" max="32767" attributes="0"/>
+          <Component id="autonomousBox" alignment="0" pref="223" max="32767" attributes="0"/>
+          <Group type="102" alignment="1" attributes="0">
+              <Group type="103" groupAlignment="0" attributes="0">
+                  <Component id="jLabel1" min="-2" max="-2" attributes="0"/>
+                  <Component id="jLabel2" min="-2" max="-2" attributes="0"/>
+              </Group>
+              <EmptySpace max="-2" attributes="0"/>
+              <Group type="103" groupAlignment="1" attributes="0">
+                  <Component id="connectCombo" pref="155" max="32767" attributes="0"/>
+                  <Component id="registryCombo" alignment="0" pref="155" max="32767" attributes="0"/>
+              </Group>
+          </Group>
       </Group>
     </DimensionLayout>
     <DimensionLayout dim="1">
       <Group type="103" groupAlignment="0" attributes="0">
           <Group type="102" alignment="0" attributes="0">
-              <Component id="connectCombo" min="-2" max="-2" attributes="0"/>
+              <Group type="103" groupAlignment="3" attributes="0">
+                  <Component id="connectCombo" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="jLabel1" alignment="3" min="-2" max="-2" attributes="0"/>
+              </Group>
+              <EmptySpace min="-2" pref="2" max="-2" attributes="0"/>
+              <Group type="103" groupAlignment="3" attributes="0">
+                  <Component id="registryCombo" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="jLabel2" alignment="3" min="-2" max="-2" attributes="0"/>
+              </Group>
               <EmptySpace max="-2" attributes="0"/>
-              <Component id="connectButton" min="-2" pref="27" max="-2" attributes="0"/>
-              <EmptySpace min="-2" pref="7" max="-2" attributes="0"/>
               <Component id="connectedBox" min="-2" max="-2" attributes="0"/>
               <EmptySpace max="-2" attributes="0"/>
               <Component id="autonomousBox" min="-2" max="-2" attributes="0"/>
-              <EmptySpace max="32767" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
@@ -42,19 +56,15 @@
       <Properties>
         <Property name="editable" type="boolean" value="true"/>
         <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
-          <StringArray count="1">
-            <StringItem index="0" value="localhost:11411"/>
+          <StringArray count="2">
+            <StringItem index="0" value="No Vehicle"/>
+            <StringItem index="1" value="localhost:11411 - Simulator"/>
           </StringArray>
         </Property>
-      </Properties>
-    </Component>
-    <Component class="javax.swing.JButton" name="connectButton">
-      <Properties>
-        <Property name="text" type="java.lang.String" value="Connect"/>
         <Property name="opaque" type="boolean" value="true"/>
       </Properties>
       <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="connectButtonActionPerformed"/>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="connectComboActionPerformed"/>
       </Events>
     </Component>
     <Component class="javax.swing.JCheckBox" name="connectedBox">
@@ -78,6 +88,31 @@
       <AuxValues>
         <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new ReadOnlyCheckBox();"/>
       </AuxValues>
+    </Component>
+    <Component class="javax.swing.JComboBox" name="registryCombo">
+      <Properties>
+        <Property name="editable" type="boolean" value="true"/>
+        <Property name="model" type="javax.swing.ComboBoxModel" editor="org.netbeans.modules.form.editors2.ComboBoxModelEditor">
+          <StringArray count="2">
+            <StringItem index="0" value="No Registry"/>
+            <StringItem index="1" value="athiri.cimds.ri.cmu.edu:6077"/>
+          </StringArray>
+        </Property>
+        <Property name="opaque" type="boolean" value="true"/>
+      </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="registryComboActionPerformed"/>
+      </Events>
+    </Component>
+    <Component class="javax.swing.JLabel" name="jLabel1">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="  Server:"/>
+      </Properties>
+    </Component>
+    <Component class="javax.swing.JLabel" name="jLabel2">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="  Registry:"/>
+      </Properties>
     </Component>
   </SubComponents>
 </Form>

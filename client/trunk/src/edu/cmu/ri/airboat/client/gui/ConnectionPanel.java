@@ -12,14 +12,19 @@
 package edu.cmu.ri.airboat.client.gui;
 
 import edu.cmu.ri.crw.AsyncVehicleServer;
+import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.FunctionObserver;
 import edu.cmu.ri.crw.FunctionObserver.FunctionError;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.udp.UdpVehicleServer;
 import java.awt.Color;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.prefs.Preferences;
@@ -33,8 +38,9 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
     public static int UPDATE_PERIOD_MS = 1000;
 
-    private Timer _timer = new Timer();
-    private UdpVehicleServer _vehicle = null;
+    private final Timer _timer = new Timer();
+    private final UdpVehicleServer _vehicle = new UdpVehicleServer();
+    private final HashMap<String, Integer> _cachedVehicles = new HashMap<String, Integer>();
     
     /** Creates new form ConnectionPanel */
     public ConnectionPanel() {
@@ -42,7 +48,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
         initUpdates();
 
         Preferences p = Preferences.userRoot();
-        connectCombo.addItem(p.get(LAST_URI_KEY, ""));
+        connectCombo.addItem(p.get(LAST_URI_KEY, "") + " - Last Used");
 
         // Insert a shutdown hook to cleanly close the vehicle down
         Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -67,29 +73,67 @@ public class ConnectionPanel extends javax.swing.JPanel {
                 if (_vehicle == null) {
                     connectedBox.setSelected(false);
                     autonomousBox.setSelected(false);
-                    connectButton.setBackground(Color.PINK);
+                    connectCombo.setBackground(Color.PINK);
                 } else {
                     _vehicle.isConnected(new FunctionObserver<Boolean>() {
 
                         public void completed(Boolean v) {
                             connectedBox.setSelected(v);
-                            connectButton.setBackground(Color.GREEN);
+                            connectCombo.setBackground(Color.GREEN);
                         }
 
                         public void failed(FunctionError fe) {
-                            connectButton.setBackground(Color.PINK);
+                            connectCombo.setBackground(Color.PINK);
                         }
                     });
 
                     _vehicle.isAutonomous(new FunctionObserver<Boolean>() {
 
                         public void completed(Boolean v) {
-                            connectButton.setBackground(Color.GREEN);
+                            connectCombo.setBackground(Color.GREEN);
                             autonomousBox.setSelected(v);
                         }
 
                         public void failed(FunctionError fe) {
-                            connectButton.setBackground(Color.PINK);
+                            connectCombo.setBackground(Color.PINK);
+                        }
+                    });
+                    
+                    _vehicle.getVehicleServices(new FunctionObserver<Map<SocketAddress, String>>() {
+
+                        public void completed(Map<SocketAddress, String> v) {
+                            registryCombo.setBackground(Color.GREEN);
+                            
+                            // Compile a list of all the recent vehicles
+                            HashSet<String> recentVehicles = new HashSet<String>(v.size());
+                            for (Map.Entry<SocketAddress, String> e : v.entrySet())
+                                recentVehicles.add(
+                                        ((InetSocketAddress)e.getKey()).getAddress().getHostAddress() +
+                                        ":" + ((InetSocketAddress)e.getKey()).getPort() +
+                                        " - " + e.getValue());
+                            
+                            synchronized(_cachedVehicles) {
+                                
+                                // Validate old vehicle entries 
+                                for (String vehicle : _cachedVehicles.keySet()) {
+                                    if (!recentVehicles.contains(vehicle)) {
+                                        int idx = _cachedVehicles.remove(vehicle);
+                                        connectCombo.removeItemAt(idx);
+                                    }
+                                }
+                            
+                                // Add new vehicle entries
+                                for (String vehicle: recentVehicles) {
+                                    if (!_cachedVehicles.containsKey(vehicle)) {
+                                        _cachedVehicles.put(vehicle, connectCombo.getItemCount());
+                                        connectCombo.addItem(vehicle);
+                                    }
+                                }
+                            }
+                        }
+
+                        public void failed(FunctionError fe) {
+                            registryCombo.setBackground(Color.PINK);
                         }
                     });
                 }
@@ -107,18 +151,18 @@ public class ConnectionPanel extends javax.swing.JPanel {
     private void initComponents() {
 
         connectCombo = new javax.swing.JComboBox();
-        connectButton = new javax.swing.JButton();
         connectedBox = new ReadOnlyCheckBox();
         autonomousBox = new ReadOnlyCheckBox();
+        registryCombo = new javax.swing.JComboBox();
+        jLabel1 = new javax.swing.JLabel();
+        jLabel2 = new javax.swing.JLabel();
 
         connectCombo.setEditable(true);
-        connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "localhost:11411" }));
-
-        connectButton.setText("Connect");
-        connectButton.setOpaque(true);
-        connectButton.addActionListener(new java.awt.event.ActionListener() {
+        connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "No Vehicle", "localhost:11411 - Simulator" }));
+        connectCombo.setOpaque(true);
+        connectCombo.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                connectButtonActionPerformed(evt);
+                connectComboActionPerformed(evt);
             }
         });
 
@@ -128,62 +172,101 @@ public class ConnectionPanel extends javax.swing.JPanel {
         autonomousBox.setForeground(new java.awt.Color(51, 51, 51));
         autonomousBox.setText("Autonomous Mode");
 
+        registryCombo.setEditable(true);
+        registryCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "No Registry", "athiri.cimds.ri.cmu.edu:6077" }));
+        registryCombo.setOpaque(true);
+        registryCombo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                registryComboActionPerformed(evt);
+            }
+        });
+
+        jLabel1.setText("  Server:");
+
+        jLabel2.setText("  Registry:");
+
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(connectCombo, 0, 243, Short.MAX_VALUE)
-            .add(connectedBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 243, Short.MAX_VALUE)
-            .add(autonomousBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 243, Short.MAX_VALUE)
-            .add(connectButton, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 243, Short.MAX_VALUE)
+            .add(org.jdesktop.layout.GroupLayout.TRAILING, connectedBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 223, Short.MAX_VALUE)
+            .add(autonomousBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 223, Short.MAX_VALUE)
+            .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
+                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(jLabel1)
+                    .add(jLabel2))
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
+                    .add(connectCombo, 0, 155, Short.MAX_VALUE)
+                    .add(org.jdesktop.layout.GroupLayout.LEADING, registryCombo, 0, 155, Short.MAX_VALUE)))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
             .add(layout.createSequentialGroup()
-                .add(connectCombo, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                    .add(connectCombo, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                    .add(jLabel1))
+                .add(2, 2, 2)
+                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                    .add(registryCombo, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                    .add(jLabel2))
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
-                .add(connectButton, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 27, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
-                .add(7, 7, 7)
                 .add(connectedBox)
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
-                .add(autonomousBox)
-                .addContainerGap(org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .add(autonomousBox))
         );
     }// </editor-fold>//GEN-END:initComponents
 
-    private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
+    private void registryComboActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_registryComboActionPerformed
+        synchronized(this) {
+            String registryAddr = ((String)registryCombo.getSelectedItem()).trim();
+            InetSocketAddress addr = CrwNetworkUtils.toInetSocketAddress(registryAddr);
+            _vehicle.setRegistryService(addr);
+            System.out.println("SET REGISTRY TO " + _vehicle.getRegistryService());
 
+            // Remove old vehicle entries 
+            synchronized(_cachedVehicles) {
+                for (String vehicle : _cachedVehicles.keySet()) {
+                    int idx = _cachedVehicles.remove(vehicle);
+                    connectCombo.removeItemAt(idx);
+                }
+            }
+        }
+    }//GEN-LAST:event_registryComboActionPerformed
+
+    private void connectComboActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectComboActionPerformed
         synchronized(this) {
             // Create a new proxy server that accesses the vehicle
             UdpVehicleServer vehicle = null;
             try {
-                String addr = ((String)connectCombo.getSelectedItem());
-                String[] addrParts = addr.split(":");
-                vehicle = new UdpVehicleServer(new InetSocketAddress(addrParts[0], Integer.parseInt(addrParts[1])));
-                Preferences p = Preferences.userRoot();
-                p.put(LAST_URI_KEY, addr);
+                // Set vehicle to new address
+                String addr = ((String)connectCombo.getSelectedItem()).split("-")[0].trim();
+                _vehicle.setVehicleService(CrwNetworkUtils.toInetSocketAddress(addr));
+                
+                // Update listeners to new vehicle status
+                fireConnectionListener(_vehicle);
+                System.out.println("SET VEHICLE TO " + _vehicle.getVehicleService());
+                
+                // If vehicle is valid, store last used
+                if (_vehicle.getVehicleService() != null) {
+                    Preferences p = Preferences.userRoot();
+                    p.put(LAST_URI_KEY, addr);
+                }
             } catch (Exception ex) {
                 System.err.println("Failed to open vehicle proxy: " + ex);
                 return;
             }
-
-            if (vehicle == null)
-                return;
-
-            if (_vehicle != null)
-                _vehicle.shutdown();
-
-            _vehicle = vehicle;
-            fireConnectionListener(_vehicle);
         }
-    }//GEN-LAST:event_connectButtonActionPerformed
+    }//GEN-LAST:event_connectComboActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JCheckBox autonomousBox;
-    private javax.swing.JButton connectButton;
     private javax.swing.JComboBox connectCombo;
     private javax.swing.JCheckBox connectedBox;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JComboBox registryCombo;
     // End of variables declaration//GEN-END:variables
 
     public static interface ConnectionListener {
