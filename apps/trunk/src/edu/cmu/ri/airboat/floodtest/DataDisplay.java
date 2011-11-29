@@ -28,8 +28,8 @@ public class DataDisplay {
     double maxExtent = 1.0;
     DecimalFormat df = new DecimalFormat("#.###");
     ArrayList<double[]> prev = new ArrayList<double[]>();
-    double width = 100.0;
-    double height = 100.0;
+    double width = 1000.0;
+    double height = 1000.0;
     ArrayList<Observation> observations = new ArrayList<Observation>();
     ArrayList<LocationInfo[][]> locInfo = null;
     double[] ul = null;
@@ -51,42 +51,59 @@ public class DataDisplay {
 
         // Initialize model
         locInfo = new ArrayList<LocationInfo[][]>();
-                
+
         if (ul[0] > lr[0]) {
             double d = ul[0];
             ul[0] = lr[0];
             lr[0] = d;
         }
-        dx = (lr[0] - ul[0])/xCount;
-        
+        dx = (lr[0] - ul[0]) / xCount;
+
         if (ul[1] < lr[1]) {
             double d = ul[1];
             ul[1] = lr[1];
             lr[1] = d;
         }
-        dy = (ul[1] - lr[1])/yCount;        
+        dy = (ul[1] - lr[1]) / yCount;
     }
 
     private LocationInfo[][] initLocInfo() {
         return new LocationInfo[xCount][yCount];
     }
-    
+
     public int getxCount() {
         return xCount;
     }
 
-    public void setxCount(int xCount) {
-        // @todo put the data into the right boxes when this changes
-        this.xCount = xCount;        
+    public synchronized void setxCount(int xCount, boolean reset) {
+        this.xCount = xCount;
+        dx = (lr[0] - ul[0]) / xCount;
+        if (reset) {
+            changedCount();
+        }
     }
 
     public int getyCount() {
         return yCount;
     }
 
-    public void setyCount(int yCount) {
-        // @todo put the data into the right boxes when this changes
+    public synchronized void setyCount(int yCount, boolean reset) {
         this.yCount = yCount;
+        dy = (ul[1] - lr[1]) / yCount;
+        if (reset) {
+            changedCount();
+        }
+    }
+
+    private void changedCount() {
+        locInfo = new ArrayList<LocationInfo[][]>();
+
+        ArrayList<Observation> prev = (ArrayList<Observation>) observations.clone();
+        observations.clear();
+
+        for (Observation o : observations) {
+            newObservation(o, o.index);
+        }
     }
 
     /**
@@ -97,19 +114,19 @@ public class DataDisplay {
      * @return 
      */
     public double getValueAt(double x, double y, int index) {
-        
-        int xi = (int)Math.floor(x * xCount);
-        int yi = (int)Math.floor(y * yCount);
+
+        int xi = (int) Math.floor(x * xCount);
+        int yi = (int) Math.floor(y * yCount);
 
         try {
             return locInfo.get(index)[xi][yi].mean;
         } catch (NullPointerException e) {
             return Double.NaN;
         }
-        
+
     }
-    
-    public BufferedImage makeBufferedImage(int index) {
+
+    public synchronized BufferedImage makeBufferedImage(int index) {
 
         BufferedImage bimage = new BufferedImage((int) width, (int) height, BufferedImage.TYPE_INT_ARGB);
 
@@ -125,7 +142,7 @@ public class DataDisplay {
         g2.clearRect(0, 0, (int) width, (int) height);
 
         LocationInfo[][] model = null;
-        
+
         try {
             model = locInfo.get(index);
         } catch (IndexOutOfBoundsException e) {
@@ -182,67 +199,20 @@ public class DataDisplay {
             }
         }
 
-        // g2.setColor(Color.black);
-
-        /*
-        // @todo Not sure what these should be
-        // double left = autonomy.ul[0];
-        // double bottom = autonomy.lr[1];
-
-        double left = 0.0;
-        double bottom = 0.0;
-
-        for (double[] p : prev) {
-            g2.fillOval((int) ((p[0] - left) * dx), (int) (height - ((p[1] - bottom) * dy)), 5, 5);
-        }
-         */
-        
-        /*
-        // Draw boats
-        for (Integer boat : autonomy.getLocations().keySet()) {
-        double[] pose = autonomy.getBoatLocation(boat);
-        
-        int x = (int) ((pose[0] - left) * dx);
-        int y = (int) ((pose[1] - bottom) * dy);
-        
-        // System.out.println("Drawing at " + x + " " + y + " based on " + pose[1] + " " + dy + " " + height + " " + autonomy.getHeight());
-        
-        g2.drawString("B" + boat, x, (int) (height - y));
-        
-        double[][] plan = autonomy.getPlans().get(boat);
-        
-        if (plan != null) {
-        
-        // g2.drawLine(x, (int)(height - y), (int) (plan[0][0] * dx), (int) (height - plan[0][1] * dy));
-        
-        for (int i = 1; i < plan.length; i++) {
-        double[] ds = plan[i - 1];
-        double[] de = plan[i];
-        g2.drawLine((int) ((ds[0] - left) * dx), (int) (height - (ds[1] - bottom) * dy), (int) ((de[0] - left) * dx), (int) (height - (de[1] - bottom) * dy));
-        }
-        }
-        
-        prev.add(pose);
-        if (prev.size() > 200) {
-        prev.remove(0);
-        }
-        
-        }
-         */
         return bimage;
     }
 
     public void setShowMean(boolean showMean) {
         this.showMean = showMean;
     }
-    
     private Hashtable<String, Integer> baseIndicies = new Hashtable<String, Integer>();
-    
+
     public void newObservation(Observation o, int index) {
+        o.index = index;
         observations.add(o);
 
-        LocationInfo[][] li = null; 
-        
+        LocationInfo[][] li = null;
+
         // @todo This will work because there is a loop sending the pieces of data, but too dangerous
         Integer baseI = baseIndicies.get(o.variable);
         if (baseI == null) {
@@ -250,18 +220,19 @@ public class DataDisplay {
             baseIndicies.put(o.variable, baseI);
         }
         index += baseI;
-        
+
         try {
             li = locInfo.get(index);
-        } catch (IndexOutOfBoundsException e) {}
-        
+        } catch (IndexOutOfBoundsException e) {
+        }
+
         if (li == null) {
-            while(locInfo.size() <= index) {                
+            while (locInfo.size() <= index) {
                 locInfo.add(initLocInfo());
             }
             li = locInfo.get(index);
         }
-        
+
         int bx = (int) ((o.getWaypoint()[0] - ul[0]) / dx);
         int by = (int) ((o.getWaypoint()[1] - lr[1]) / dy);
 

@@ -17,6 +17,9 @@ public class Observation {
     public String variable = null;
     public double value = 0.0;
     
+    // Records where this observation was in the array coming off the sensor. 
+    public int index = 0;
+    
     public Observation (String variable, double value, double [] waypoint, int waypointZone, boolean waypointHemisphereNorth) {
         this.variable = variable;
         this.value = value;

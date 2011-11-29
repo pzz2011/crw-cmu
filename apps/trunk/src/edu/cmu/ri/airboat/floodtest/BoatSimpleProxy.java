@@ -262,6 +262,7 @@ public class BoatSimpleProxy extends Thread {
 
         _server.addSensorListener(0, _sensorListener, null);
         _server.addSensorListener(1, _sensorListener, null);
+        _server.addSensorListener(2, _sensorListener, null);
         
         _waypointListener = new WaypointListener() {
 
