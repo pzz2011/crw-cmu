@@ -17,8 +17,10 @@ import edu.cmu.ri.crw.data.UtmPose;
 import edu.cmu.ri.crw.udp.UdpServer.Request;
 import edu.cmu.ri.crw.udp.UdpServer.Response;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -52,6 +54,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
 
     protected final UdpServer _udpServer;
     protected SocketAddress _vehicleServer;
+    protected SocketAddress _registryServer;
 
     final Timer _timer = new Timer(true);
     
@@ -75,7 +78,7 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         _udpServer = new UdpServer();
         _udpServer.setHandler(this);
         _udpServer.start();
-
+        
         // Start a task to periodically register for stream updates
         _timer.scheduleAtFixedRate(new RegistrationTask(), 0, UdpConstants.REGISTRATION_RATE_MS);
     }
@@ -87,16 +90,41 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     
     public void shutdown() {
         _timer.cancel();
+        _timer.purge();
         _ticketMap.shutdown();
         _udpServer.stop();
     }
     
     public void setVehicleService(SocketAddress addr) {
         _vehicleServer = addr;
+        
+        // Check if there is currently a registry server
+        // TODO: better synchronization here
+        if (_registryServer == null || _vehicleServer == null)
+            return;
+        
+        // Make a connection request via the registry
+        try {
+            Response response = new Response(_ticketCounter.incrementAndGet(), _registryServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_CONNECT.str);
+            response.stream.writeUTF(((InetSocketAddress)addr).getAddress().getHostAddress());
+            response.stream.writeInt(((InetSocketAddress)addr).getPort());
+            _udpServer.respond(response);
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Failed to make connection request to registry.", e);
+        }
     }
     
     public SocketAddress getVehicleService() {
         return _vehicleServer;
+    }
+    
+    public void setRegistryService(SocketAddress addr) {
+        _registryServer = addr;
+    }
+    
+    public SocketAddress getRegistryService() {
+        return _registryServer;
     }
 
     private void registerListener(List listenerList, UdpConstants.COMMAND registerCommand) {
@@ -315,6 +343,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
                         gains[i] = req.stream.readDouble();
                     }
                     obs.completed(gains);
+                    return;
+                case CMD_LIST:
+                    Map<SocketAddress, String> clients = new HashMap<SocketAddress, String>();
+                    int numClients = req.stream.readInt();
+                    
+                    for (int i = 0; i < numClients; ++i) {
+                        String name = req.stream.readUTF();
+                        String hostname = req.stream.readUTF();
+                        int port = req.stream.readInt();
+                        clients.put(new InetSocketAddress(hostname, port), name);
+                    }
+                    obs.completed(clients);
                     return;
                 case CMD_SET_POSE:
                 case CMD_SET_SENSOR_TYPE:
@@ -913,6 +953,32 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
         try {
             Response response = new Response(ticket, _vehicleServer);
             response.stream.writeUTF(UdpConstants.COMMAND.CMD_GET_GAINS.str);
+            if (obs != null) _ticketMap.put(ticket, obs);
+            _udpServer.respond(response);
+        } catch (IOException e) {
+            // TODO: Should I also flag something somewhere?
+            if (obs != null)
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+        }
+    }
+    
+    /**
+     * Special function that queries the already-set registry to find the list
+     * of current clients.
+     * 
+     * @param obs an observer which will be called when the list is received
+     */
+    public void getVehicleServices(FunctionObserver<Map<SocketAddress, String>> obs) {
+        if (_registryServer == null) {
+            obs.failed(FunctionObserver.FunctionError.ERROR);
+            return;
+        }
+        
+        long ticket = (obs == null) ? UdpConstants.NO_TICKET : _ticketCounter.incrementAndGet();
+        
+        try {
+            Response response = new Response(ticket, _registryServer);
+            response.stream.writeUTF(UdpConstants.COMMAND.CMD_LIST.str);
             if (obs != null) _ticketMap.put(ticket, obs);
             _udpServer.respond(response);
         } catch (IOException e) {
