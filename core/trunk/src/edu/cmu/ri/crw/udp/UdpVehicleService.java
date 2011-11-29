@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -501,9 +502,10 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
      */
     protected void updateRegistrations(Map<SocketAddress, Integer> registrationList) {
         synchronized(registrationList) {
-            for (Map.Entry<SocketAddress, Integer> e : registrationList.entrySet()) {
+            for (Iterator<Map.Entry<SocketAddress, Integer>> it = registrationList.entrySet().iterator(); it.hasNext();) {
+                Map.Entry<SocketAddress, Integer> e = it.next();
                 if (e.getValue() == 0) {
-                    registrationList.remove(e.getKey());
+                    it.remove();
                 } else {
                     e.setValue(e.getValue() - 1);
                 }
