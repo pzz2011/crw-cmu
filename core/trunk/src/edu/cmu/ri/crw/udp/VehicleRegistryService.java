@@ -57,8 +57,11 @@ public class VehicleRegistryService {
         public void received(Request req) {
             try {
                 final String command = req.stream.readUTF();
-                if (command.equals(UdpConstants.CMD_REGISTER)) {
-                    synchronized(_clients) {
+                
+                switch (UdpConstants.COMMAND.fromStr(command)) {
+                case CMD_REGISTER:
+                    
+                    synchronized(_clients) {    
                         // Look for client in table
                         Client c = _clients.get(req.source);
 
@@ -73,19 +76,40 @@ public class VehicleRegistryService {
                         // Update the registration count for this client
                         c.ttl = UdpConstants.REGISTRATION_TIMEOUT_COUNT;
                     }
-                } else if (command.equals(UdpConstants.CMD_CONNECT)) {
+                    break;
+                case CMD_CONNECT:
+                    
                     // Unpack address to which to connect
                     String hostname = req.stream.readUTF();
                     int port = req.stream.readInt();
                     InetSocketAddress addr = new InetSocketAddress(hostname, port);
                     
                     // Forward this connection request to the server in question
-                    UdpServer.Response resp = new UdpServer.Response(req.ticket, addr);
-                    resp.stream.writeUTF(command);
-                    resp.stream.writeUTF(((InetSocketAddress)req.source).getAddress().getHostAddress());
-                    resp.stream.writeInt(((InetSocketAddress)req.source).getPort());
-                    _udpServer.respond(resp);
-                } else {
+                    UdpServer.Response respCon = new UdpServer.Response(req.ticket, addr);
+                    respCon.stream.writeUTF(command);
+                    respCon.stream.writeUTF(((InetSocketAddress)req.source).getAddress().getHostAddress());
+                    respCon.stream.writeInt(((InetSocketAddress)req.source).getPort());
+                    _udpServer.respond(respCon);
+                    break;
+                case CMD_LIST:
+                    
+                    // Create a response to the same client
+                    UdpServer.Response respList = new UdpServer.Response(req);
+                    respList.stream.writeUTF(command);
+                    
+                    // List all of the clients
+                    synchronized(_clients) {
+                        respList.stream.writeInt(_clients.size());
+                        for (Map.Entry<SocketAddress, Client> e : _clients.entrySet()) {
+                            respList.stream.writeUTF(e.getValue().name);
+                            respList.stream.writeUTF(((InetSocketAddress)e.getKey()).getAddress().getHostAddress());
+                            respList.stream.writeInt(((InetSocketAddress)e.getKey()).getPort());
+                        }
+                    }
+                    _udpServer.respond(respList);
+                    System.out.println("SEND LIST: " + _clients.size());
+                    break;
+                default:
                     logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
                 }
             } catch (IOException e) {
