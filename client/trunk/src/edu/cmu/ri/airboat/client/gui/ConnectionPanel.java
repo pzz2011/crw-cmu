@@ -154,8 +154,8 @@ public class ConnectionPanel extends javax.swing.JPanel {
         connectedBox = new ReadOnlyCheckBox();
         autonomousBox = new ReadOnlyCheckBox();
         registryCombo = new javax.swing.JComboBox();
-        jLabel1 = new javax.swing.JLabel();
-        jLabel2 = new javax.swing.JLabel();
+        vehicleLabel = new javax.swing.JLabel();
+        registryLabel = new javax.swing.JLabel();
 
         connectCombo.setEditable(true);
         connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "No Vehicle", "localhost:11411 - Simulator" }));
@@ -181,9 +181,9 @@ public class ConnectionPanel extends javax.swing.JPanel {
             }
         });
 
-        jLabel1.setText("  Server:");
+        vehicleLabel.setText("  Server:");
 
-        jLabel2.setText("  Registry:");
+        registryLabel.setText("  Registry:");
 
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(this);
         this.setLayout(layout);
@@ -193,8 +193,8 @@ public class ConnectionPanel extends javax.swing.JPanel {
             .add(autonomousBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 223, Short.MAX_VALUE)
             .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-                    .add(jLabel1)
-                    .add(jLabel2))
+                    .add(vehicleLabel)
+                    .add(registryLabel))
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
                     .add(connectCombo, 0, 155, Short.MAX_VALUE)
@@ -205,11 +205,11 @@ public class ConnectionPanel extends javax.swing.JPanel {
             .add(layout.createSequentialGroup()
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
                     .add(connectCombo, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
-                    .add(jLabel1))
+                    .add(vehicleLabel))
                 .add(2, 2, 2)
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
                     .add(registryCombo, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
-                    .add(jLabel2))
+                    .add(registryLabel))
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                 .add(connectedBox)
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
@@ -264,9 +264,9 @@ public class ConnectionPanel extends javax.swing.JPanel {
     private javax.swing.JCheckBox autonomousBox;
     private javax.swing.JComboBox connectCombo;
     private javax.swing.JCheckBox connectedBox;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
     private javax.swing.JComboBox registryCombo;
+    private javax.swing.JLabel registryLabel;
+    private javax.swing.JLabel vehicleLabel;
     // End of variables declaration//GEN-END:variables
 
     public static interface ConnectionListener {
