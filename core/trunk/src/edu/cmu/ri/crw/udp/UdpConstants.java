@@ -31,8 +31,8 @@ public class UdpConstants {
     public static final int TICKET_CACHE_SIZE = 100;
 
     public static final int INITIAL_PACKET_SIZE = 512;
-    public static final int MAX_PACKET_SIZE = 65507;
-    public static final int MAX_PAYLOAD_SIZE = MAX_PACKET_SIZE - 200;
+    public static final int MAX_PACKET_SIZE = 600;
+    public static final int MAX_PAYLOAD_SIZE = 512;
     public static final String CMD_ACKNOWLEDGE = "OK";
 
     /**

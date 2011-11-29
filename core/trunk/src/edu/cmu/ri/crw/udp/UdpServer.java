@@ -51,6 +51,7 @@ import java.util.logging.Logger;
  */
 public class UdpServer {
     private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
+    private static final int IPTOS_LOWDELAY = 0x10;
 
     final DatagramSocket _socket;
     final DelayQueue<QueuedResponse> _responses = new DelayQueue<QueuedResponse>();
@@ -66,6 +67,8 @@ public class UdpServer {
         DatagramSocket socket = null;
         try {
             socket = new DatagramSocket();
+            socket.setSendBufferSize(UdpConstants.MAX_PACKET_SIZE);
+            socket.setTrafficClass(IPTOS_LOWDELAY);
         } catch (SocketException e) {
             logger.severe("Unable to open desired UDP socket.");
             throw new RuntimeException("Unable to open desired UDP socket.", e);
