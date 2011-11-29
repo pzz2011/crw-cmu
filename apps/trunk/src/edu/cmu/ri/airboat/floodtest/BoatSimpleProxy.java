@@ -217,12 +217,17 @@ public class BoatSimpleProxy extends Thread {
                 //position of the sampling point
 
                 if (!seen.containsKey(sd.type.toString())) {
+                    
+                    System.out.println("Adding to keys " + sd.type.toString() + " to keys " + seen.keySet());
+                    
                     // @todo Inelegant creation of the model, need to get feed names.
                     DefaultComboBoxModel model = (DefaultComboBoxModel) AutonomyPanel.dataSelectCombo.getModel(); // new DefaultComboBoxModel();                    
                     for (int i = 0; i < sd.data.length; i++) {
                         model.addElement(sd.type.toString() + ":" + i);
                     }
                     AutonomyPanel.dataSelectCombo.setModel(model);
+                    
+                    seen.put(sd.type.toString(), null);
                 }
 
                 // @todo Observation handling is a hack (centralized, assumes all have data display)
@@ -294,7 +299,7 @@ public class BoatSimpleProxy extends Thread {
 
         // Cheating dummy data
         // @todo Only should be on for simulation
-
+        /*
         (new Thread() {
 
             Random rand = new Random();
@@ -326,7 +331,7 @@ public class BoatSimpleProxy extends Thread {
                 }
             }
         }).start();
-
+         */
     }
 
     private void startCamera() {
@@ -374,7 +379,7 @@ public class BoatSimpleProxy extends Thread {
             }
         }, null);
 
-        _server.startCamera(0, 10.0, 640, 480, null);
+        _server.startCamera(0, 30.0, 640, 480, null);
 
         System.out.println("Image listener started");
 
