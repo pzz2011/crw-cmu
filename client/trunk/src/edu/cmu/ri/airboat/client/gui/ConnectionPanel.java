@@ -41,7 +41,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
     private final Timer _timer = new Timer();
     private final UdpVehicleServer _vehicle = new UdpVehicleServer();
-    private final HashMap<String, Integer> _cachedVehicles = new HashMap<String, Integer>();
+    private final HashSet<String> _cachedVehicles = new HashSet<String>();
     
     /** Creates new form ConnectionPanel */
     public ConnectionPanel() {
@@ -116,20 +116,20 @@ public class ConnectionPanel extends javax.swing.JPanel {
                             synchronized(_cachedVehicles) {
                                 
                                 // Validate old vehicle entries 
-                                for (Iterator<Map.Entry<String, Integer>> it = _cachedVehicles.entrySet().iterator(); it.hasNext();) {
-                                    Map.Entry<String, Integer> e = it.next();
-                                    if (!recentVehicles.contains(e.getKey())) {
-                                        if (connectCombo.getSelectedIndex() != e.getValue()) {
+                                for (Iterator<String> it = _cachedVehicles.iterator(); it.hasNext();) {
+                                    String vehicle = it.next();
+                                    if (!recentVehicles.contains(vehicle)) {
+                                        if (!connectCombo.getSelectedItem().equals(vehicle)) {
                                             it.remove();
-                                            connectCombo.removeItemAt(e.getValue());
+                                            connectCombo.removeItem(vehicle);
                                         }
                                     }
                                 }
                             
                                 // Add new vehicle entries
                                 for (String vehicle: recentVehicles) {
-                                    if (!_cachedVehicles.containsKey(vehicle)) {
-                                        _cachedVehicles.put(vehicle, connectCombo.getItemCount());
+                                    if (!_cachedVehicles.contains(vehicle)) {
+                                        _cachedVehicles.add(vehicle);
                                         connectCombo.addItem(vehicle);
                                     }
                                 }
@@ -229,19 +229,12 @@ public class ConnectionPanel extends javax.swing.JPanel {
             System.out.println("SET REGISTRY TO " + _vehicle.getRegistryService());
 
             // Remove old vehicle entries 
-            for (Iterator<Map.Entry<String, Integer>> it = _cachedVehicles.entrySet().iterator(); it.hasNext();) {
-                Map.Entry<String, Integer> e = it.next();
-                if (connectCombo.getSelectedIndex() != e.getValue()) {
-                    it.remove();
-                    connectCombo.removeItemAt(e.getValue());
-                }
-            }
-            
             synchronized(_cachedVehicles) {
-                for (Map.Entry<String, Integer> e : _cachedVehicles.entrySet()) {
-                    if (connectCombo.getSelectedIndex() != e.getValue()) {
-                        _cachedVehicles.remove(e.getKey());
-                        connectCombo.removeItemAt(e.getValue());
+                for (Iterator<String> it = _cachedVehicles.iterator(); it.hasNext();) {
+                    String vehicle = it.next();
+                    if (!connectCombo.getSelectedItem().equals(vehicle)) {
+                        it.remove();
+                        connectCombo.removeItem(vehicle);
                     }
                 }
             }
