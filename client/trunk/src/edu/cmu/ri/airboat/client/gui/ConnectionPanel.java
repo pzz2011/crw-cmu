@@ -23,6 +23,7 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -115,10 +116,11 @@ public class ConnectionPanel extends javax.swing.JPanel {
                             synchronized(_cachedVehicles) {
                                 
                                 // Validate old vehicle entries 
-                                for (Map.Entry<String, Integer> e : _cachedVehicles.entrySet()) {
+                                for (Iterator<Map.Entry<String, Integer>> it = _cachedVehicles.entrySet().iterator(); it.hasNext();) {
+                                    Map.Entry<String, Integer> e = it.next();
                                     if (!recentVehicles.contains(e.getKey())) {
                                         if (connectCombo.getSelectedIndex() != e.getValue()) {
-                                            _cachedVehicles.remove(e.getKey());
+                                            it.remove();
                                             connectCombo.removeItemAt(e.getValue());
                                         }
                                     }
@@ -227,6 +229,14 @@ public class ConnectionPanel extends javax.swing.JPanel {
             System.out.println("SET REGISTRY TO " + _vehicle.getRegistryService());
 
             // Remove old vehicle entries 
+            for (Iterator<Map.Entry<String, Integer>> it = _cachedVehicles.entrySet().iterator(); it.hasNext();) {
+                Map.Entry<String, Integer> e = it.next();
+                if (connectCombo.getSelectedIndex() != e.getValue()) {
+                    it.remove();
+                    connectCombo.removeItemAt(e.getValue());
+                }
+            }
+            
             synchronized(_cachedVehicles) {
                 for (Map.Entry<String, Integer> e : _cachedVehicles.entrySet()) {
                     if (connectCombo.getSelectedIndex() != e.getValue()) {
