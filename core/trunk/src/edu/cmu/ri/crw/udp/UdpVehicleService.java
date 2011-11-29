@@ -296,11 +296,24 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     }
                     _udpServer.respond(resp);
                     break;
+                case CMD_CONNECT:
+                    // Unpack the forwarded server
+                    String hostname = req.stream.readUTF();
+                    int port = req.stream.readInt();
+                    SocketAddress addr = new InetSocketAddress(hostname, port);
+                    
+                    // Send off a one-time command to the forwarded server
+                    Response r = new Response(req.ticket, addr);
+                    r.stream.writeUTF(UdpConstants.COMMAND.CMD_CONNECT.str);
+                    _udpServer.respond(r);
+                    break;
                 default:
-                    logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
+                    String warning = "Ignoring unknown command: " + command;
+                    logger.log(Level.WARNING, warning);
             }
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Failed to parse request: {0}", req.ticket);
+            String warning = "Failed to parse request: " + req.ticket;
+            logger.log(Level.WARNING, warning);
         }
 
     }
@@ -502,7 +515,8 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
         final Response resp = new Response(UdpConstants.NO_TICKET, DUMMY_ADDRESS);
         {
             try {
-                resp.stream.writeUTF(UdpConstants.CMD_REGISTER);
+                resp.stream.writeUTF(UdpConstants.COMMAND.CMD_REGISTER.str);
+                resp.stream.writeUTF("Vehicle");
             } catch (IOException e) {
                 throw new RuntimeException("Failed to construct registration message.", e);
             }
