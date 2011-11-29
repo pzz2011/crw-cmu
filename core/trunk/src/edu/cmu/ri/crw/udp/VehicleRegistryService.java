@@ -107,7 +107,6 @@ public class VehicleRegistryService {
                         }
                     }
                     _udpServer.respond(respList);
-                    System.out.println("SEND LIST: " + _clients.size());
                     break;
                 default:
                     logger.log(Level.WARNING, "Ignoring unknown command: {0}", command);
