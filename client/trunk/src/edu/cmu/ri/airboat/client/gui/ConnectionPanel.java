@@ -115,10 +115,12 @@ public class ConnectionPanel extends javax.swing.JPanel {
                             synchronized(_cachedVehicles) {
                                 
                                 // Validate old vehicle entries 
-                                for (String vehicle : _cachedVehicles.keySet()) {
-                                    if (!recentVehicles.contains(vehicle)) {
-                                        int idx = _cachedVehicles.remove(vehicle);
-                                        connectCombo.removeItemAt(idx);
+                                for (Map.Entry<String, Integer> e : _cachedVehicles.entrySet()) {
+                                    if (!recentVehicles.contains(e.getKey())) {
+                                        if (connectCombo.getSelectedIndex() != e.getValue()) {
+                                            _cachedVehicles.remove(e.getKey());
+                                            connectCombo.removeItemAt(e.getValue());
+                                        }
                                     }
                                 }
                             
@@ -226,9 +228,11 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
             // Remove old vehicle entries 
             synchronized(_cachedVehicles) {
-                for (String vehicle : _cachedVehicles.keySet()) {
-                    int idx = _cachedVehicles.remove(vehicle);
-                    connectCombo.removeItemAt(idx);
+                for (Map.Entry<String, Integer> e : _cachedVehicles.entrySet()) {
+                    if (connectCombo.getSelectedIndex() != e.getValue()) {
+                        _cachedVehicles.remove(e.getKey());
+                        connectCombo.removeItemAt(e.getValue());
+                    }
                 }
             }
         }
