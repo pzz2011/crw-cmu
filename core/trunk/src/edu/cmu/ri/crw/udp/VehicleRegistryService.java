@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -127,9 +128,10 @@ public class VehicleRegistryService {
         @Override
         public void run() {
             synchronized(_clients) {
-                for (Map.Entry<SocketAddress, Client> client : _clients.entrySet()) {
+                for (Iterator<Map.Entry<SocketAddress, Client>> it = _clients.entrySet().iterator(); it.hasNext();) {
+                    Map.Entry<SocketAddress, Client> client = it.next();
                     if (client.getValue().ttl == 0) {
-                        _clients.remove(client.getKey());
+                        it.remove();
                     } else {
                         client.getValue().ttl--;
                     }
