@@ -475,7 +475,7 @@ public class AirboatActivity extends Activity {
     	
     	// Refresh current IP address
         final TextView addrText = (TextView)findViewById(R.id.IpAddressText);
-        addrText.setText(getLocalIpAddress());
+        addrText.setText(getLocalIpAddress() + ":11411");
     }
     
     @Override
