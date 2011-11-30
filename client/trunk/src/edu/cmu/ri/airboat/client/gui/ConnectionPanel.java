@@ -37,7 +37,7 @@ import java.util.prefs.Preferences;
 public class ConnectionPanel extends javax.swing.JPanel {
     public static final String LAST_URI_KEY = "edu.cmu.ri.airboat.client.gui.LastConnection";
 
-    public static int UPDATE_PERIOD_MS = 1000;
+    public static int UPDATE_PERIOD_MS = 2000;
 
     private final Timer _timer = new Timer();
     private final UdpVehicleServer _vehicle = new UdpVehicleServer();
