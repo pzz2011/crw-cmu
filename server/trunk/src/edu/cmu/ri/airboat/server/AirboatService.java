@@ -4,7 +4,6 @@ package edu.cmu.ri.airboat.server;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 
 import javax.measure.unit.NonSI;
@@ -146,12 +145,10 @@ public class AirboatService extends Service {
   	 * Handles magnetometer updates by calling the appropriate update.
   	 */
     private final SensorEventListener magneticListener = new SensorEventListener() {
-    	
-    	float[] R = new float[9];
+		float[] R = new float[9];
 		float[] I = new float[9];
-		float[] values = new float[3];
-    	
-    	public void onAccuracyChanged(Sensor arg0, int arg1) {}
+		
+		public void onAccuracyChanged(Sensor arg0, int arg1) {}
 		
 		public void onSensorChanged(SensorEvent event) {
 			if (accelerometerValues == null)
@@ -159,14 +156,25 @@ public class AirboatService extends Service {
 			
 			// Combine magnetometer and accelerometer to get orientation
 			SensorManager.getRotationMatrix(R, I, accelerometerValues, event.values);
-			SensorManager.getOrientation(R, values);
-			logger.info("ORIENTATION: " + Arrays.toString(values));
-
+			logger.info("ORIENTATION: " + R);
+			
+			// We want the heading of the boat (the projection of the camera direction)
+			// In world frame: +X = YxZ (roughly east), +Y = magnetic North, +Z = sky
+			// In phone frame: +X = right of phone, +Y = top of phone, +Z = front face of phone
+			// So we need a projection of -Z_phone onto the world-space X-Y plane (for yaw)
+			// /  M[ 0]   M[ 1]   M[ 2]  \ / 0 \ 
+			// |  M[ 3]   M[ 4]   M[ 5]  | | 0 |
+			// \  M[ 6]   M[ 7]   M[ 8]  / \-1 /
+			double yaw = Math.atan2(-R[5], -R[2]);
+			// TODO: compute phone-agnostic roll and pitch
+			// TODO: add magnetic declination compensation (class GeomagneticField)
+			//double xyMag = R[5]*R[5] + R[2]*R[2];
+			//double pitch = Math.atan2(R[8], xyMag);
+			
 			// Extract heading from orientation (in radians) and use in filter
 			if (_airboatImpl != null) {
-				double heading = values[0];
-				_airboatImpl.filter.compassUpdate(Math.PI - heading, System.currentTimeMillis());
-				logger.info("COMPASS: " +  heading);
+				_airboatImpl.filter.compassUpdate(yaw, System.currentTimeMillis());
+				logger.info("COMPASS: " +  yaw);
 			}
 		}
     };
