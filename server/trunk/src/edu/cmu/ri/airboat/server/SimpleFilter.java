@@ -57,7 +57,6 @@ public class SimpleFilter implements VehicleFilter {
 		predict(time);
 		
 		// On the first compass update, simply take on the initial heading
-		// (invert the heading because yaw is negative heading) 
 		if (_isInitializedCompass) {
 			double oldYaw = _pose.pose.getRotation().toYaw();
 			_pose.pose = new Pose3D(_pose.pose.getX(), _pose.pose.getY(), _pose.pose.getZ(), 
