@@ -29,7 +29,7 @@ public class CrwSecurityManager extends SecurityManager {
 	static final Pattern ipv4Address = Pattern.compile("^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$");
 
 	/**
-	 * Attempts to load an instance of this SecurityManager on the airboat.
+	 * Attempts to load an instance of this SecurityManager
 	 */
 	public static void load() {
 		try {
@@ -39,6 +39,18 @@ public class CrwSecurityManager extends SecurityManager {
 		}
 	}
 
+        /**
+	 * Attempts to remove an instance of this SecurityManager
+	 */
+	public static void unload() {
+		try {
+                    if (System.getSecurityManager() instanceof CrwSecurityManager)
+			System.setSecurityManager(null);
+		} catch (SecurityException se) {
+			System.err.println("SecurityManager cannot be unset!");
+		}
+	}
+        
 	/**
 	 * Checks how long a DNS lookup takes, and disables lookups if it is taking
 	 * too long.
@@ -58,7 +70,11 @@ public class CrwSecurityManager extends SecurityManager {
 
 		// Wait a bit, if DNS still didn't finish, DNS is too slow to use
 		try { Thread.sleep(DNS_LOOKUP_THRESHOLD); } catch (InterruptedException e) {}
-		if (isSlow.get()) { load(); }
+		if (isSlow.get()) { 
+                    load(); 
+                } else {
+                    unload();
+                }
 	}
 
 	/**
