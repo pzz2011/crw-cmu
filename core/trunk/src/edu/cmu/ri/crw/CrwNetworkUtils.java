@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -125,6 +126,8 @@ public class CrwNetworkUtils {
         } catch (NumberFormatException e) {
             return null;
         } catch (IllegalArgumentException e) {
+            return null;
+        } catch (AccessControlException e) {
             return null;
         }
     }
