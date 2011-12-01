@@ -199,7 +199,7 @@ public class AirboatService extends Service {
 		super.onCreate();
 		
 		// Disable all DNS lookups (safer for private/ad-hoc networks)
-		CrwSecurityManager.load();
+		CrwSecurityManager.loadIfDNSIsSlow();
 		isRunning = true;
 		
 		// TODO: optimize this to allocate resources up here and handle multiple start commands
