@@ -72,6 +72,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public static final char GET_GAINS_FN = 'l';
 	public static final char SET_GAINS_FN = 'k';
 	public static final char GET_DEPTH_FN = 'd';
+	public static final char SET_SAMPLER_FN = 'w';
 
 	// Set timeout for asynchronous Amarino calls
 	public static final int RESPONSE_TIMEOUT_MS = 250; // was 200 earlier
@@ -437,7 +438,17 @@ public class AirboatImpl extends AbstractVehicleServer {
 		}
 	};
 
+	// TODO: Revert capture image to take images
+	// This is a hack to support the water sampler until PID is working again.
 	public synchronized byte[] captureImage(int width, int height) {
+		// Call Amarino to fire sampler
+		Amarino.sendDataToArduino(_context, _arduinoAddr, SET_SAMPLER_FN, true);
+		Log.i(logTag, "Triggering sampler.");
+		logger.info("SMP: NOW");
+		return new byte[0];
+	}
+	
+	public synchronized byte[] captureImageInternal(int width, int height) {
 		byte[] bytes = AirboatCameraActivity.takePhoto(_context, width, height);
 		Log.i(logTag, "Sending image [" + bytes.length + "]");
 		return bytes;
@@ -463,7 +474,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			public void run() {
 				synchronized (_captureLock) {
 					// Take a new image and send it out
-					sendImage(captureImage(width, height));
+					sendImage(captureImageInternal(width, height));
 					iFrame++;
 
 					// If we exceed numFrames, we finished
