@@ -84,6 +84,11 @@ public class BoatSimpleProxy extends Thread {
     // Latest image returned from this boat
     private BufferedImage latestImg = null;
 
+    void sample() {
+        System.out.println("Calling sample on server");
+        _server.captureImage(100, 100, null);
+    }
+
     //
     // New Control variables
     //
@@ -217,16 +222,16 @@ public class BoatSimpleProxy extends Thread {
                 //position of the sampling point
 
                 if (!seen.containsKey(sd.type.toString())) {
-                    
+
                     System.out.println("Adding to keys " + sd.type.toString() + " to keys " + seen.keySet());
-                    
+
                     // @todo Inelegant creation of the model, need to get feed names.
                     DefaultComboBoxModel model = (DefaultComboBoxModel) AutonomyPanel.dataSelectCombo.getModel(); // new DefaultComboBoxModel();                    
                     for (int i = 0; i < sd.data.length; i++) {
                         model.addElement(sd.type.toString() + ":" + i);
                     }
                     AutonomyPanel.dataSelectCombo.setModel(model);
-                    
+
                     seen.put(sd.type.toString(), null);
                 }
 
@@ -265,10 +270,24 @@ public class BoatSimpleProxy extends Thread {
             }
         };
 
-        _server.addSensorListener(0, _sensorListener, null);
-        _server.addSensorListener(1, _sensorListener, null);
-        _server.addSensorListener(2, _sensorListener, null);
-        
+        /*
+        _server.getNumSensors(new FunctionObserver() {
+
+            public void completed(Object v) {
+                System.out.println("NUMBER SENSORS: " + v);
+            }
+
+            public void failed(FunctionError fe) {
+                
+            }
+            
+        });
+        */
+                
+        for (int i = 0; i < 3; i++) {
+            _server.addSensorListener(i, _sensorListener, null);
+        }
+
         _waypointListener = new WaypointListener() {
 
             public void waypointUpdate(WaypointState ws) {
@@ -301,35 +320,35 @@ public class BoatSimpleProxy extends Thread {
         // @todo Only should be on for simulation
         /*
         (new Thread() {
-
-            Random rand = new Random();
-
-            public void run() {
-                while (true) {
-
-                    System.out.println("GNERATING FAKE SENSOR DATA");
-                    
-                    SensorData sd = new SensorData();
-                    // @todo Observation
-                    if (rand.nextBoolean()) {
-                        sd.type = SensorType.TE;
-                    } else {
-                        sd.type = SensorType.WATERCANARY;
-                    }
-
-                    sd.data = new double[4];
-                    for (int i = 0; i < sd.data.length; i++) {
-                        sd.data[i] = rand.nextDouble();
-                    }
-
-                    _sensorListener.receivedSensor(sd);
-
-                    try {
-                        sleep(1000L);
-                    } catch (InterruptedException e) {
-                    }
-                }
-            }
+        
+        Random rand = new Random();
+        
+        public void run() {
+        while (true) {
+        
+        System.out.println("GNERATING FAKE SENSOR DATA");
+        
+        SensorData sd = new SensorData();
+        // @todo Observation
+        if (rand.nextBoolean()) {
+        sd.type = SensorType.TE;
+        } else {
+        sd.type = SensorType.WATERCANARY;
+        }
+        
+        sd.data = new double[4];
+        for (int i = 0; i < sd.data.length; i++) {
+        sd.data[i] = rand.nextDouble();
+        }
+        
+        _sensorListener.receivedSensor(sd);
+        
+        try {
+        sleep(1000L);
+        } catch (InterruptedException e) {
+        }
+        }
+        }
         }).start();
          */
     }

@@ -118,6 +118,7 @@ public class BoatPanel extends javax.swing.JPanel {
         modeL = new javax.swing.JLabel();
         disconnectB = new javax.swing.JButton();
         latestImgP = new javax.swing.JPanel();
+        jButton1 = new javax.swing.JButton();
 
         setBorder(javax.swing.BorderFactory.createMatteBorder(3, 3, 3, 3, new java.awt.Color(0, 0, 0)));
 
@@ -181,7 +182,7 @@ public class BoatPanel extends javax.swing.JPanel {
             }
         });
 
-        modeL.setFont(new java.awt.Font("Lucida Grande", 1, 36)); // NOI18N
+        modeL.setFont(new java.awt.Font("Lucida Grande", 1, 36));
         modeL.setText("Mode");
 
         disconnectB.setText("Delete");
@@ -206,6 +207,13 @@ public class BoatPanel extends javax.swing.JPanel {
             .add(0, 142, Short.MAX_VALUE)
         );
 
+        jButton1.setText("Sample");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -215,12 +223,15 @@ public class BoatPanel extends javax.swing.JPanel {
                     .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
                         .addContainerGap()
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-                            .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
-                                .add(layout.createSequentialGroup()
-                                    .add(assignAreaB)
-                                    .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
-                                    .add(assignPathB))
-                                .add(cancelB, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .add(layout.createSequentialGroup()
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
+                                    .add(layout.createSequentialGroup()
+                                        .add(assignAreaB)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                        .add(assignPathB))
+                                    .add(cancelB, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(jButton1))
                             .add(addressF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 427, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
@@ -266,7 +277,8 @@ public class BoatPanel extends javax.swing.JPanel {
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
                             .add(assignAreaB)
                             .add(assignPathB)
-                            .add(disconnectB))
+                            .add(disconnectB)
+                            .add(jButton1))
                         .add(18, 18, 18)
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING)
                             .add(modeL, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 70, Short.MAX_VALUE)
@@ -344,6 +356,11 @@ public class BoatPanel extends javax.swing.JPanel {
         }
     }//GEN-LAST:event_disconnectBActionPerformed
 
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        System.out.println("Taking sample");
+        proxy.sample();
+    }//GEN-LAST:event_jButton1ActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextField addressF;
     private javax.swing.JButton assignAreaB;
@@ -351,6 +368,7 @@ public class BoatPanel extends javax.swing.JPanel {
     private javax.swing.JButton cancelB;
     private javax.swing.JButton debuggerB;
     private javax.swing.JButton disconnectB;
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JPanel latestImgP;
