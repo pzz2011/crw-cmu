@@ -33,6 +33,7 @@
 #define SET_VELOCITY_FN 'v'
 #define SET_PID_FN 'k'
 #define GET_PID_FN 'l'
+#define SET_SAMPLER_FN 'w'
 
 // Defines update interval in milliseconds
 #define UPDATE_INTERVAL 10
@@ -67,11 +68,13 @@ void setup()
   amarino.registerFunction(setVelocity, SET_VELOCITY_FN);
   amarino.registerFunction(setPID, SET_PID_FN);
   amarino.registerFunction(getPID, GET_PID_FN);
+  amarino.registerFunction(setSampler, SET_SAMPLER_FN);
 
   // Initialize device modules
   initGyro();
   initRudder();
   initThruster();
+  initSampler();
   initTE();
   initDepth();
 } 
@@ -102,6 +105,7 @@ void update()
   updateGyro();
   updateRudder();
   updateThruster();
+  updateSampler();
   updateTE();
   updateDepth();
 }
