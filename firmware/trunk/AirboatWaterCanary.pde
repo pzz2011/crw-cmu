@@ -15,7 +15,7 @@
 static String wcSample;
 static char wcBuffer[5];
 
-void initWatercanary()  {  
+void initWaterCanary()  {  
   // Enable serial port
   Serial3.begin(9600);
 }
@@ -42,7 +42,7 @@ boolean wcChecksum(String& fluorescence) {
 }
 
 // Wrapper function that will start a sensor reading
-void updateWatercanary() {
+void updateWaterCanary() {
   
   // Get bytes from serial buffer 
   while (Serial3.available()) {   
