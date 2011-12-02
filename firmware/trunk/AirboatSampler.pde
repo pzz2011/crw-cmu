@@ -12,12 +12,12 @@
 
 Servo sampler;
 
-int samplerPos[NUM_SAMPLER_POS] = {0, 30, 60, 90, 120};
+int samplerPos[NUM_SAMPLER_POS] = {1450, 1200, 1800};
 int samplerPosIdx = 0;
 
 void initSampler()
 {
-  sampler.attach(42);
+  sampler.attach(39);
 }
 
 void updateSampler()
