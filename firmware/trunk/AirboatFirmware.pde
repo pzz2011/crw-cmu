@@ -73,6 +73,7 @@ void setup()
   initRudder();
   initThruster();
   initTE();
+  initDepth();
 } 
 
 /**
@@ -102,6 +103,7 @@ void update()
   updateRudder();
   updateThruster();
   updateTE();
+  updateDepth();
 }
 
 /**
