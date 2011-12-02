@@ -13,11 +13,13 @@ package edu.cmu.ri.airboat.client.gui;
 
 import edu.cmu.ri.crw.ImageListener;
 import edu.cmu.ri.crw.VehicleServer;
+import java.awt.Color;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
+import javax.swing.UIManager;
 
 /**
  *
@@ -63,9 +65,13 @@ public class CameraPanel extends AbstractAirboatPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jButton1 = new javax.swing.JButton();
         stopCaptureButton = new javax.swing.JButton();
         startCaptureButton = new javax.swing.JButton();
         pictureLabel = new javax.swing.JLabel();
+        captureButton = new javax.swing.JButton();
+
+        jButton1.setText("jButton1");
 
         stopCaptureButton.setText("Stop Capturing");
         stopCaptureButton.addActionListener(new java.awt.event.ActionListener() {
@@ -84,28 +90,37 @@ public class CameraPanel extends AbstractAirboatPanel {
         pictureLabel.setBackground(java.awt.Color.lightGray);
         pictureLabel.setOpaque(true);
 
+        captureButton.setText("Take Water Sample");
+        captureButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                captureButtonActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+            .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(pictureLabel, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 320, Short.MAX_VALUE)
-                    .addComponent(stopCaptureButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 320, Short.MAX_VALUE)
-                    .addComponent(startCaptureButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 320, Short.MAX_VALUE))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(pictureLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 357, Short.MAX_VALUE)
+                    .addComponent(captureButton, javax.swing.GroupLayout.DEFAULT_SIZE, 357, Short.MAX_VALUE)
+                    .addComponent(stopCaptureButton, javax.swing.GroupLayout.DEFAULT_SIZE, 357, Short.MAX_VALUE)
+                    .addComponent(startCaptureButton, javax.swing.GroupLayout.DEFAULT_SIZE, 357, Short.MAX_VALUE))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(pictureLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
+                .addComponent(pictureLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 205, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(startCaptureButton)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(stopCaptureButton)
-                .addContainerGap())
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(captureButton))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -118,7 +133,7 @@ public class CameraPanel extends AbstractAirboatPanel {
         startCaptureButton.setSelected(true);
 
         // TODO: rename this button
-        _vehicle.startCamera(10, 2.0, 640, 480);
+        _vehicle.startCamera(1, 2.0, 640, 480);
 
         startCaptureButton.setEnabled(true);
         startCaptureButton.setSelected(false);
@@ -140,8 +155,31 @@ public class CameraPanel extends AbstractAirboatPanel {
         stopCaptureButton.setSelected(false);
     }//GEN-LAST:event_stopCaptureButtonActionPerformed
 
+    private void captureButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_captureButtonActionPerformed
+        
+        if (_vehicle == null)
+            return;
+
+        captureButton.setEnabled(false);
+        captureButton.setSelected(true);
+
+        byte[] result = _vehicle.captureImage(640, 480);
+        if (result == null || result.length <= 0) {
+            captureButton.setBackground(Color.PINK);
+            captureButton.setOpaque(true);
+        } else {
+            captureButton.setBackground(Color.GREEN);
+            captureButton.setOpaque(false);
+        }
+
+        captureButton.setEnabled(true);
+        captureButton.setSelected(false);
+    }//GEN-LAST:event_captureButtonActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton captureButton;
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel pictureLabel;
     private javax.swing.JButton startCaptureButton;
     private javax.swing.JButton stopCaptureButton;
