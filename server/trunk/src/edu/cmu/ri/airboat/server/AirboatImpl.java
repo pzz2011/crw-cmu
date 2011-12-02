@@ -445,7 +445,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 		Amarino.sendDataToArduino(_context, _arduinoAddr, SET_SAMPLER_FN, true);
 		Log.i(logTag, "Triggering sampler.");
 		logger.info("SMP: NOW");
-		return new byte[0];
+		return new byte[1];
 	}
 	
 	public synchronized byte[] captureImageInternal(int width, int height) {
