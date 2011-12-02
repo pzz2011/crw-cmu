@@ -56,7 +56,7 @@ void updateDepth() {
     nmeaSample += c;
     
     // Parse if we receive end-of-line characters
-    if (c == '\r' || c == '\n')
+    if (c == '\r' || c == '\n' || nmeaSample.length() > 40)
     {
       // Check if it is a valid reading
       if ((nmeaSample.length() > 6) && (nmeaSample.substring(0,6) == "$SDDBT") && (nmeaChecksum(nmeaSample))) 
@@ -65,10 +65,7 @@ void updateDepth() {
         amarino.send(parseNMEA(nmeaSample));
         amarino.sendln();
       } 
-      else 
-      {
-        nmeaSample = "";
-      }
+      nmeaSample = "";
     }
   }
 }
