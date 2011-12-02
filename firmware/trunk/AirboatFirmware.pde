@@ -33,7 +33,7 @@
 #define SET_VELOCITY_FN 'v'
 #define SET_PID_FN 'k'
 #define GET_PID_FN 'l'
-#define SET_SAMPLER_FN 'w'
+#define SET_SAMPLER_FN 'q'
 
 // Defines update interval in milliseconds
 #define UPDATE_INTERVAL 10
@@ -77,6 +77,7 @@ void setup()
   initSampler();
   initTE();
   initDepth();
+  initWaterCanary();
 } 
 
 /**
@@ -108,6 +109,7 @@ void update()
   updateSampler();
   updateTE();
   updateDepth();
+  updateWaterCanary();
 }
 
 /**
