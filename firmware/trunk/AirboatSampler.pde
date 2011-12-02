@@ -12,7 +12,7 @@
 
 Servo sampler;
 
-int samplerPos[NUM_SAMPLER_POS] = {1450, 1200, 1800};
+int samplerPos[NUM_SAMPLER_POS] = {1450, 1175, 1800};
 int samplerPosIdx = 0;
 
 void initSampler()
