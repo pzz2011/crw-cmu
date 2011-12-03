@@ -30,10 +30,14 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.WifiLock;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Debug;
 import android.os.IBinder;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import at.abraxas.amarino.AmarinoIntent;
 
@@ -84,6 +88,10 @@ public class AirboatService extends Service {
 	// Objects implementing actual functionality
 	private AirboatImpl _airboatImpl;
 	private UdpVehicleService _udpService;
+
+	// Lock objects that prevent the phone from sleeping
+	private WakeLock _wakeLock = null;
+    private WifiLock _wifiLock = null;
 	
 	// Logger that pipes log information for airboat classes to file
 	private FileAppender _fileAppender; 
@@ -256,6 +264,9 @@ public class AirboatService extends Service {
 		// start tracing to "/sdcard/trace_crw.trace"
 		//Debug.startMethodTracing("trace_crw");
 		
+		// Get context (used for system functions)
+		Context context = getApplicationContext();
+		
 		// Set up logging format to include time, tag, and value
         PropertyConfigurator.getConfigurator(this).configure();		    
 		PatternFormatter formatter = new PatternFormatter(); 
@@ -360,7 +371,6 @@ public class AirboatService extends Service {
 			long when = System.currentTimeMillis();
 			
 			// Set up the actual title and text
-			Context context = getApplicationContext();
 			CharSequence contentTitle = "Airboat Server";
 			CharSequence contentText = tickerText;
 			Intent notificationIntent = new Intent(this, AirboatActivity.class);
@@ -370,6 +380,19 @@ public class AirboatService extends Service {
 			Notification notification = new Notification(icon, tickerText, when);
 			notification.setLatestEventInfo(context, contentTitle, contentText, contentIntent);
 		    startForeground(SERVICE_ID, notification);
+		}
+		
+		// Prevent phone from sleeping or turning off wifi
+		{
+			// Acquire a WakeLock to keep the CPU running
+			PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
+			_wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AirboatWakeLock");
+			_wakeLock.acquire();
+			
+			// Acquire a WifiLock to keep the phone from turning off wifi
+			WifiManager wm = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
+			_wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL , "AirboatWifiLock");
+			_wifiLock.acquire();
 		}
 		
 		// Indicate that the service should not be stopped arbitrarily
@@ -388,10 +411,10 @@ public class AirboatService extends Service {
 	 */
 	@Override
 	public void onDestroy() {
-		// stop tracing to "/sdcard/trace_crw.trace"
+		// Stop tracing to "/sdcard/trace_crw.trace"
 		Debug.stopMethodTracing();
 		
-		// Shutdown the ROS services
+		// Shutdown the vehicle services
 		if (_udpService != null) {
 			try {
 				_udpService.shutdown();
@@ -400,6 +423,12 @@ public class AirboatService extends Service {
 			}
 			_udpService = null;
 		}
+		
+		// Release locks on wifi and CPU
+		if (_wakeLock != null)
+			_wakeLock.release();
+		if (_wifiLock != null)
+			_wifiLock.release();
 		
 		// Disconnect from the Android sensors
         SensorManager sm; 
