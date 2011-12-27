@@ -5,6 +5,8 @@
 package edu.cmu.ri.airboat.floodtest;
 
 import edu.cmu.ri.airboat.irrigationtest.*;
+import gov.nasa.worldwind.geom.Position;
+import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -13,6 +15,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.ListIterator;
+import java.util.Random;
 
 /**
  *
@@ -125,6 +128,7 @@ public class DataDisplay {
         }
 
     }
+    int prevIndex = -1;
 
     public synchronized BufferedImage makeBufferedImage(int index) {
 
@@ -152,8 +156,29 @@ public class DataDisplay {
         int bx = (int) (width / model.length);
         int by = (int) (height / model[0].length);
 
-        double prevMean = mean;
-        double prevMaxExtent = maxExtent;
+        int c = 0;
+        mean = 0.0;
+        for (int i = 0; i < model.length; i++) {
+            for (int j = 0; j < model[0].length; j++) {
+                if (model[i][j] != null) {
+                    mean += model[i][j].getMean();
+                    c++;
+                }
+            }
+        }
+        mean /= (double) c;
+
+        maxExtent = 0.0;
+        for (int i = 0; i < model.length; i++) {
+            for (int j = 0; j < model[0].length; j++) {
+                if (model[i][j] != null) {
+                    double diff = Math.abs(mean - model[i][j].getMean());
+                    if (diff > maxExtent) {
+                        maxExtent = diff;
+                    }
+                }
+            }
+        }
 
         for (int i = 0; i < model.length; i++) {
             for (int j = 0; j < model[0].length; j++) {
@@ -171,18 +196,10 @@ public class DataDisplay {
                     g2.setColor(Color.black);
                     g2.drawString(df.format(v), bx * i, (int) (height - by * (j + 1)));
 
-                    mean = (0.99 * mean) + (0.01 * v);
-
-                    if (maxExtent < Math.abs(mean - v)) {
-                        maxExtent *= 1.01;
-                    } else {
-                        maxExtent *= 0.999;
-                    }
-
-                    double alpha = Math.abs((prevMean - v) / prevMaxExtent);
+                    double alpha = Math.abs((mean - v) / maxExtent);
                     alpha = Math.min(1.0, alpha);
 
-                    if (v < prevMean) {
+                    if (v < mean) {
                         g2.setColor(new Color(1.0f, 0.0f, 0.0f, (float) alpha));
                     } else {
                         g2.setColor(new Color(0.0f, 1.0f, 0.0f, (float) alpha));
@@ -241,13 +258,118 @@ public class DataDisplay {
                 li[bx][by] = new LocationInfo();
             }
 
-            System.out.println("Added obs to " + bx + " " + by);
+            // System.out.println("Added obs to " + bx + " " + by);
 
             li[bx][by].addObs(o);
 
         } catch (ArrayIndexOutOfBoundsException e) {
-            System.out.println("OUT OF EXTENT: " + bx + " " + li.length + " " + by + " " + li[0].length);
+            // System.out.println("OUT OF EXTENT: " + bx + " " + li.length + " " + by + " " + li[0].length);
         }
+    }
+
+    Random rand = new Random();
+    /**
+     * Picks the next point for inspection
+     * 
+     * @param currLoc
+     * @return 
+     */    
+    ArrayList<Position> getWaypoints(Position currLoc) {
+
+        switch (BoatSimpleProxy.autonomousSearchAlgorithm) {
+
+            case MAX_UNCERTAINTY:
+                return getMaxUncertaintyPlan(currLoc);
+
+            case RANDOM:
+
+                int i = rand.nextInt(xCount);
+                int j = rand.nextInt(yCount);
+                return indexToPath(currLoc, i, j);
+
+
+            case LAWNMOWER:
+                return getLawnmowerPlan(currLoc);
+
+            default:
+                System.out.println("UNKNOWN SENSING ALGORITHM: " + BoatSimpleProxy.autonomousSearchAlgorithm);
+                return null;
+        }
+
+
+    }
+
+    private ArrayList<Position> getLawnmowerPlan(Position currLoc) {
+
+
+        ArrayList<Position> path = new ArrayList<Position>();
+
+        for (int i = 0; i < yCount; i += 2) {
+
+            path.add(positionForIndex(currLoc, i, 0));
+            path.add(positionForIndex(currLoc, i, xCount));
+            path.add(positionForIndex(currLoc, i + 1, xCount));
+            path.add(positionForIndex(currLoc, i + 1, 0));
+
+        }
+
+        return path;
+
+    }
+
+    private ArrayList<Position> getMaxUncertaintyPlan(Position currLoc) {
+
+        int bestI = -1;
+        int bestJ = -1;
+
+        if (locInfo.size() > 0) {
+            LocationInfo[][] data = locInfo.get(0);
+
+            double bestValue = 0.0;
+
+            for (int i = 0; i < data.length; i++) {
+                for (int j = 0; j < data[i].length; j++) {
+                    LocationInfo locationInfo = data[i][j];
+                    double v = locationInfo.valueOfMoreObservations();
+                    if (v > bestValue) {
+                        bestI = i;
+                        bestJ = j;
+                        bestValue = v;
+                    }
+                }
+            }
+
+        } else {
+            System.out.println("No data for sensing, defaulting");
+            bestI = 0;
+            bestJ = 0;
+        }
+
+        if (bestI >= 0 && bestJ >= 0) {
+            return indexToPath(currLoc, bestI, bestJ);
+        } else {
+            System.out.println("No best value for sensing, fails");
+        }
+
+        return null;
+    }
+
+    private ArrayList<Position> indexToPath(Position currLoc, int i, int j) {
+        ArrayList<Position> path = new ArrayList<Position>();
+        path.add(positionForIndex(currLoc, i, j));
+        return path;
+    }
+
+    private Position positionForIndex(Position curr, int bestI, int bestJ) {
+
+        double easting = ul[0] + (bestI * dx);
+        double northing = lr[1] + (bestJ * dy);
+
+        UTMCoord utm = UTMCoord.fromLatLon(curr.latitude, curr.longitude);
+
+        UTMCoord destC = UTMCoord.fromUTM(utm.getZone(), utm.getHemisphere(), easting, northing);
+
+        return new Position(destC.getLatitude(), destC.getLongitude(), 0.0);
     }
 
     public class LocationInfo {

@@ -114,6 +114,12 @@ public class BoatSimpleProxy extends Thread {
     // @todo Temporary centralized data structure, make it a listener
     public static BuoyManager buoyManager = null;
 
+    public static enum AutonomousSearchAlgorithmOptions {
+
+        RANDOM, LAWNMOWER, MAX_UNCERTAINTY
+    };
+    public static AutonomousSearchAlgorithmOptions autonomousSearchAlgorithm = AutonomousSearchAlgorithmOptions.MAX_UNCERTAINTY;
+
     public BoatSimpleProxy(final String name, final ArrayList<Marker> markers, Color color, final int boatNo, InetSocketAddress addr) {
 
         this.masterURI = masterURI;
@@ -216,7 +222,7 @@ public class BoatSimpleProxy extends Thread {
 
             public void receivedSensor(SensorData sd) {
 
-                System.out.println("Received sensor");
+                // System.out.println("Received sensor");
                 //Since the sensor Update is called just after state update
                 //There shouldn't be too much error with regards to the
                 //position of the sampling point
@@ -246,7 +252,9 @@ public class BoatSimpleProxy extends Thread {
                                     UtmPoseToDouble(_pose.pose),
                                     _pose.origin.zone, _pose.origin.isNorth);
 
-                            System.out.println("Data " + i + " = " + sd.data[i]);
+                            /*if (i == 0) {
+                                System.out.println("Data " + sd.type + " = " + sd.data[i] + " " + _pose.pose.getX());
+                            }*/
 
                             dataDisplay.newObservation(o, i);
                         }
@@ -272,18 +280,18 @@ public class BoatSimpleProxy extends Thread {
 
         /*
         _server.getNumSensors(new FunctionObserver() {
-
-            public void completed(Object v) {
-                System.out.println("NUMBER SENSORS: " + v);
-            }
-
-            public void failed(FunctionError fe) {
-                
-            }
-            
+        
+        public void completed(Object v) {
+        System.out.println("NUMBER SENSORS: " + v);
+        }
+        
+        public void failed(FunctionError fe) {
+        
+        }
+        
         });
-        */
-                
+         */
+
         for (int i = 0; i < 3; i++) {
             _server.addSensorListener(i, _sensorListener, null);
         }
@@ -296,6 +304,9 @@ public class BoatSimpleProxy extends Thread {
                     if (state == StateEnum.AREA) {
                         System.out.println("Repeating perimeter");
                         setArea(currentArea);
+                        return;
+                    } else if (state == StateEnum.AUTONOMOUS_SENSING) {
+                        planAutonomousSense();
                         return;
                     } else if (state == StateEnum.AUTONOMOUS_BUOY) {
                         System.out.println("Next buoy");
@@ -316,41 +327,47 @@ public class BoatSimpleProxy extends Thread {
         //add Listeners
         _server.addPoseListener(_stateListener, null);
 
-        // Cheating dummy data
+        // Cheating dummy data, another version of this is in SimpleBoatSimulator, 
+        // effectively overridden by overridding addSensorListener in FastSimpleBoatSimulator
+        // because no access to that code from here.
         // @todo Only should be on for simulation
-        /*
+
         (new Thread() {
-        
-        Random rand = new Random();
-        
-        public void run() {
-        while (true) {
-        
-        System.out.println("GNERATING FAKE SENSOR DATA");
-        
-        SensorData sd = new SensorData();
-        // @todo Observation
-        if (rand.nextBoolean()) {
-        sd.type = SensorType.TE;
-        } else {
-        sd.type = SensorType.WATERCANARY;
-        }
-        
-        sd.data = new double[4];
-        for (int i = 0; i < sd.data.length; i++) {
-        sd.data[i] = rand.nextDouble();
-        }
-        
-        _sensorListener.receivedSensor(sd);
-        
-        try {
-        sleep(1000L);
-        } catch (InterruptedException e) {
-        }
-        }
-        }
+
+            Random rand = new Random();
+
+            public void run() {
+
+                System.out.println("\n\n\nGENERATING FAKE SENSOR DATA\n\n\n");
+
+                while (true) {
+
+                    if (currLoc != null) {
+                        SensorData sd = new SensorData();
+                        // @todo Observation
+                        if (rand.nextBoolean()) {
+                            sd.type = SensorType.TE;
+                        } else {
+                            sd.type = SensorType.WATERCANARY;
+                        }
+
+                        sd.data = new double[4];
+                        for (int i = 0; i < sd.data.length; i++) {
+                            sd.data[i] = Math.abs(currLoc.longitude.degrees); //  + rand.nextDouble();
+                        }
+
+                        _sensorListener.receivedSensor(sd);
+
+                    }
+                    
+                    try {
+                        sleep(100L);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
         }).start();
-         */
+
     }
 
     private void startCamera() {
@@ -511,7 +528,7 @@ public class BoatSimpleProxy extends Thread {
         _server.startWaypoints(new UtmPose[]{wputm}, "POINT_AND_SHOOT", new FunctionObserver() {
 
             public void completed(Object v) {
-                System.out.println("Waypoint call succeeded");
+                System.out.println("Waypoint call completed");
             }
 
             public void failed(FunctionError fe) {
@@ -605,13 +622,30 @@ public class BoatSimpleProxy extends Thread {
         buoyManager = new BuoyManager(buoys, pgon);
     }
 
+    public void setAutonomousSense() {
+
+        // @todo If was something else, change
+        state = StateEnum.AUTONOMOUS_SENSING;
+        planAutonomousSense();
+
+    }
+
     public void setAutonomousBuoy() {
 
         // @todo If was something else, change
-
         state = StateEnum.AUTONOMOUS_BUOY;
         planAutonomousBuoy();
 
+    }
+
+    public void planAutonomousSense() {
+        System.out.println("Planning autonomous sense");
+
+        ArrayList<Position> next = dataDisplay.getWaypoints(currLoc);
+        if (next != null) {
+            System.out.println("sending sensing waypoint: " + next + " from " + currLoc);
+            setWaypoints(next);
+        }
     }
 
     public void planAutonomousBuoy() {
