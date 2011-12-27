@@ -13,6 +13,7 @@ package edu.cmu.ri.airboat.floodtest;
 import java.awt.GridLayout;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JRadioButton;
 
 /**
@@ -36,6 +37,8 @@ public class SensingBoatSelect extends javax.swing.JDialog {
             mapping.put(rb, boatSimpleProxy);
         }
         
+        DefaultComboBoxModel dm = new DefaultComboBoxModel(BoatSimpleProxy.autonomousSearchAlgorithm.values());
+        algC.setModel(dm);
     }
 
     /** This method is called from within the constructor to
@@ -50,6 +53,7 @@ public class SensingBoatSelect extends javax.swing.JDialog {
         cancelB = new javax.swing.JButton();
         buttonP = new javax.swing.JPanel();
         OKB = new javax.swing.JButton();
+        algC = new javax.swing.JComboBox();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -87,7 +91,9 @@ public class SensingBoatSelect extends javax.swing.JDialog {
                     .add(layout.createSequentialGroup()
                         .add(23, 23, 23)
                         .add(cancelB)
-                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, 196, Short.MAX_VALUE)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                        .add(algC, 0, 170, Short.MAX_VALUE)
+                        .add(18, 18, 18)
                         .add(OKB))
                     .add(layout.createSequentialGroup()
                         .addContainerGap()
@@ -102,7 +108,8 @@ public class SensingBoatSelect extends javax.swing.JDialog {
                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, 29, Short.MAX_VALUE)
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
                     .add(cancelB)
-                    .add(OKB))
+                    .add(OKB)
+                    .add(algC, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap())
         );
 
@@ -160,6 +167,7 @@ public class SensingBoatSelect extends javax.swing.JDialog {
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton OKB;
+    public javax.swing.JComboBox algC;
     private javax.swing.JPanel buttonP;
     private javax.swing.JButton cancelB;
     // End of variables declaration//GEN-END:variables

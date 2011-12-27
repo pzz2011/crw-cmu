@@ -203,9 +203,15 @@ public class AutonomyPanel extends javax.swing.JPanel {
         sbs.setVisible(true);
 
         if (sbs.approved) {
+            BoatSimpleProxy.autonomousSearchAlgorithm = (BoatSimpleProxy.AutonomousSearchAlgorithmOptions)sbs.algC.getSelectedItem();
             BoatSimpleProxy.initDataDisply(ul, lr, pgon, list);
 
-            // @todo Start the autonomy for the proxies
+            // Start the autonomy for the proxies
+            ArrayList<BoatSimpleProxy> selected = sbs.getSelected();
+            for (BoatSimpleProxy boatSimpleProxy : selected) {
+                boatSimpleProxy.setAutonomousSense();
+            }
+            
         } else {
 
             initSensorB.setEnabled(true);
@@ -217,7 +223,7 @@ public class AutonomyPanel extends javax.swing.JPanel {
 
         SensingBoatSelect sbs = new SensingBoatSelect(null, true);
         sbs.setVisible(true);
-                        
+
         if (sbs.approved) {
 
             ArrayList<LatLon> markerLocs = new ArrayList<LatLon>();
@@ -247,7 +253,7 @@ public class AutonomyPanel extends javax.swing.JPanel {
                             LatLon latLon = new LatLon(Angle.fromDegrees(lat), Angle.fromDegrees(lon));
 
                             // Only buoys in area
-                            if (BoatSimpleProxy.isLocationInside(latLon, pgon.getOuterBoundary())) {                            
+                            if (BoatSimpleProxy.isLocationInside(latLon, pgon.getOuterBoundary())) {
                                 markerLocs.add(latLon);
                             }
                         }
@@ -257,19 +263,19 @@ public class AutonomyPanel extends javax.swing.JPanel {
 
                     buoyDetectionB.setEnabled(false);
                     checkBuoyB.setEnabled(true);
-                    
+
                     ArrayList<BoatSimpleProxy> selected = sbs.getSelected();
                     for (BoatSimpleProxy boatSimpleProxy : selected) {
                         boatSimpleProxy.setAutonomousBuoy();
                     }
-                    
+
                 } catch (Exception e) {
                     System.out.println("Starting buoy detection failed: " + e);
                     e.printStackTrace();
                 }
             }
-            
-            
+
+
         }
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables

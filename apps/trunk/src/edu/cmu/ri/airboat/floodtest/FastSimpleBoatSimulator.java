@@ -4,6 +4,7 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.crw.SensorListener;
 import edu.cmu.ri.crw.SimpleBoatController;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleController;
@@ -156,4 +157,11 @@ public class FastSimpleBoatSimulator extends SimpleBoatSimulator {
     public static double angleBetween(Pose3D src, Pose3D dest) {
         return Math.atan2((dest.getY() - src.getY()), (dest.getX() - src.getX()));
     }
+
+    @Override
+    public void addSensorListener(int channel, SensorListener l) {
+        System.out.println("IGNORING SENSOR LISTENER ADD");
+    }
+    
+    
 }
