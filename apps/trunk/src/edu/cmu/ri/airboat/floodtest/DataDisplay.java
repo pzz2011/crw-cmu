@@ -41,6 +41,7 @@ public class DataDisplay {
     private int yCount = 10;
     double dx = 10.0;
     double dy = 10.0;
+    boolean loggingOn = true;
 
     /**
      * Some of these numbers are confusing, ul and lr only work in one hemisphere, translation should fix it.
@@ -68,6 +69,39 @@ public class DataDisplay {
             lr[1] = d;
         }
         dy = (ul[1] - lr[1]) / yCount;
+
+        if (loggingOn) {
+            (new Thread() {
+
+                public void run() {
+                    while (true) {
+                        try {
+                            // Change this to change how often data is logged
+                            sleep(10000);
+                        } catch (InterruptedException e) {
+                        }
+                        int index = 0;
+                        // Play with this to change format
+                        System.out.println("Log data @ " + System.currentTimeMillis());
+                        for (LocationInfo[][] model : locInfo) {
+                            System.out.print("Index: " + index++ + " ");
+                            for (int i = 0; i < model.length; i++) {
+                                System.out.print("[");
+                                for (int j = 0; j < model[0].length; j++) {
+                                    if (model[i][j] != null) {
+                                        System.out.print(" " + model[i][j].getMean());
+                                    } else {
+                                        System.out.print(" NaN");
+                                    }
+                                }
+                                System.out.print("] ");
+                            }
+                            System.out.println("");
+                        }
+                    }
+                }
+            }).start();
+        }
     }
 
     private LocationInfo[][] initLocInfo() {
@@ -266,15 +300,16 @@ public class DataDisplay {
             // System.out.println("OUT OF EXTENT: " + bx + " " + li.length + " " + by + " " + li[0].length);
         }
     }
-
     Random rand = new Random();
+
     /**
      * Picks the next point for inspection
-     * 
+     *      * 
      * @param currLoc
+     * @param sensors The list of boats doing autonomous sensing
      * @return 
-     */    
-    ArrayList<Position> getWaypoints(Position currLoc) {
+     */
+    ArrayList<Position> getWaypoints(Position currLoc, BoatSimpleProxy self, ArrayList<BoatSimpleProxy> sensors) {
 
         switch (BoatSimpleProxy.autonomousSearchAlgorithm) {
 
@@ -289,22 +324,25 @@ public class DataDisplay {
 
 
             case LAWNMOWER:
-                return getLawnmowerPlan(currLoc);
+                return getLawnmowerPlan(currLoc, self, sensors);
 
             default:
                 System.out.println("UNKNOWN SENSING ALGORITHM: " + BoatSimpleProxy.autonomousSearchAlgorithm);
                 return null;
         }
 
-
     }
 
-    private ArrayList<Position> getLawnmowerPlan(Position currLoc) {
+    private ArrayList<Position> getLawnmowerPlan(Position currLoc, BoatSimpleProxy self, ArrayList<BoatSimpleProxy> sensors) {
 
+        int count = sensors.size();
+        int index = sensors.indexOf(self);
+
+        int yPer = (int) Math.max(2.0, Math.ceil((double) yCount / (double) count));
 
         ArrayList<Position> path = new ArrayList<Position>();
 
-        for (int i = 0; i < yCount; i += 2) {
+        for (int i = yPer * index; i < (yPer * (index + 1)); i += 2) {
 
             path.add(positionForIndex(currLoc, i, 0));
             path.add(positionForIndex(currLoc, i, xCount));

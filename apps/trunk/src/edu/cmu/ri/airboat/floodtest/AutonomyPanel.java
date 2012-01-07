@@ -209,7 +209,7 @@ public class AutonomyPanel extends javax.swing.JPanel {
             // Start the autonomy for the proxies
             ArrayList<BoatSimpleProxy> selected = sbs.getSelected();
             for (BoatSimpleProxy boatSimpleProxy : selected) {
-                boatSimpleProxy.setAutonomousSense();
+                boatSimpleProxy.setAutonomousSense(selected);
             }
             
         } else {

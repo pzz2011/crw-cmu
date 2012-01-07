@@ -331,14 +331,15 @@ public class BoatSimpleProxy extends Thread {
         // effectively overridden by overridding addSensorListener in FastSimpleBoatSimulator
         // because no access to that code from here.
         // @todo Only should be on for simulation
-
+        
+        // ABHINAV COMMENT OUT THIS THREAD BEFORE RUNNING ON THE REAL BOATS!!
         (new Thread() {
 
             Random rand = new Random();
 
             public void run() {
 
-                System.out.println("\n\n\nGENERATING FAKE SENSOR DATA\n\n\n");
+                System.out.println("\n\n\nGENERATING FAKE SENSOR DATA -- Abhinav, comment this out\n\n\n");
 
                 while (true) {
 
@@ -622,10 +623,14 @@ public class BoatSimpleProxy extends Thread {
         buoyManager = new BuoyManager(buoys, pgon);
     }
 
-    public void setAutonomousSense() {
+    /**
+     * Passing in the list of boats assigned to autonomy so that cooperation can occur
+     */
+    public void setAutonomousSense(ArrayList<BoatSimpleProxy> selected) {
 
         // @todo If was something else, change
         state = StateEnum.AUTONOMOUS_SENSING;
+        autonomousSensingBoats = selected;
         planAutonomousSense();
 
     }
@@ -638,10 +643,11 @@ public class BoatSimpleProxy extends Thread {
 
     }
 
+    ArrayList<BoatSimpleProxy> autonomousSensingBoats = null;
     public void planAutonomousSense() {
         System.out.println("Planning autonomous sense");
 
-        ArrayList<Position> next = dataDisplay.getWaypoints(currLoc);
+        ArrayList<Position> next = dataDisplay.getWaypoints(currLoc, this, autonomousSensingBoats);
         if (next != null) {
             System.out.println("sending sensing waypoint: " + next + " from " + currLoc);
             setWaypoints(next);
