@@ -338,16 +338,18 @@ public class DataDisplay {
         int count = sensors.size();
         int index = sensors.indexOf(self);
 
-        int yPer = (int) Math.max(2.0, Math.ceil((double) yCount / (double) count));
+        int yPer = (int) Math.max(2.0, Math.ceil((double) (yCount-1) / (double) count));
 
         ArrayList<Position> path = new ArrayList<Position>();
 
         for (int i = yPer * index; i < (yPer * (index + 1)); i += 2) {
 
-            path.add(positionForIndex(currLoc, i, 0));
-            path.add(positionForIndex(currLoc, i, xCount));
-            path.add(positionForIndex(currLoc, i + 1, xCount));
-            path.add(positionForIndex(currLoc, i + 1, 0));
+            int ri = Math.min(yCount - 2, i);
+            
+            path.add(positionForIndex(currLoc, ri, 0));
+            path.add(positionForIndex(currLoc, ri, xCount-1));
+            path.add(positionForIndex(currLoc, ri + 1, xCount-1));
+            path.add(positionForIndex(currLoc, ri + 1, 0));
 
         }
 
@@ -398,10 +400,18 @@ public class DataDisplay {
         return path;
     }
 
+    /**
+     * @todo Offsets are for Pittsburgh, need to have signs reversed for other hemispheres
+     * 
+     * @param curr
+     * @param bestI
+     * @param bestJ
+     * @return 
+     */
     private Position positionForIndex(Position curr, int bestI, int bestJ) {
 
-        double easting = ul[0] + (bestI * dx);
-        double northing = lr[1] + (bestJ * dy);
+        double easting = ul[0] + ((double)(bestI + 0.5) * dx);
+        double northing = lr[1] + ((double)(bestJ + 0.5) * dy);
 
         UTMCoord utm = UTMCoord.fromLatLon(curr.latitude, curr.longitude);
 
