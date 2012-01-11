@@ -318,8 +318,8 @@ public class DataDisplay {
 
             case RANDOM:
 
-                int i = rand.nextInt(xCount);
-                int j = rand.nextInt(yCount);
+                int i = rand.nextInt(xCount-1);
+                int j = rand.nextInt(yCount-1);
                 return indexToPath(currLoc, i, j);
 
 
@@ -367,8 +367,8 @@ public class DataDisplay {
 
             double bestValue = 0.0;
 
-            for (int i = 0; i < data.length; i++) {
-                for (int j = 0; j < data[i].length; j++) {
+            for (int i = 0; i < data.length-1; i++) {
+                for (int j = 0; j < data[i].length-1; j++) {
                     LocationInfo locationInfo = data[i][j];
                     double v = locationInfo.valueOfMoreObservations();
                     if (v > bestValue) {
