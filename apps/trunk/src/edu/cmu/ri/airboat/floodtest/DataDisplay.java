@@ -5,8 +5,10 @@
 package edu.cmu.ri.airboat.floodtest;
 
 import edu.cmu.ri.airboat.irrigationtest.*;
+import gov.nasa.worldwind.geom.LatLon;
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
+import gov.nasa.worldwind.render.Polygon;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -42,6 +44,7 @@ public class DataDisplay {
     double dx = 10.0;
     double dy = 10.0;
     boolean loggingOn = true;
+    private final Polygon pgon;
 
     /**
      * Some of these numbers are confusing, ul and lr only work in one hemisphere, translation should fix it.
@@ -49,7 +52,7 @@ public class DataDisplay {
      * @param ul
      * @param lr 
      */
-    public DataDisplay(double[] ul, double[] lr) {
+    public DataDisplay(double[] ul, double[] lr, Polygon pgon) {
         this.ul = ul;
         this.lr = lr;
 
@@ -102,6 +105,7 @@ public class DataDisplay {
                 }
             }).start();
         }
+        this.pgon = pgon;
     }
 
     private LocationInfo[][] initLocInfo() {
@@ -318,8 +322,14 @@ public class DataDisplay {
 
             case RANDOM:
 
-                int i = rand.nextInt(xCount-1);
-                int j = rand.nextInt(yCount-1);
+                int i = rand.nextInt(xCount - 1);
+                int j = rand.nextInt(yCount - 1);
+                Position p = positionForIndex(currLoc, i, j);
+                while (!pointInPolygon(p, pgon)) {
+                    i = rand.nextInt(xCount - 1);
+                    j = rand.nextInt(yCount - 1);
+                    p = positionForIndex(currLoc, i, j);
+                }
                 return indexToPath(currLoc, i, j);
 
 
@@ -338,18 +348,41 @@ public class DataDisplay {
         int count = sensors.size();
         int index = sensors.indexOf(self);
 
-        int yPer = (int) Math.max(2.0, Math.ceil((double) (yCount-1) / (double) count));
+        int yPer = (int) Math.max(2.0, Math.ceil((double) (yCount - 1) / (double) count));
 
         ArrayList<Position> path = new ArrayList<Position>();
 
         for (int i = yPer * index; i < (yPer * (index + 1)); i += 2) {
 
             int ri = Math.min(yCount - 2, i);
+
+            int xb = 0;
+            int xt = xCount - 1;
             
-            path.add(positionForIndex(currLoc, ri, 0));
-            path.add(positionForIndex(currLoc, ri, xCount-1));
-            path.add(positionForIndex(currLoc, ri + 1, xCount-1));
-            path.add(positionForIndex(currLoc, ri + 1, 0));
+            Position p = positionForIndex(currLoc, xb, ri);
+            while (!pointInPolygon(p, pgon)) {
+                xb++;
+                p = positionForIndex(currLoc, xb, ri);
+                if (xb >= xt) {
+                    System.out.println("Invalid shape, xb > xt");
+                    System.exit(0);
+                }
+            }
+                     
+            p = positionForIndex(currLoc, xt, ri);
+            while (!pointInPolygon(p, pgon)) {
+                xt--;
+                p = positionForIndex(currLoc, xt, ri);
+                if (xt <= xb) {
+                    System.out.println("Invalid shape, xt < xb");
+                    System.exit(0);
+                }
+            }
+            
+            path.add(positionForIndex(currLoc, xb, ri));
+            path.add(positionForIndex(currLoc, xt, ri));
+            path.add(positionForIndex(currLoc, xt, ri + 1));
+            path.add(positionForIndex(currLoc, xb, ri + 1));
 
         }
 
@@ -367,22 +400,31 @@ public class DataDisplay {
 
             double bestValue = 0.0;
 
-            for (int i = 0; i < data.length-1; i++) {
-                for (int j = 0; j < data[i].length-1; j++) {
+            for (int i = 0; i < data.length - 1; i++) {
+                for (int j = 0; j < data[i].length - 1; j++) {
+                    Position p = positionForIndex(currLoc, i, j);
                     LocationInfo locationInfo = data[i][j];
-                    double v = locationInfo.valueOfMoreObservations();
+                    double v = locationInfo == null? Double.MAX_VALUE : locationInfo.valueOfMoreObservations();
                     if (v > bestValue) {
-                        bestI = i;
-                        bestJ = j;
-                        bestValue = v;
+                        if (pointInPolygon(p, pgon)) {
+                            bestI = i;
+                            bestJ = j;
+                            bestValue = v;
+                        } else {
+                            //System.out.println("REJECTING");
+                        }
                     }
                 }
             }
 
         } else {
             System.out.println("No data for sensing, defaulting");
-            bestI = 0;
-            bestJ = 0;
+            bestI = -1;
+            bestJ = -1;
+            Position p = null;
+            do {
+                p = positionForIndex(currLoc, ++bestI, ++bestJ);
+            } while (!pointInPolygon(p, pgon));
         }
 
         if (bestI >= 0 && bestJ >= 0) {
@@ -400,6 +442,77 @@ public class DataDisplay {
         return path;
     }
 
+    /*
+     * Adapted from http://en.wikipedia.org/wiki/Point_in_polygon
+     */
+    private boolean pointInPolygon(Position p, Polygon poly) {
+        Position zero = new Position(LatLon.ZERO, 0.0);
+        Position p1 = null;
+        Position first = null;
+        int count = 0;
+        for (LatLon l : poly.getOuterBoundary()) {
+            Position p2 = new Position(l, 0.0);
+            if (p1 == null) {
+                p1 = p2;
+                first = p2;
+            } else {
+                boolean intersects = segmentsIntersectA(p1, p2, zero, p);
+                if (intersects) {
+                    count++;
+                }
+                p1 = p2;
+            }
+        }
+        boolean intersects = segmentsIntersectA(first, p1, zero, p);
+        if (intersects) {
+            count++;
+        }
+        
+        System.out.println("Counts = " + count);
+
+        return count % 2 != 0;
+    }
+
+    /**
+     * Adapted from http://paulbourke.net/geometry/lineline2d/
+     */
+    private boolean segmentsIntersect(Position s1, Position e1, Position s2, Position e2) {
+        
+        double d = ((e2.latitude.degrees - s2.latitude.degrees) * (s1.longitude.degrees - s2.longitude.degrees) - (e2.longitude.degrees - s2.longitude.degrees) * (s2.latitude.degrees - s1.latitude.degrees));
+        double ua = ((e2.longitude.degrees - s2.longitude.degrees) * (s1.latitude.degrees - s2.latitude.degrees) - (e2.latitude.degrees - s2.latitude.degrees) * (s1.longitude.degrees - s2.longitude.degrees)) / d;
+        double ub = ((e1.longitude.degrees - s1.longitude.degrees) * (s1.latitude.degrees - s2.latitude.degrees) - (e1.latitude.degrees - s1.latitude.degrees) * (s1.longitude.degrees - s2.longitude.degrees)) / d;
+
+        boolean ret = (ua >= 0.0 && ua <= 1.0 && ub >= 0.0 && ub <= 1.0);
+        
+        // System.out.println("Line segment: " + ret + " " + s1 + "-" + e1 + " against " + s2 + " - " + e2);
+        
+        return ret;
+    }
+
+    private boolean segmentsIntersectA(Position s1, Position e1, Position s2, Position e2) {
+        
+        double x1 = s1.longitude.degrees;
+        double x2 = e1.longitude.degrees;
+        double x3 = s2.longitude.degrees;
+        double x4 = e2.longitude.degrees;
+        
+        double y1 = s1.latitude.degrees;
+        double y2 = e1.latitude.degrees;
+        double y3 = s2.latitude.degrees;
+        double y4 = e2.latitude.degrees;
+        
+        double d = ((y4-y3)*(x2-x1)) - ((x4-x3)*(y2-y1));
+        double ua = (((x4-x3)*(y1-y3)) - ((y4-y3)*(x1-x3))) / d;
+        double ub = (((x2-x1)*(y1-y3)) - ((y2-y1)*(x1-x3))) / d;
+
+        boolean ret = (ua >= 0.0 && ua <= 1.0 && ub >= 0.0 && ub <= 1.0);
+        
+        System.out.println("Line segment: " + ret + " " + s1 + "-" + e1 + " against " + s2 + " - " + e2);
+        
+        return ret;
+    }
+
+    
     /**
      * @todo Offsets are for Pittsburgh, need to have signs reversed for other hemispheres
      * 
@@ -410,8 +523,8 @@ public class DataDisplay {
      */
     private Position positionForIndex(Position curr, int bestI, int bestJ) {
 
-        double easting = ul[0] + ((double)(bestI + 0.5) * dx);
-        double northing = lr[1] + ((double)(bestJ + 0.5) * dy);
+        double easting = ul[0] + ((double) (bestI + 0.5) * dx);
+        double northing = lr[1] + ((double) (bestJ + 0.5) * dy);
 
         UTMCoord utm = UTMCoord.fromLatLon(curr.latitude, curr.longitude);
 
@@ -445,8 +558,12 @@ public class DataDisplay {
             //for (Observation observation : obs) {
             ListIterator<Observation> lo = obs.listIterator();
             while (lo.hasNext()) {
+                try {
                 Observation observation = lo.next();
                 ss += (mean - observation.getValue()) * (mean - observation.getValue());
+                } catch (NullPointerException e) {
+                    System.out.println("NULL pointer in DataDisplay, ignored");
+                }
             }
 
             ss /= obs.size();

@@ -27,6 +27,7 @@ import gov.nasa.worldwind.render.Polygon;
 import gov.nasa.worldwind.render.Polyline;
 import gov.nasa.worldwind.render.Renderable;
 import gov.nasa.worldwind.render.ShapeAttributes;
+import gov.nasa.worldwind.render.SurfacePolygon;
 import gov.nasa.worldwind.render.markers.Marker;
 import java.awt.Cursor;
 import java.awt.FlowLayout;

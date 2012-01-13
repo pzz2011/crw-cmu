@@ -578,7 +578,7 @@ public class BoatSimpleProxy extends Thread {
 
     public static void initDataDisply(double[] ul, double[] br, Polygon pgon, final List list) {
 
-        dataDisplay = new DataDisplay(ul, br);
+        dataDisplay = new DataDisplay(ul, br, pgon);
 
         // @todo Ugly static connection between autonomy panel and boat simple proxy
         AutonomyPanel.dataSelectCombo.setEnabled(true);
