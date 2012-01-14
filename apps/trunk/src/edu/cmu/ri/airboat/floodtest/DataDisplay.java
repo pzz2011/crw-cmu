@@ -348,7 +348,7 @@ public class DataDisplay {
         int count = sensors.size();
         int index = sensors.indexOf(self);
 
-        int yPer = (int) Math.max(2.0, Math.ceil((double) (yCount - 1) / (double) count));
+        int yPer = (int) Math.max(2.0, Math.ceil((double) yCount / (double) count));
 
         ArrayList<Position> path = new ArrayList<Position>();
 
