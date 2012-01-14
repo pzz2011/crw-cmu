@@ -357,7 +357,7 @@ public class DataDisplay {
             int ri = Math.min(yCount - 2, i);
 
             int xb = 0;
-            int xt = xCount - 1;
+            int xt = xCount;
             
             Position p = positionForIndex(currLoc, xb, ri);
             while (!pointInPolygon(p, pgon)) {
