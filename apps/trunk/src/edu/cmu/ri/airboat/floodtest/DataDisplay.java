@@ -581,7 +581,7 @@ public class DataDisplay {
             if (count == 0 || count == 1) {
                 d = Double.MAX_VALUE;
             } else {
-                d = (s * getStdDev()) * Math.pow(0.99, count);                
+                d = (s * s) * Math.pow(0.99, count);                    
             }
 
             return d;
