@@ -64,7 +64,7 @@ public class BuoyManager {
         double minDist = Double.MAX_VALUE;
         
         for (BuoyIDModel buoyIDModel : models) {
-            // Balajee you might want to change this 20.
+            // Balajee you might want to change this 20, which is the maximum number of images that can be in the queue
             if (!buoyIDModel.isDone() && buoyIDModel.imgs.size() < 20 && !sent.contains(buoyIDModel.loc)) {
                 double d = planarDistanceSq(buoyIDModel.loc3D, currP);
                 if (d < minDist) {
@@ -119,7 +119,7 @@ public class BuoyManager {
             
             double adjangle = angle - pimg.getPose().pose.getRotation().toYaw();
             
-            // System.out.println("Dist = " + dist + ", raw angle = " + angle + " and adj. angle " + adjangle);                        
+            System.out.println("For buoy at " + loc + " and img at " + pimg.getPose() + " Dist = " + dist + ", raw angle = " + angle + " and adj. angle " + adjangle);                        
                         
             // Balajee you might want to change this
             if (Math.abs(adjangle) < Math.PI/6.0 && dist < 100.0) {
