@@ -296,10 +296,11 @@ public class DataDisplay {
                 li[bx][by] = new LocationInfo();
             }
 
-            // System.out.println("Added obs to " + bx + " " + by);
-
             li[bx][by].addObs(o);
 
+            System.out.println("Added obs to " + bx + " " + by + " mean " + li[bx][by].getMean() + " std. dev. " + li[bx][by].getStdDev() + " count " + li[bx][by].count);
+            
+            
         } catch (ArrayIndexOutOfBoundsException e) {
             // System.out.println("OUT OF EXTENT: " + bx + " " + li.length + " " + by + " " + li[0].length);
         }
@@ -398,20 +399,20 @@ public class DataDisplay {
         if (locInfo.size() > 0) {
             LocationInfo[][] data = locInfo.get(0);
 
-            double bestValue = 0.0;
+            double bestValue = -1.0;
 
             for (int i = 0; i < data.length - 1; i++) {
                 for (int j = 0; j < data[i].length - 1; j++) {
                     Position p = positionForIndex(currLoc, i, j);
                     LocationInfo locationInfo = data[i][j];
-                    double v = locationInfo == null? Double.MAX_VALUE : locationInfo.valueOfMoreObservations();
-                    if (v > bestValue) {
+                    double v = locationInfo == null ? Double.MAX_VALUE : locationInfo.valueOfMoreObservations();
+                    if (v > bestValue || (v == bestValue && rand.nextBoolean())) {
                         if (pointInPolygon(p, pgon)) {
                             bestI = i;
                             bestJ = j;
                             bestValue = v;
                         } else {
-                            //System.out.println("REJECTING");
+                            // System.out.println("REJECTING, not in poly");
                         }
                     }
                 }
@@ -468,7 +469,7 @@ public class DataDisplay {
             count++;
         }
         
-        System.out.println("Counts = " + count);
+        //System.out.println("Counts = " + count);
 
         return count % 2 != 0;
     }
@@ -507,7 +508,7 @@ public class DataDisplay {
 
         boolean ret = (ua >= 0.0 && ua <= 1.0 && ub >= 0.0 && ub <= 1.0);
         
-        System.out.println("Line segment: " + ret + " " + s1 + "-" + e1 + " against " + s2 + " - " + e2);
+        //System.out.println("Line segment: " + ret + " " + s1 + "-" + e1 + " against " + s2 + " - " + e2);
         
         return ret;
     }
@@ -545,6 +546,7 @@ public class DataDisplay {
             tot += o.getValue();
             count++;
             mean = tot / count;
+            System.out.println("Count now " + count + " and mean " + mean);
         }
 
         public double getMean() {
@@ -579,7 +581,7 @@ public class DataDisplay {
             if (count == 0 || count == 1) {
                 d = Double.MAX_VALUE;
             } else {
-                d = (s * getStdDev()) * Math.pow(0.99, count);
+                d = (s * getStdDev()) * Math.pow(0.99, count);                
             }
 
             return d;
