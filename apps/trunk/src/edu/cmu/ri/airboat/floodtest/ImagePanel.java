@@ -56,7 +56,7 @@ public class ImagePanel extends javax.swing.JPanel {
         if (imagesDir != null) {
             try {
                 File outputfile = new File(imagesDir.getAbsolutePath() + File.separator + "BoatImg" + (new Date()) + ".png");
-                System.out.println("Writing to " + outputfile);
+                System.out.println("Writing to " + outputfile + " " + pose);
                 ImageIO.write(img, "png", outputfile);
             } catch (IOException e) {
                 System.out.println("Failed to write image to file: " + e);
