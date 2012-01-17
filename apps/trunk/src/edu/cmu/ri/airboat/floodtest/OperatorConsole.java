@@ -12,7 +12,9 @@ import gov.nasa.worldwind.avlist.AVKey;
 import gov.nasa.worldwind.awt.WorldWindowGLJPanel;
 import gov.nasa.worldwind.event.SelectEvent;
 import gov.nasa.worldwind.event.SelectListener;
+import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.Intersection;
+import gov.nasa.worldwind.geom.LatLon;
 import gov.nasa.worldwind.geom.Line;
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.layers.Earth.USGSDigitalOrtho;
@@ -27,7 +29,6 @@ import gov.nasa.worldwind.render.Polygon;
 import gov.nasa.worldwind.render.Polyline;
 import gov.nasa.worldwind.render.Renderable;
 import gov.nasa.worldwind.render.ShapeAttributes;
-import gov.nasa.worldwind.render.SurfacePolygon;
 import gov.nasa.worldwind.render.markers.Marker;
 import java.awt.Cursor;
 import java.awt.FlowLayout;
@@ -417,8 +418,8 @@ public class OperatorConsole {
 
                                 if (pLine != null) {
                                     polyLayer.removeRenderable(pLine);
-                                }
-
+                                }                                
+                                
                                 Polygon pgon = new Polygon(shapeParams);
                                 pgon.setAltitudeMode(WorldWind.RELATIVE_TO_GROUND);
                                 polyLayer.addRenderable(pgon);
