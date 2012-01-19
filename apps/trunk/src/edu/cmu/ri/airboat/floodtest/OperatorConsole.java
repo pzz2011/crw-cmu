@@ -421,7 +421,7 @@ public class OperatorConsole {
                                 }                                
                                 
                                 Polygon pgon = new Polygon(shapeParams);
-                                pgon.setAltitudeMode(WorldWind.RELATIVE_TO_GROUND);
+                                pgon.setAltitudeMode(WorldWind.RELATIVE_TO_GROUND); //Change this to absolute and set it to 716ft (from google earth)
                                 polyLayer.addRenderable(pgon);
 
                                 shapeParams.clear();
