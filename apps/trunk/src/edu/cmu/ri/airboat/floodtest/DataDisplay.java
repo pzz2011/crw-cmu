@@ -262,6 +262,8 @@ public class DataDisplay {
     }
     private Hashtable<String, Integer> baseIndicies = new Hashtable<String, Integer>();
 
+    int prevX = -1, prevY = -1, obsInCell = 0;
+    
     public void newObservation(Observation o, int index) {
         o.index = index;
         observations.add(o);
@@ -304,7 +306,29 @@ public class DataDisplay {
         } catch (ArrayIndexOutOfBoundsException e) {
             // System.out.println("OUT OF EXTENT: " + bx + " " + li.length + " " + by + " " + li[0].length);
         }
+        
+        
+        // Ugly version of kicking the boat back into action if a waypoint done isn't received for a while
+        if (prevX == bx && prevY == by) {
+            ++obsInCell;
+            if (obsInCell > 50) {
+                ProxyManager pm = new ProxyManager();
+                for (BoatSimpleProxy bsp : pm.getAll()) {
+                    if (bsp.autonomousSensingBoats.contains(bsp)) {
+                        bsp.planAutonomousSense();
+                        System.out.println("WOKE BOAT FROM MISSED WAYPOINT");
+                    }
+                }
+                obsInCell = 0;
+            }
+        } else {
+            prevX = bx;
+            prevY = by;
+            obsInCell = 0;
+        }
+        
     }
+    
     Random rand = new Random();
 
     /**
