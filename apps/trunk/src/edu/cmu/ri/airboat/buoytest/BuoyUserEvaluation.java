@@ -47,9 +47,10 @@ public class BuoyUserEvaluation extends javax.swing.JFrame {
         // scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         setLayout(new BorderLayout());
         add(scrollPane, BorderLayout.CENTER);
-        
+
         for (BuoyIDModel buoyIDModel : models) {
             mPanel.add(new SingleCheckPanel(buoyIDModel));
+
         }
         
         
@@ -105,7 +106,7 @@ public class BuoyUserEvaluation extends javax.swing.JFrame {
             if (!model.isDone()) {
                 JPanel buttPanel = new JPanel(new GridLayout(0, 1));
                 buttPanel.setBorder(new EtchedBorder());
-                JTextField latT = new JTextField("Let: " + model.getLoc().latitude);
+                JTextField latT = new JTextField("Lat: " + model.getLoc().latitude);
                 latT.setEditable(false);
                 buttPanel.add(latT);
                 JTextField lonT = new JTextField("Lon: " + model.getLoc().longitude);

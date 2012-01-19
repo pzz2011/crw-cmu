@@ -28,7 +28,9 @@ import robotutils.Pose3D;
 public class BuoyManager {
 
     ArrayList<BuoyIDModel> models = new ArrayList<BuoyIDModel>();
-
+    UtmPose lastBuoyPose = new UtmPose();
+    int buoyCycle =0;
+    
     public BuoyManager(ArrayList<LatLon> buoyLocations, Polygon pgon) {
         ProxyManager pm = new ProxyManager();
 
@@ -65,7 +67,7 @@ public class BuoyManager {
         
         for (BuoyIDModel buoyIDModel : models) {
             // Balajee you might want to change this 20, which is the maximum number of images that can be in the queue
-            if (!buoyIDModel.isDone() && buoyIDModel.imgs.size() < 20 && !sent.contains(buoyIDModel.loc)) {
+            if (!buoyIDModel.isDone() && buoyIDModel.totalImgs < 50 && !sent.contains(buoyIDModel.loc)) {
                 double d = planarDistanceSq(buoyIDModel.loc3D, currP);
                 if (d < minDist) {
                     minDist = d;
@@ -77,6 +79,8 @@ public class BuoyManager {
         sent.add(ret);
         if (sent.size() == models.size()) {
             // If someone has been sent to every buoy, reset and send again as required.
+            // Before you reset, move the buoy location up/down randomly by a cpl of meters (changes the angle of approach)
+            buoyCycle++;
             sent.clear();
         }
         
@@ -89,6 +93,7 @@ public class BuoyManager {
         private double confidence = 0.5;
         private final LatLon loc;
         private final Pose3D loc3D;
+        private int totalImgs =0;
         ArrayList<BufferedImageWithPose> imgs = new ArrayList<BufferedImageWithPose>();
         BasicMarker marker = null;
         BasicMarkerAttributes attr = null;
@@ -122,11 +127,61 @@ public class BuoyManager {
             System.out.println("For buoy at " + loc + " and img at " + pimg.getPose() + " Dist = " + dist + ", raw angle = " + angle + " and adj. angle " + adjangle);                        
                         
             // Balajee you might want to change this
-            if (Math.abs(adjangle) < Math.PI/6.0 && dist < 100.0) {
-                imgs.add(pimg);
-                System.out.println("Useful image for " + this);
+            if (Math.abs(adjangle) < Math.PI/6.0 && dist < 20.0) { //distance less than 20 m; only then the images will be shown
+                System.out.println(isNovel(pimg.getPose()));
+                // First check if we are actually set to capture
+                if ((lastBuoyPose == null) || (isNovel(pimg.getPose()) > 0.8)) {
+                        /*** check to see whats the Queue size ***/
+                    /* Max number of images in Q is 20 and then the last image should be the new one */
+                    if(imgs.size()==20) imgs.remove(0);
+                     /** This would be the alternate to lfush all 20 images
+                      * if(imgs.size()==20) imgs.removeAll(sent);
+                      */
+                    imgs.add(pimg);
+                    totalImgs++;
+                    lastBuoyPose.pose = pimg.getPose().pose.clone();
+                    System.out.println("Useful image for " + this);
+                }
             }
         }
+
+         /**
+         * Takes a pose and determines whether the image to be taken is novel or not
+         *
+         * @param pose The current pose
+         *
+         * @return A weight of novelty between 0 and 1
+         */
+        double isNovel(UtmPose Imagepose) {
+
+            final double CAMERA_AOV = Math.PI / 180.0f * 30;	//Assuming that the angle of view of the camera is 30 Degrees
+            final double OVERLAP_RATIO = 0.8f;
+            final double EFFECTIVE_DISTANCE = 10.0;		//The effective distance till which the camera resolution/detection is trusted
+            double novelty = 0.0;
+            
+            //To simply calculate if the new pose is different
+                                    /*
+                     * Capture if new pose is different as per
+                     * a. Change in yaw
+                     * b. Change in position
+                     */
+
+                    //No need to worry about the waypoint, inconsequential
+             double angle = Math.abs(Imagepose.pose.getRotation().toYaw() - lastBuoyPose.pose.getRotation().toYaw());
+             double distance = Math.sqrt(lastBuoyPose.pose.getX() - Imagepose.pose.getX()) * (lastBuoyPose.pose.getX() - Imagepose.pose.getX())
+                     + (lastBuoyPose.pose.getY() - Imagepose.pose.getY()) * (lastBuoyPose.pose.getY() - Imagepose.pose.getY());
+
+           //Assign half weight to yaw, and half to distance
+
+            if (angle >= CAMERA_AOV * OVERLAP_RATIO) {
+                //i.e. if the current yaw has changed more than the previous orientation by greater than 30 degrees * overlap factor
+                novelty = 0.5 * angle / (CAMERA_AOV * OVERLAP_RATIO);	//This is because ANY yaw greater than the angle of view will have completely new info (Think sectors)
+              //Assuming that the zone of overlap is not useful information
+            }
+            novelty += (distance / EFFECTIVE_DISTANCE) * 0.5;
+            return novelty;
+        }
+        
 
         public void setConfidence(double confidence) {
             System.out.println("Confidence set");
@@ -162,6 +217,7 @@ public class BuoyManager {
                 return Material.GRAY;
             }
         }
+
     }
 
     public static double normalizeAngle(double angle) {
