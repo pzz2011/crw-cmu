@@ -299,6 +299,10 @@ public class BoatSimpleProxy extends Thread {
         _waypointListener = new WaypointListener() {
 
             public void waypointUpdate(WaypointState ws) {
+                
+                System.out.println("PAUL YOU TURNED WAYPOINT DONE OFF!");
+                
+                /*
                 if (ws.equals(WaypointState.DONE)) {
 
                     if (state == StateEnum.AREA) {
@@ -317,6 +321,8 @@ public class BoatSimpleProxy extends Thread {
                     }
 
                 }
+                 * 
+                 */
             }
         };
 
