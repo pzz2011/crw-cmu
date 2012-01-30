@@ -2,8 +2,9 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.cmu.ri.airboat.floodtest;
+package edu.cmu.ri.airboat.generalAlmost;
 
+import edu.cmu.ri.airboat.floodtest.OperatorConsole;
 import edu.cmu.ri.crw.CrwNetworkUtils;
 import gov.nasa.worldwind.render.markers.Marker;
 import java.awt.Color;
@@ -26,7 +27,7 @@ public class ProxyManager {
         instance.redraw();
     }
 
-    void setConsole(OperatorConsole c) {
+    public void setConsole(OperatorConsole c) {
         instance.setConsole(c);
     }
 

@@ -10,6 +10,7 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.airboat.generalAlmost.BoatSimpleProxy;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Graphics;

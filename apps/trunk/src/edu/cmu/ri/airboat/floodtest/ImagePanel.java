@@ -10,6 +10,7 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.airboat.generalAlmost.ProxyManager;
 import edu.cmu.ri.crw.data.UtmPose;
 import java.awt.GridLayout;
 import java.awt.geom.AffineTransform;
@@ -30,7 +31,7 @@ public class ImagePanel extends javax.swing.JPanel {
     private static PriorityBlockingQueue<BufferedImageWithPose> queue = new PriorityBlockingQueue<BufferedImageWithPose>();
     private static File imagesDir = null;
 
-    static void setImagesDirectory(String loc) {
+    static public void setImagesDirectory(String loc) {
         imagesDir = new File(loc);
         if (!imagesDir.isDirectory()) {
             System.out.println("Invalid directory for images");

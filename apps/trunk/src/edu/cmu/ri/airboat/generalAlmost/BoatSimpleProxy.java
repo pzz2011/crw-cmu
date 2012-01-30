@@ -2,10 +2,15 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.cmu.ri.airboat.floodtest;
+package edu.cmu.ri.airboat.generalAlmost;
 
 import edu.cmu.ri.airboat.buoytest.BuoyManager;
-import edu.cmu.ri.airboat.irrigationtest.Observation;
+import edu.cmu.ri.airboat.floodtest.AutonomyPanel;
+import edu.cmu.ri.airboat.floodtest.BoatMarker;
+import edu.cmu.ri.airboat.floodtest.DataDisplay;
+import edu.cmu.ri.airboat.floodtest.ImagePanel;
+import edu.cmu.ri.airboat.floodtest.OperatorConsole;
+import edu.cmu.ri.airboat.general.Observation;
 import edu.cmu.ri.crw.FunctionObserver;
 import edu.cmu.ri.crw.FunctionObserver.FunctionError;
 import edu.cmu.ri.crw.ImageListener;
@@ -84,7 +89,7 @@ public class BoatSimpleProxy extends Thread {
     // Latest image returned from this boat
     private BufferedImage latestImg = null;
 
-    void sample() {
+    public void sample() {
         System.out.println("Calling sample on server");
         _server.captureImage(100, 100, null);
     }
@@ -300,9 +305,7 @@ public class BoatSimpleProxy extends Thread {
 
             public void waypointUpdate(WaypointState ws) {
                 
-                System.out.println("PAUL YOU TURNED WAYPOINT DONE OFF!");
                 
-                /*
                 if (ws.equals(WaypointState.DONE)) {
 
                     if (state == StateEnum.AREA) {
@@ -321,8 +324,7 @@ public class BoatSimpleProxy extends Thread {
                     }
 
                 }
-                 * 
-                 */
+                 
             }
         };
 
@@ -428,7 +430,7 @@ public class BoatSimpleProxy extends Thread {
 
     }
 
-    void remove() {
+    public void remove() {
         stopBoat();
 
         markers.remove(marker);
@@ -649,7 +651,7 @@ public class BoatSimpleProxy extends Thread {
 
     }
 
-    ArrayList<BoatSimpleProxy> autonomousSensingBoats = null;
+    public ArrayList<BoatSimpleProxy> autonomousSensingBoats = null;
     public void planAutonomousSense() {
         System.out.println("Planning autonomous sense");
 

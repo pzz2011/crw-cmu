@@ -5,6 +5,7 @@
 
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.airboat.generalAlmost.BoatSimpleProxy;
 import edu.cmu.ri.airboat.floodtest.*;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.Position;

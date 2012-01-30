@@ -8,8 +8,10 @@
  *
  * Created on Feb 24, 2011, 9:25:34 PM
  */
-package edu.cmu.ri.airboat.floodtest;
+package edu.cmu.ri.airboat.generalAlmost;
 
+import edu.cmu.ri.airboat.floodtest.ImagePanel;
+import edu.cmu.ri.airboat.generalAlmost.ProxyManager;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;

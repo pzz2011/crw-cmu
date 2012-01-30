@@ -4,6 +4,8 @@
  */
 package edu.cmu.ri.airboat.irrigationtest;
 
+import edu.cmu.ri.airboat.general.Observation;
+
 /**
  *
  * @author pscerri
