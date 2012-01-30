@@ -46,6 +46,9 @@ public class FishFarmF extends javax.swing.JFrame {
     private DataManager dm = new DataManager(proxies);
     private DecimalFormat df = new DecimalFormat("#.###");
 
+    // @todo make this cleaner, probably a listener on Repo
+    public static DefaultComboBoxModel indexCDataModel = new DefaultComboBoxModel();
+    
     edu.cmu.ri.airboat.client.gui.TeleopFrame teleOpFrame = null;
     
     /** Creates new form FishFarmF */
@@ -91,6 +94,8 @@ public class FishFarmF extends javax.swing.JFrame {
         algC.setSelectedItem(dm.repo.getAlg());
         
         contourValueTF.setText("" + dm.repo.getContourValue());
+        
+        indexC.setModel(indexCDataModel);
     }
 
     /** This method is called from within the constructor to
@@ -410,7 +415,7 @@ public class FishFarmF extends javax.swing.JFrame {
     }//GEN-LAST:event_contourTFActionPerformed
 
     private void indexCActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_indexCActionPerformed
-        // TODO add your handling code here:
+        dm.repo.setIndexOfInterest((Integer)indexC.getSelectedItem());
     }//GEN-LAST:event_indexCActionPerformed
 
     private void contourSStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_contourSStateChanged
