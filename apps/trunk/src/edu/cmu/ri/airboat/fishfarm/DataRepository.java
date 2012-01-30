@@ -14,6 +14,7 @@ import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.awt.image.IndexColorModel;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -26,7 +27,6 @@ import robotutils.Pose3D;
  */
 public class DataRepository {
 
-    // @todo Allow setting of index and contour
     ArrayList<SensorData> rawData = new ArrayList<SensorData>(1000);
     ArrayList<Observation> observations = new ArrayList<Observation>(1000);
     ArrayList<LocationInfo[][]> locInfo = new ArrayList<LocationInfo[][]>();
@@ -45,9 +45,19 @@ public class DataRepository {
 
     public enum ImageType {
 
-        Grid, Point, Interpolated, None;
+        Grid, Point, Interpolated, Uncertainty, None;
     };
     private ImageType imgType = ImageType.Grid;
+
+    // @todo Allow changing of interpolation type
+    // This will also allow changing the number of divisions
+    // The problem is that interpolation is done incrementally and now needs to be erased and 
+    // restarted when the interpolation type changes.
+    public enum InterpolationType {
+
+        PolynomialNN, PowerNN;
+    }
+    private InterpolationType interType = InterpolationType.PolynomialNN;
 
     public DataRepository(LatLon mins, LatLon maxs) {
         this.mins = mins;
@@ -87,16 +97,17 @@ public class DataRepository {
 
     double setContourPercentOfMax(double d) {
         try {
-        LocationInfo[][] model = locInfo.get(indexOfInterest);
-        if (model == null) {
-            // @todo What to do when contour set and no data?
-        } else {
-            double mean = computeMean(model);
-            double extent = computeExtent(mean, model);
-            contourValue = (mean - extent/2.0) + extent*d;
+            LocationInfo[][] model = locInfo.get(indexOfInterest);
+            if (model == null) {
+                // @todo What to do when contour set and no data?
+            } else {
+                double mean = computeMean(model);
+                double extent = computeExtent(mean, model);
+                contourValue = (mean - extent / 2.0) + extent * d;
+            }
+        } catch (IndexOutOfBoundsException e) {
         }
-        } catch (IndexOutOfBoundsException e) {}
-        
+
         return contourValue;
     }
 
@@ -106,8 +117,12 @@ public class DataRepository {
 
     public void setContourValue(double contourValue) {
         this.contourValue = contourValue;
-    }     
-    
+    }
+
+    public void setIndexOfInterest(int index) {
+        indexOfInterest = index;
+    }
+
     void addData(SensorData sd, UtmPose _pose) {
         rawData.add(sd);
 
@@ -129,7 +144,6 @@ public class DataRepository {
     public void newObservation(Observation o, int index) {
         observations.add(o);
 
-        o.index = index;
 
         LocationInfo[][] li = null;
 
@@ -141,6 +155,8 @@ public class DataRepository {
         }
         index += baseI;
 
+        o.index = index;
+
         try {
             li = locInfo.get(index);
         } catch (IndexOutOfBoundsException e) {
@@ -149,8 +165,10 @@ public class DataRepository {
         if (li == null) {
             while (locInfo.size() <= index) {
                 locInfo.add(initLocInfo());
+                FishFarmF.indexCDataModel.addElement(o.index);
             }
             li = locInfo.get(index);
+
         }
 
         int bx = toXIndex(o.getWaypoint()[0]);
@@ -168,7 +186,7 @@ public class DataRepository {
             // Update the inverse distance interpolation values
             for (int i = 0; i < divisions; i++) {
                 for (int j = 0; j < divisions; j++) {
-                    double dist = Math.sqrt(((i - bx) * (i - bx)) + (j - by) * (j - by) + 1);
+                    double dist = (((i - bx) * (i - bx)) + (j - by) * (j - by) + 1);
                     double contrib = 1.0 / dist;
                     if (li[i][j] == null) {
                         li[i][j] = new LocationInfo();
@@ -213,6 +231,10 @@ public class DataRepository {
 
     public void setAlg(AutonomyAlgorithm alg) {
         this.alg = alg;
+        for (FishFarmBoatProxy proxy : autonomousProxies) {
+            ArrayList<Position> path = getAutonomyPath(proxy);
+            proxy.setWaypoints(path);
+        }
     }
 
     public AutonomyAlgorithm getAlg() {
@@ -351,7 +373,10 @@ public class DataRepository {
 
         switch (imgType) {
             case Grid:
-                return makeGridBufferedImage(index);
+                return makeGridBufferedImage(index, true);
+
+            case Uncertainty:
+                return makeGridBufferedImage(index, false);
 
             case Interpolated:
                 return makeInterpolatedBufferedImage(index);
@@ -387,23 +412,26 @@ public class DataRepository {
         double denomY = utmMax.getNorthing() - utmMin.getNorthing();
 
         double mean = computeMean(model);
-        double maxExtent = computeExtent(mean, model);        
-        
-        for (Observation o : (Iterable<Observation>)observations.clone()) {
-            
-            int x = (int)(((o.waypoint[0] - utmMin.getEasting())/denomX) * width);
-            int y = (int)(((o.waypoint[1] - utmMin.getNorthing())/denomY) * height);
-            
-            double alpha = Math.abs((mean - o.value) / maxExtent);
-            alpha = Math.min(1.0, alpha);
+        double maxExtent = computeExtent(mean, model);
 
-            if (o.value < mean) {
-                g2.setColor(new Color(1.0f, 0.0f, 0.0f, (float) alpha));
-            } else {
-                g2.setColor(new Color(0.0f, 1.0f, 0.0f, (float) alpha));
+        for (Observation o : (Iterable<Observation>) observations.clone()) {
+
+            if (o.index == indexOfInterest) {
+                int x = (int) (((o.waypoint[0] - utmMin.getEasting()) / denomX) * width);
+                int y = (int) (((o.waypoint[1] - utmMin.getNorthing()) / denomY) * height);
+
+                double alpha = Math.abs((mean - o.value) / maxExtent);
+                alpha = Math.min(1.0, alpha);
+
+                if (o.value < mean) {
+                    g2.setColor(new Color(1.0f, 0.0f, 0.0f, (float) alpha));
+                } else {
+                    g2.setColor(new Color(0.0f, 1.0f, 0.0f, (float) alpha));
+                }
+
+                g2.fillOval(x, (int) (height - y), (int) (1 + 5 * alpha), (int) (1 + 5 * alpha));
             }
 
-            g2.fillOval(x, (int) (height - y), (int)(1 + 5 * alpha), (int)(1 + 5 * alpha));
         }
         return bimage;
     }
@@ -439,7 +467,38 @@ public class DataRepository {
         return maxExtent;
     }
 
-    private BufferedImage makeGridBufferedImage(int index) {
+    double computeUncertaintyMean(LocationInfo[][] model) {
+        int c = 0;
+        double mean = 0.0;
+        for (int i = 0; i < model.length; i++) {
+            for (int j = 0; j < model[0].length; j++) {
+                if (model[i][j] != null && model[i][j].getCount() > 0) {
+                    mean += model[i][j].getStdDev();
+                    c++;
+                }
+            }
+        }
+        mean /= (double) c;
+
+        return mean;
+    }
+
+    double computeUncertaintyExtent(double mean, LocationInfo[][] model) {
+        double maxExtent = 0.0;
+        for (int i = 0; i < model.length; i++) {
+            for (int j = 0; j < model[0].length; j++) {
+                if (model[i][j] != null && model[i][j].getCount() > 0) {
+                    double diff = Math.abs(mean - model[i][j].getStdDev());
+                    if (diff > maxExtent) {
+                        maxExtent = diff;
+                    }
+                }
+            }
+        }
+        return maxExtent;
+    }
+
+    private BufferedImage makeGridBufferedImage(int index, boolean useMean) {
         int width = 100;
         int height = 100;
 
@@ -463,9 +522,8 @@ public class DataRepository {
         int bx = (int) (width / model.length);
         int by = (int) (height / model[0].length);
 
-        double mean = computeMean(model);
-
-        double maxExtent = computeExtent(mean, model);
+        double mean = useMean ? computeMean(model) : computeUncertaintyMean(model);
+        double maxExtent = useMean ? computeExtent(mean, model) : computeUncertaintyExtent(mean, model);
 
         for (int i = 0; i < model.length; i++) {
             for (int j = 0; j < model[0].length; j++) {
@@ -474,7 +532,7 @@ public class DataRepository {
 
                     double v = 0.0;
 
-                    v = model[i][j].getMean();
+                    v = useMean ? model[i][j].getMean() : model[i][j].getStdDev();
 
                     g2.setColor(Color.black);
                     g2.drawString(df.format(v), bx * i, (int) (height - by * (j + 1)));
@@ -491,7 +549,11 @@ public class DataRepository {
                     // System.out.println("v = " + v + " mean = " + mean + " maxExtent=" + maxExtent + " alpha=" + alpha);
 
                 } else {
-                    g2.setColor(Color.LIGHT_GRAY);
+                    if (useMean) {
+                        g2.setColor(Color.LIGHT_GRAY);
+                    } else {
+                        g2.setColor(new Color(0.0f, 1.0f, 0.0f, 1.0f));
+                    }
                 }
 
                 g2.fillRect(bx * i, (int) (height - by * (j + 1)), bx, by);
@@ -621,7 +683,6 @@ public class DataRepository {
 
         return bimage;
     }
-    
     double[][] lines = {
         {0.0, 0.0, 0.0, 0.0}, // zero
         {0.0, 0.5, 0.5, 0.0},
