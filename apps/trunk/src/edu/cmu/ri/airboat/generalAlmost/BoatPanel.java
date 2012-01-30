@@ -8,10 +8,13 @@
  *
  * Created on Feb 15, 2011, 9:02:30 PM
  */
-package edu.cmu.ri.airboat.floodtest;
+package edu.cmu.ri.airboat.generalAlmost;
 
+import edu.cmu.ri.airboat.generalAlmost.BoatSimpleProxy;
+import edu.cmu.ri.airboat.generalAlmost.ProxyManager;
 import edu.cmu.ri.airboat.client.BoatDebugPanel;
 import edu.cmu.ri.airboat.client.gui.TeleopFrame;
+import edu.cmu.ri.airboat.floodtest.OperatorConsole;
 import edu.cmu.ri.crw.AsyncVehicleServer;
 import java.awt.Graphics;
 import java.awt.Insets;

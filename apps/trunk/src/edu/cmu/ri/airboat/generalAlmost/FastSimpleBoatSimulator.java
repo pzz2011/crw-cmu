@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.cmu.ri.airboat.floodtest;
+package edu.cmu.ri.airboat.generalAlmost;
 
 import edu.cmu.ri.crw.SensorListener;
 import edu.cmu.ri.crw.SimpleBoatController;

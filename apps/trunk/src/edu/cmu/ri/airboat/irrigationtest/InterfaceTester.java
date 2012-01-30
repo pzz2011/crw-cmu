@@ -4,6 +4,7 @@
  */
 package edu.cmu.ri.airboat.irrigationtest;
 
+import edu.cmu.ri.airboat.general.Observation;
 import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.PoseListener;
 import edu.cmu.ri.crw.SensorListener;

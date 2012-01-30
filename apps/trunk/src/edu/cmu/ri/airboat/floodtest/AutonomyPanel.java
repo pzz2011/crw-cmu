@@ -10,6 +10,7 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.airboat.generalAlmost.BoatSimpleProxy;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.LatLon;
 import gov.nasa.worldwind.geom.coords.UTMCoord;

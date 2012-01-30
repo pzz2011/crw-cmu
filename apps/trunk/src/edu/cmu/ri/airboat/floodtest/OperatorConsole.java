@@ -4,6 +4,10 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.airboat.generalAlmost.BoatPanel;
+import edu.cmu.ri.airboat.generalAlmost.ConfigureBoatsFrame;
+import edu.cmu.ri.airboat.generalAlmost.BoatSimpleProxy;
+import edu.cmu.ri.airboat.generalAlmost.ProxyManager;
 import edu.cmu.ri.crw.CrwSecurityManager;
 import gov.nasa.worldwind.BasicModel;
 import gov.nasa.worldwind.Configuration;
@@ -59,7 +63,7 @@ public class OperatorConsole {
     AutonomyPanel autoPanel = new AutonomyPanel();
     BoatSimpleProxy selectedProxy = null;
     static RenderableLayer polyLayer = new RenderableLayer();
-    static SurfaceImageLayer imageLayer = new SurfaceImageLayer();
+    static public SurfaceImageLayer imageLayer = new SurfaceImageLayer();
     // @todo Clean up modality stuff on OperatorConsole
     static private boolean assigningArea = false;
     static private boolean assigningSensingArea = false;
@@ -149,7 +153,7 @@ public class OperatorConsole {
 
     }
 
-    void redraw() {
+    public void redraw() {
         if (frame != null && frame.wwd != null) {
             frame.wwd.redraw();
         } else {

@@ -4,6 +4,7 @@
  */
 package edu.cmu.ri.airboat.irrigationtest;
 
+import edu.cmu.ri.airboat.general.Observation;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Hashtable;

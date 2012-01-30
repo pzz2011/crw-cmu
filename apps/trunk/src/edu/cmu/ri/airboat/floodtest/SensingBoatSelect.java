@@ -10,6 +10,8 @@
  */
 package edu.cmu.ri.airboat.floodtest;
 
+import edu.cmu.ri.airboat.generalAlmost.BoatSimpleProxy;
+import edu.cmu.ri.airboat.generalAlmost.ProxyManager;
 import java.awt.GridLayout;
 import java.util.ArrayList;
 import java.util.Hashtable;
