@@ -10,6 +10,7 @@
  */
 package edu.cmu.ri.airboat.fishfarm;
 
+import edu.cmu.ri.airboat.client.BoatDebugPanel;
 import edu.cmu.ri.airboat.client.gui.TeleopFrame;
 import edu.cmu.ri.airboat.general.BoatProxy;
 import edu.cmu.ri.airboat.general.ConfigureBoatsFrame;
@@ -25,6 +26,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.prefs.Preferences;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.ListCellRenderer;
@@ -45,12 +47,10 @@ public class FishFarmF extends javax.swing.JFrame {
     private ArrayList<FishFarmBoatProxy> proxies = new ArrayList<FishFarmBoatProxy>();
     private DataManager dm = new DataManager(proxies);
     private DecimalFormat df = new DecimalFormat("#.###");
-
     // @todo make this cleaner, probably a listener on Repo
     public static DefaultComboBoxModel indexCDataModel = new DefaultComboBoxModel();
-    
     edu.cmu.ri.airboat.client.gui.TeleopFrame teleOpFrame = null;
-    
+
     /** Creates new form FishFarmF */
     public FishFarmF() {
         initComponents();
@@ -87,14 +87,14 @@ public class FishFarmF extends javax.swing.JFrame {
         dm.setExtent(mins, maxs);
         dataViewP.setLayout(new BorderLayout());
         dataViewP.add(dm, BorderLayout.CENTER);
-        
+
         proxyC.setRenderer(new ProxyComboRenderer());
         proxyC.setEditable(false);
-        
+
         algC.setSelectedItem(dm.repo.getAlg());
-        
+
         contourValueTF.setText("" + dm.repo.getContourValue());
-        
+
         indexC.setModel(indexCDataModel);
     }
 
@@ -123,6 +123,7 @@ public class FishFarmF extends javax.swing.JFrame {
         contourS = new javax.swing.JSlider();
         contourValueTF = new javax.swing.JTextField();
         indexC = new javax.swing.JComboBox();
+        jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -153,7 +154,7 @@ public class FishFarmF extends javax.swing.JFrame {
         dataViewP.setLayout(dataViewPLayout);
         dataViewPLayout.setHorizontalGroup(
             dataViewPLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(0, 971, Short.MAX_VALUE)
+            .add(0, 767, Short.MAX_VALUE)
         );
         dataViewPLayout.setVerticalGroup(
             dataViewPLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
@@ -203,10 +204,10 @@ public class FishFarmF extends javax.swing.JFrame {
             .add(proxyPLayout.createSequentialGroup()
                 .addContainerGap()
                 .add(proxyPLayout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-                    .add(proxyC, 0, 177, Short.MAX_VALUE)
+                    .add(proxyC, 0, 197, Short.MAX_VALUE)
                     .add(org.jdesktop.layout.GroupLayout.TRAILING, proxyPLayout.createSequentialGroup()
                         .add(21, 21, 21)
-                        .add(autoCB, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .add(autoCB, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 82, Short.MAX_VALUE)
                         .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                         .add(teleopB)))
                 .addContainerGap())
@@ -286,34 +287,39 @@ public class FishFarmF extends javax.swing.JFrame {
             }
         });
 
+        jButton1.setText("Context");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
         org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(layout.createSequentialGroup()
+            .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
                     .add(layout.createSequentialGroup()
-                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING, false)
-                            .add(org.jdesktop.layout.GroupLayout.LEADING, layout.createSequentialGroup()
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createSequentialGroup()
                                 .add(latMinTF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 127, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                                 .add(longMinTF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 148, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, 399, Short.MAX_VALUE)
                                 .add(longMaxTF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 165, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
-                            .add(org.jdesktop.layout.GroupLayout.LEADING, layout.createSequentialGroup()
+                            .add(layout.createSequentialGroup()
                                 .add(78, 78, 78)
                                 .add(dataViewP, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
                         .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-                            .add(imgTypeCombo, 0, 215, Short.MAX_VALUE)
+                            .add(contourP, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 235, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(imgTypeCombo, 0, 235, Short.MAX_VALUE)
                             .add(proxyP, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .add(indexC, 0, 215, Short.MAX_VALUE)
-                            .add(algC, 0, 215, Short.MAX_VALUE)))
+                            .add(indexC, 0, 235, Short.MAX_VALUE)
+                            .add(algC, 0, 235, Short.MAX_VALUE)
+                            .add(jButton1)))
                     .add(latMaxTF, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 137, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
-                .add(32, 32, 32))
-            .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(1059, Short.MAX_VALUE)
-                .add(contourP, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 235, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -330,10 +336,12 @@ public class FishFarmF extends javax.swing.JFrame {
                         .add(indexC, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                         .add(30, 30, 30)
                         .add(contourP, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, 248, Short.MAX_VALUE)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(jButton1)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, 212, Short.MAX_VALUE)
                         .add(proxyP, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
                         .add(11, 11, 11))
-                    .add(layout.createSequentialGroup()
+                    .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
                         .add(dataViewP, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
                         .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
@@ -378,31 +386,31 @@ public class FishFarmF extends javax.swing.JFrame {
     }//GEN-LAST:event_imgTypeComboActionPerformed
 
     private void teleopBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_teleopBActionPerformed
-        if ((teleOpFrame != null && teleOpFrame.isVisible()) ||  proxyC.getSelectedItem() == null) {
+        if ((teleOpFrame != null && teleOpFrame.isVisible()) || proxyC.getSelectedItem() == null) {
         } else {
-            teleOpFrame = new TeleopFrame(AsyncVehicleServer.Util.toSync(((FishFarmBoatProxy)proxyC.getSelectedItem()).getProxy().getVehicleServer()));
+            teleOpFrame = new TeleopFrame(AsyncVehicleServer.Util.toSync(((FishFarmBoatProxy) proxyC.getSelectedItem()).getProxy().getVehicleServer()));
             teleOpFrame.setVisible(true);
             // System.out.println("Created teleop frame");
         }
     }//GEN-LAST:event_teleopBActionPerformed
 
     private void autoCBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_autoCBActionPerformed
-        
+
         if (proxyC.getSelectedItem() == null) {
             return;
         } else {
-            FishFarmBoatProxy proxy = (FishFarmBoatProxy)proxyC.getSelectedItem();
+            FishFarmBoatProxy proxy = (FishFarmBoatProxy) proxyC.getSelectedItem();
             proxy.setAutonomous(autoCB.isSelected());
         }
-        
+
     }//GEN-LAST:event_autoCBActionPerformed
 
     private void algCActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_algCActionPerformed
-        dm.repo.setAlg((DataRepository.AutonomyAlgorithm)algC.getSelectedItem());
+        dm.repo.setAlg((DataRepository.AutonomyAlgorithm) algC.getSelectedItem());
     }//GEN-LAST:event_algCActionPerformed
 
     private void proxyCActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_proxyCActionPerformed
-        FishFarmBoatProxy p = (FishFarmBoatProxy)proxyC.getSelectedItem();
+        FishFarmBoatProxy p = (FishFarmBoatProxy) proxyC.getSelectedItem();
         autoCB.setSelected(p.isIsAutonomous());
         proxyP.setBorder(new EtchedBorder(p.getColor(), p.getColor().brighter()));
     }//GEN-LAST:event_proxyCActionPerformed
@@ -411,24 +419,49 @@ public class FishFarmF extends javax.swing.JFrame {
         try {
             int i = Integer.parseInt(contourTF.getText());
             contourS.setValue(i);
-        } catch (NumberFormatException e) {}
+        } catch (NumberFormatException e) {
+        }
     }//GEN-LAST:event_contourTFActionPerformed
 
     private void indexCActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_indexCActionPerformed
-        dm.repo.setIndexOfInterest((Integer)indexC.getSelectedItem());
+        dm.repo.setIndexOfInterest((Integer) indexC.getSelectedItem());
     }//GEN-LAST:event_indexCActionPerformed
 
     private void contourSStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_contourSStateChanged
         contourTF.setText("" + contourS.getValue());
-        double v = dm.repo.setContourPercentOfMax(contourS.getValue()/100.0);
+        double v = dm.repo.setContourPercentOfMax(contourS.getValue() / 100.0);
         contourValueTF.setText(df.format(v));
     }//GEN-LAST:event_contourSStateChanged
 
     private void contourValueTFActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_contourValueTFActionPerformed
         try {
             dm.repo.setContourValue(Double.parseDouble(contourValueTF.getText()));
-        } catch (NumberFormatException e) {}
+        } catch (NumberFormatException e) {
+        }
     }//GEN-LAST:event_contourValueTFActionPerformed
+    JFrame debugFrame = null;
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        if (debugFrame != null && debugFrame.isVisible()) {
+        } else {
+
+
+            FishFarmBoatProxy ffp = (FishFarmBoatProxy) proxyC.getSelectedItem();
+            if (ffp != null) {
+                BoatDebugPanel boatPanel = new BoatDebugPanel();
+                boatPanel.setServer(AsyncVehicleServer.Util.toSync(ffp.getVehicleServer()));
+
+                JFrame mainFrame = new JFrame();
+                mainFrame.setTitle("Boat Debugging Panel");
+                mainFrame.getContentPane().add(boatPanel);
+                mainFrame.setLocation(100, 100);
+                mainFrame.pack();
+                mainFrame.setVisible(true);
+                mainFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+                debugFrame = mainFrame;
+            }
+        }
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     private void savePref(String key, String value) {
         try {
@@ -444,22 +477,22 @@ public class FishFarmF extends javax.swing.JFrame {
         public ProxyComboRenderer() {
             setOpaque(true);
         }
-        
+
         public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-            
+
             // System.out.println("Called with index " + index + " object " + value);
-            
-            if (value == null) return new JLabel("None");
-            
+
+            if (value == null) {
+                return new JLabel("None");
+            }
+
             FishFarmBoatProxy proxy = (FishFarmBoatProxy) value;
             JLabel label = new JLabel(proxy.toString());
 
-            label.setForeground(proxy.getColor());            
-            
+            label.setForeground(proxy.getColor());
+
             return label;
         }
-        
-        
     }
 
     /**
@@ -481,7 +514,6 @@ public class FishFarmF extends javax.swing.JFrame {
             }
         });
     }
-    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox algC;
     private javax.swing.JCheckBox autoCB;
@@ -492,6 +524,7 @@ public class FishFarmF extends javax.swing.JFrame {
     private javax.swing.JPanel dataViewP;
     private javax.swing.JComboBox imgTypeCombo;
     private javax.swing.JComboBox indexC;
+    private javax.swing.JButton jButton1;
     private javax.swing.JTextField latMaxTF;
     private javax.swing.JTextField latMinTF;
     private javax.swing.JTextField longMaxTF;
