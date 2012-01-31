@@ -171,6 +171,8 @@ public class DataRepository {
 
         }
 
+        System.out.println("Obs\t" + o.variable + "\t" + index  + "\t" + o.waypoint[0] + "\t" + o.waypoint[1] + "\t" + o.getValue() + "\t" + System.currentTimeMillis());
+        
         int bx = toXIndex(o.getWaypoint()[0]);
         int by = toYIndex(o.getWaypoint()[1]);
 
@@ -181,7 +183,7 @@ public class DataRepository {
 
             li[bx][by].addObs(o);
 
-            // System.out.println("Added obs to " + bx + " " + by + " mean " + li[bx][by].getMean() + " std. dev. " + li[bx][by].getStdDev() + " count " + li[bx][by].getCount());
+            System.out.println("Added obs to " + bx + " " + by + " mean " + li[bx][by].getMean() + " std. dev. " + li[bx][by].getStdDev() + " count " + li[bx][by].getCount());
 
             // Update the inverse distance interpolation values
             for (int i = 0; i < divisions; i++) {

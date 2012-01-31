@@ -5,6 +5,7 @@
 package edu.cmu.ri.airboat.fishfarm;
 
 import edu.cmu.ri.airboat.general.BoatProxy;
+import edu.cmu.ri.crw.AsyncVehicleServer;
 import edu.cmu.ri.crw.ImageListener;
 import edu.cmu.ri.crw.SensorListener;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
@@ -147,5 +148,9 @@ public class FishFarmBoatProxy {
         System.out.println("GETTING PLAN");
         ArrayList<Position> p = repo.getAutonomyPath(this);
         proxy.setWaypoints(p);
+    }
+
+    public AsyncVehicleServer getVehicleServer() {
+        return proxy.getVehicleServer();
     }
 }
