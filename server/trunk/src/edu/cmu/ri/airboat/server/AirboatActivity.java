@@ -499,7 +499,7 @@ public class AirboatActivity extends Activity {
 				for (Enumeration<InetAddress> enumIpAddr = intf
 						.getInetAddresses(); enumIpAddr.hasMoreElements();) {
 					InetAddress inetAddress = enumIpAddr.nextElement();
-					if (!inetAddress.isLoopbackAddress()) {
+					if (!inetAddress.isLoopbackAddress() && inetAddress.getAddress().length == 4) {
 						return inetAddress.getHostAddress().toString();
 					}
 				}
