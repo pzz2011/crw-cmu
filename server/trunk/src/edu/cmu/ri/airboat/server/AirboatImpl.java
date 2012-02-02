@@ -74,6 +74,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 	public static final char GET_DEPTH_FN = 'd';
 	public static final char SET_SAMPLER_FN = 'q';
 	public static final char GET_WATERCANARY_FN = 'w';
+	public static final char GET_DO_FN = 'o';
 
 	// Set timeout for asynchronous Amarino calls
 	public static final int RESPONSE_TIMEOUT_MS = 250; // was 200 earlier
@@ -366,6 +367,27 @@ public class AirboatImpl extends AbstractVehicleServer {
 					reading.data[i] = Double.parseDouble(cmd.get(i+1));
 				sendSensor(reading.channel, reading);
 				logger.info("FLUOROMETER: " + cmd);
+			} catch (NumberFormatException e) {
+				Log.w(logTag, "Received corrupt sensor reading: " + cmd);
+			}
+
+			break;
+		case GET_DO_FN:
+			// Check size of function
+			if (cmd.size() != 2) {
+				Log.w(logTag, "Received corrupt do function: " + cmd);
+				return;
+			}
+			
+			// Broadcast the sensor reading
+			try {
+				SensorData reading = new SensorData();
+				reading.channel = 1;
+				reading.data = new double[1];
+				reading.type = SensorType.UNKNOWN;
+				reading.data[0] = Double.parseDouble(cmd.get(1));
+				sendSensor(reading.channel, reading);
+				logger.info("DO: " + cmd);
 			} catch (NumberFormatException e) {
 				Log.w(logTag, "Received corrupt sensor reading: " + cmd);
 			}
