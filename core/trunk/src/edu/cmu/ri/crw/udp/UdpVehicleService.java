@@ -35,10 +35,11 @@ import java.util.logging.Logger;
 
 /**
  * A service that registers a vehicle server over UDP to allow control over the 
- * network via a proxy server 
+ * network via a proxy server.
  * 
  * @author Prasanna Velagapudi <psigen@gmail.com>
  */
+@SuppressWarnings("LoggerStringConcat")
 public class UdpVehicleService implements UdpServer.RequestHandler {
     private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
     private static final SocketAddress DUMMY_ADDRESS = new InetSocketAddress(0);
@@ -152,7 +153,7 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
             resp.stream.writeUTF(command);
             
             // TODO: remove me
-            //logger.log(Level.INFO, "Received command {0} [{1}:{2}]", new Object[]{req.ticket, command, UdpConstants.COMMAND.fromStr(command)});
+            //logger.log(Level.INFO, "Received command " + req.ticket + ": " + command + ", " + UdpConstants.COMMAND.fromStr(command));
 
             switch (UdpConstants.COMMAND.fromStr(command)) {
                 case CMD_REGISTER_POSE_LISTENER:
