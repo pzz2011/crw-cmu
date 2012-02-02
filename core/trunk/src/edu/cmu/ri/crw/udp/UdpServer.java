@@ -49,6 +49,7 @@ import java.util.logging.Logger;
  *
  * @author Pras Velagapudi <psigen@gmail.com>
  */
+@SuppressWarnings("LoggerStringConcat")
 public class UdpServer {
     private static final Logger logger = Logger.getLogger(UdpVehicleService.class.getName());
     private static final int IPTOS_LOWDELAY = 0x10;
@@ -247,7 +248,7 @@ public class UdpServer {
             return new DatagramPacket(bytes, bytes.length, destination);
         }
     }
-
+    
     class Receiver implements Runnable {
 
         byte[] _buffer = new byte[UdpConstants.MAX_PACKET_SIZE];
@@ -259,6 +260,10 @@ public class UdpServer {
                 
                 // Get the next packet from the socket
                 try {
+                    // The following line is a temporary fix for an Android ICS bug
+                    // http://code.google.com/p/android/issues/detail?id=24748
+                    _packet.setLength(_buffer.length);
+                    
                     _socket.receive(_packet);
                 } catch (SocketException e) {
                     if (!e.getMessage().equalsIgnoreCase("Socket closed"))
