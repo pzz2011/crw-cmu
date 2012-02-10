@@ -391,7 +391,7 @@ public class AirboatService extends Service {
 			
 			// Acquire a WifiLock to keep the phone from turning off wifi
 			WifiManager wm = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
-			_wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL , "AirboatWifiLock");
+			_wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "AirboatWifiLock");
 			_wifiLock.acquire();
 		}
 		
