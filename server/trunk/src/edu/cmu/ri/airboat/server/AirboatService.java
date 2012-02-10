@@ -240,7 +240,7 @@ public class AirboatService extends Service {
      * registered, and the update loop and RPC server are started.   
      */
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
+	public int onStartCommand(final Intent intent, int flags, int startId) {
 		super.onStartCommand(intent, flags, startId);
 		
 		// Ignore startup requests that don't include an intent
@@ -305,12 +305,6 @@ public class AirboatService extends Service {
         // Get necessary connection parameters
 		_arduinoAddr = intent.getStringExtra(BD_ADDR);
 		
-		// Check if the provided UDP registry parameter can be parsed
-		String udpRegistryStr = intent.getStringExtra(UDP_REGISTRY_ADDR);
-		_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(udpRegistryStr);
-		if (_udpRegistryAddr == null)
-			Log.w(TAG, "Unable to parse '" + udpRegistryStr + "' into UDP address.");
-		
         // Create a filter that listens to Amarino connection events
         IntentFilter amarinoFilter = new IntentFilter();
         amarinoFilter.addAction(AmarinoIntent.ACTION_CONNECTED_DEVICES);
@@ -323,15 +317,22 @@ public class AirboatService extends Service {
 		registerReceiver(_airboatImpl.dataCallback, new IntentFilter(AmarinoIntent.ACTION_RECEIVED));
 		registerReceiver(_airboatImpl.connectionCallback, amarinoFilter);
 		
-		// Start up ROS processes in the background
+		// Start up UDP vehicle service in the background
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				// Create a UdpVehicleServer to expose the data object
 				try {
+					// Create a UdpVehicleService to expose the data object
 					_udpService = new UdpVehicleService(DEFAULT_UDP_PORT, _airboatImpl);
-					if (_udpRegistryAddr != null) 
+					
+					// If given a UDP registry parameter, add registry to service
+					String udpRegistryStr = intent.getStringExtra(UDP_REGISTRY_ADDR);
+					_udpRegistryAddr = CrwNetworkUtils.toInetSocketAddress(udpRegistryStr);
+					if (_udpRegistryAddr != null) {
 						_udpService.addRegistry(_udpRegistryAddr);
+					} else {
+						Log.w(TAG, "Unable to parse '" + udpRegistryStr + "' into UDP address.");
+					}
 				} catch (Exception e) {
 					Log.e(TAG, "UdpVehicleService failed to launch", e);
 					sendNotification("UdpVehicleService failed: " + e.getMessage());
