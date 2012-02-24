@@ -297,12 +297,12 @@ public class DataDisplay {
 
         try {
             if (li[bx][by] == null) {
-                li[bx][by] = new LocationInfo();
+                li[bx][by] = new LocationInfo(Double.MIN_VALUE, Double.MAX_VALUE);
             }
 
             li[bx][by].addObs(o);
 
-            System.out.println("Added obs to " + bx + " " + by + " mean " + li[bx][by].getMean() + " std. dev. " + li[bx][by].getStdDev() + " count " + li[bx][by].getCount());
+            System.out.println("Added obs to " + bx + " " + by + " mean " + li[bx][by].getMean() + " std. dev. " + li[bx][by].getStdDev() + " count " + li[bx][by].getCount() + " bounds mid " + li[bx][by].getBoundsMidpoint());
             
             
         } catch (ArrayIndexOutOfBoundsException e) {

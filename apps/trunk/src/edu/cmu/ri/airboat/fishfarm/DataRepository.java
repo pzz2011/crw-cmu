@@ -4,6 +4,7 @@
  */
 package edu.cmu.ri.airboat.fishfarm;
 
+import edu.cmu.ri.airboat.general.BoatProxy;
 import edu.cmu.ri.airboat.general.LocationInfo;
 import edu.cmu.ri.airboat.general.Observation;
 import edu.cmu.ri.crw.data.SensorData;
@@ -14,11 +15,12 @@ import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.awt.image.IndexColorModel;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.PriorityQueue;
 import java.util.Random;
+import javax.swing.JTextPane;
 import robotutils.Pose3D;
 
 /**
@@ -39,13 +41,17 @@ public class DataRepository {
     private UTMCoord utmMax = null;
     boolean contoursOn = true;
     double contourValue = 80.01;
+    // @todo Make bounds settable
+    double lowerFilterBound = 75.0;
+    double upperFilterBound = 85.0;
     int indexOfInterest = 0;
     private DecimalFormat df = new DecimalFormat("#.###");
     private Random rand = new Random();
+    private JTextPane latestTP = null;
 
     public enum ImageType {
 
-        Grid, Point, Interpolated, Uncertainty, None;
+        Grid, Point, Interpolated, Uncertainty, Bounds, None;
     };
     private ImageType imgType = ImageType.Grid;
 
@@ -87,6 +93,10 @@ public class DataRepository {
         this.imgType = imgType;
     }
 
+    public void setLatestTP(JTextPane latestTP) {
+        this.latestTP = latestTP;
+    }
+
     private void setds() {
 
         dx = (utmMax.getEasting() - utmMin.getEasting()) / (double) divisions;
@@ -119,17 +129,101 @@ public class DataRepository {
         this.contourValue = contourValue;
     }
 
+    public double getLowerFilterBound() {
+        return lowerFilterBound;
+    }
+
+    public double setLowerFilterBound(double lowerFilterBound) {
+        double prev = this.lowerFilterBound;
+        double ret = 0.0;
+        if (lowerFilterBound < upperFilterBound) {
+            this.lowerFilterBound = lowerFilterBound;
+            ret = lowerFilterBound;
+        } else {
+            lowerFilterBound = upperFilterBound - 1.0;
+            ret = this.lowerFilterBound;
+        }
+
+        for (LocationInfo[][] ll : locInfo) {
+            for (int i = 0; i < ll.length; i++) {
+                for (int j = 0; j < ll[i].length; j++) {
+                    if (ll[i][j].getLowerBound() == prev) {
+                        ll[i][j].setLowerBound(ret);
+                    }
+                }
+
+            }
+        }
+
+        return ret;
+    }
+
+    public double getUpperFilterBound() {
+        return upperFilterBound;
+    }
+
+    public double setUpperFilterBound(double upperFilterBound) {
+        double prev = this.upperFilterBound;
+        double ret = 0.0;
+        if (upperFilterBound > lowerFilterBound) {
+            this.upperFilterBound = upperFilterBound;
+            ret = upperFilterBound;
+        } else {
+            upperFilterBound = lowerFilterBound + 1.0;
+            ret = this.upperFilterBound;
+        }
+
+        for (LocationInfo[][] ll : locInfo) {
+            for (int i = 0; i < ll.length; i++) {
+                for (int j = 0; j < ll[i].length; j++) {
+
+                    if (ll[i][j].getUpperBound() == prev) {
+                        ll[i][j].setUpperBound(ret);
+                    }
+                }
+
+            }
+        }
+
+        return ret;
+    }
+
     public void setIndexOfInterest(int index) {
         indexOfInterest = index;
     }
+    private static Hashtable<String, Double> prevValues = new Hashtable<String, Double>();
 
-    void addData(SensorData sd, UtmPose _pose) {
+    private String sensorToDisplay = "WATERCANARY";
+    private int indexToDisplay = 0;
+    
+    void addData(BoatProxy proxy, SensorData sd, UtmPose _pose) {
         rawData.add(sd);
 
+        if (sensorToDisplay.equalsIgnoreCase(sd.type.toString()) && latestTP != null) {
+            latestTP.setText(sensorToDisplay + " = " + sd.data[indexToDisplay]);
+        }
+        
         for (int i = 0; i < sd.data.length; i++) {
-            Observation o = new Observation("Sensor" + sd.type, sd.data[i], UtmPoseToDouble(_pose.pose), _pose.origin.zone, _pose.origin.isNorth);
+            String sensorName = "Sensor" + sd.type;
+            String key = sensorName + i + proxy.toString();
+            Observation o = new Observation(sensorName, sd.data[i], UtmPoseToDouble(_pose.pose), _pose.origin.zone, _pose.origin.isNorth);
 
-            newObservation(o, i);
+            double gradient = 0.0;
+            // Set the gradient
+            Double d = prevValues.get(key);
+            if (d != null) {
+                if (d > sd.data[i]) {
+                    gradient = -1.0;
+                } else if (d < sd.data[i]) {
+                    gradient = 1.0;
+                } else {
+                    gradient = 0.0;
+                }
+            }
+            prevValues.put(key, sd.data[i]);
+            o.setGradient(gradient);
+
+            newObservation(proxy, o, i);
         }
     }
 
@@ -140,10 +234,10 @@ public class DataRepository {
         d[2] = p.getZ();
         return d;
     }
+    Hashtable<BoatProxy, ArrayList<Double>> lastObs = new Hashtable<BoatProxy, ArrayList<Double>>();
 
-    public void newObservation(Observation o, int index) {
+    public void newObservation(BoatProxy proxy, Observation o, int index) {
         observations.add(o);
-
 
         LocationInfo[][] li = null;
 
@@ -171,19 +265,27 @@ public class DataRepository {
 
         }
 
-        System.out.println("Obs\t" + o.variable + "\t" + index  + "\t" + o.waypoint[0] + "\t" + o.waypoint[1] + "\t" + o.getValue() + "\t" + System.currentTimeMillis());
-        
+        ArrayList<Double> prevForProxy = lastObs.get(proxy);
+        if (prevForProxy == null) {
+            prevForProxy = new ArrayList<Double>();
+            System.out.println("ADDED for " + proxy);
+            lastObs.put(proxy, prevForProxy);
+        }
+        prevForProxy.add(index, o.getValue());
+
+        System.out.println("Obs\t" + o.variable + "\t" + index + "\t" + o.waypoint[0] + "\t" + o.waypoint[1] + "\t" + o.getValue() + "\t" + System.currentTimeMillis());
+
         int bx = toXIndex(o.getWaypoint()[0]);
         int by = toYIndex(o.getWaypoint()[1]);
 
         try {
             if (li[bx][by] == null) {
-                li[bx][by] = new LocationInfo();
+                li[bx][by] = new LocationInfo(lowerFilterBound, upperFilterBound);
             }
 
             li[bx][by].addObs(o);
 
-            System.out.println("Added obs to " + bx + " " + by + " mean " + li[bx][by].getMean() + " std. dev. " + li[bx][by].getStdDev() + " count " + li[bx][by].getCount());
+            // System.out.println("Added obs to " + bx + " " + by + " mean " + li[bx][by].getMean() + " std. dev. " + li[bx][by].getStdDev() + " count " + li[bx][by].getCount());
 
             // Update the inverse distance interpolation values
             for (int i = 0; i < divisions; i++) {
@@ -191,7 +293,7 @@ public class DataRepository {
                     double dist = (((i - bx) * (i - bx)) + (j - by) * (j - by) + 1);
                     double contrib = 1.0 / dist;
                     if (li[i][j] == null) {
-                        li[i][j] = new LocationInfo();
+                        li[i][j] = new LocationInfo(lowerFilterBound, upperFilterBound);
                     }
                     li[i][j].interpolationContributions += contrib;
                     li[i][j].interpolationValue += (o.value * contrib);
@@ -227,7 +329,8 @@ public class DataRepository {
         Random,
         Lawnmower, // Or as Balajee would say lawn-mover
         Uncertainty,
-        Contour;
+        Contour,
+        Bounded;
     }
     private AutonomyAlgorithm alg = AutonomyAlgorithm.Random;
 
@@ -260,6 +363,9 @@ public class DataRepository {
             case Contour:
                 return getContourFocusPlan();
 
+            case Bounded:
+                return getBoundedPlan(proxy);
+
             default:
                 System.out.println("Unknown autonomy algorithm: " + alg + ", using random");
                 p = new ArrayList<Position>();
@@ -279,6 +385,61 @@ public class DataRepository {
         autonomousProxies.remove(p);
 
         // @todo Reassign all proxies at this point
+    }
+
+    private ArrayList<Position> getBoundedPlan(FishFarmBoatProxy proxy) {
+
+        System.out.println("CALLED!!!");
+
+        ArrayList<Position> p = new ArrayList<Position>();
+
+        LocationInfo[][] data = locInfo.get(indexOfInterest);
+        double currReading = 0.0;
+        try {
+            currReading = lastObs.get(proxy.getProxy()).get(indexOfInterest);
+        } catch (Exception e) {
+            System.out.println("Exception: " + e);
+            System.out.println("" + lastObs.get(proxy.getProxy()) + " when looking for " + proxy + " keys: " + lastObs.keySet());
+            data = null;
+        }
+        int x = toXIndex(proxy.getEasting());
+        int y = toYIndex(proxy.getNorthing());
+
+        if (data == null) {
+
+            System.out.println("GOING RANDOM");
+
+            // No data, select random point
+            x = x + (rand.nextBoolean() ? 1 : -1);
+            if (x < 0) {
+                x = 0;
+            }
+            if (x >= divisions) {
+                x = divisions - 1;
+            }
+            y = y + (rand.nextBoolean() ? 1 : -1);
+            if (y < 0) {
+                y = 0;
+            }
+            if (y >= divisions) {
+                y = divisions - 1;
+            }
+            p.add(indexToPosition(x, y));
+        } else {
+
+            double[][] lower = new double[divisions][divisions];
+            double[][] upper = new double[divisions][divisions];
+
+            for (int i = 0; i < data.length; i++) {
+                for (int j = 0; j < data[0].length; j++) {
+                    lower[i][j] = data[i][j].getLowerBound();
+                    upper[i][j] = data[i][j].getUpperBound();
+                }
+            }
+            p = BoundedFilterPlanner.getBoundedPlan(x, y, currReading, lower, upper);
+        }
+
+        return p;
     }
 
     private ArrayList<Position> getLawnmowerPlan(int count, int index) {
@@ -375,10 +536,13 @@ public class DataRepository {
 
         switch (imgType) {
             case Grid:
-                return makeGridBufferedImage(index, true);
+                return makeGridBufferedImage(index, true, false);
 
             case Uncertainty:
-                return makeGridBufferedImage(index, false);
+                return makeGridBufferedImage(index, false, false);
+
+            case Bounds:
+                return makeGridBufferedImage(index, false, true);
 
             case Interpolated:
                 return makeInterpolatedBufferedImage(index);
@@ -436,6 +600,37 @@ public class DataRepository {
 
         }
         return bimage;
+    }
+
+    double computeBoundsMean(LocationInfo[][] model) {
+        int c = 0;
+        double mean = 0.0;
+        for (int i = 0; i < model.length; i++) {
+            for (int j = 0; j < model[0].length; j++) {
+                if (model[i][j] != null && model[i][j].getCount() > 0) {
+                    mean += model[i][j].getBoundsMidpoint();
+                    c++;
+                }
+            }
+        }
+        mean /= (double) c;
+
+        return mean;
+    }
+
+    double computeBoundsExtent(double mean, LocationInfo[][] model) {
+        double maxExtent = 0.0;
+        for (int i = 0; i < model.length; i++) {
+            for (int j = 0; j < model[0].length; j++) {
+                if (model[i][j] != null && model[i][j].getCount() > 0) {
+                    double diff = Math.abs(mean - model[i][j].getBoundsMidpoint());
+                    if (diff > maxExtent) {
+                        maxExtent = diff;
+                    }
+                }
+            }
+        }
+        return maxExtent;
     }
 
     double computeMean(LocationInfo[][] model) {
@@ -500,7 +695,7 @@ public class DataRepository {
         return maxExtent;
     }
 
-    private BufferedImage makeGridBufferedImage(int index, boolean useMean) {
+    private BufferedImage makeGridBufferedImage(int index, boolean useMean, boolean useBounds) {
         int width = 100;
         int height = 100;
 
@@ -524,8 +719,8 @@ public class DataRepository {
         int bx = (int) (width / model.length);
         int by = (int) (height / model[0].length);
 
-        double mean = useMean ? computeMean(model) : computeUncertaintyMean(model);
-        double maxExtent = useMean ? computeExtent(mean, model) : computeUncertaintyExtent(mean, model);
+        double mean = useMean ? computeMean(model) : (useBounds ? computeBoundsMean(model) : computeUncertaintyMean(model));
+        double maxExtent = useMean ? computeExtent(mean, model) : (useBounds ? computeBoundsExtent(mean, model) : computeUncertaintyExtent(mean, model));
 
         for (int i = 0; i < model.length; i++) {
             for (int j = 0; j < model[0].length; j++) {
@@ -534,7 +729,7 @@ public class DataRepository {
 
                     double v = 0.0;
 
-                    v = useMean ? model[i][j].getMean() : model[i][j].getStdDev();
+                    v = useMean ? model[i][j].getMean() : (useBounds ? model[i][j].getBoundsMidpoint() : model[i][j].getStdDev());
 
                     g2.setColor(Color.black);
                     g2.drawString(df.format(v), bx * i, (int) (height - by * (j + 1)));
@@ -720,4 +915,139 @@ public class DataRepository {
         Color.BLUE,
         Color.BLACK // 15
     };
+    final int horizon = 5;
+    final double maxChange = 1.0;
+    PriorityQueue<Point> queue = new PriorityQueue<Point>();
+
+    public ArrayList<Position> getBoundedPlan(int sx, int sy, double curr, double[][] lower, double[][] upper) {
+        ArrayList<Position> p = new ArrayList<Position>();
+
+        Point o = new Point(sx, sy);
+        o.sensor = curr;
+        int count = 0;
+        queue.offer(o);
+
+        Point best = o;
+
+        System.out.println("Starting planning");
+        while (!queue.isEmpty() && count < 10) {
+            Point cp = queue.poll();
+            if (cp.value > o.value) {
+                best = cp;
+                System.out.println("New best: " + cp);
+            }
+            ArrayList<Point> ex = getExpansions(cp.x, cp.y, upper.length);
+            for (Point point : ex) {
+                point.value = cp.value + getValue(lower[point.x][point.y], upper[point.x][point.y], cp.sensor);
+                // Work out the expectation of the sensor
+                double change = ((upper[point.x][point.y] - lower[point.x][point.y]) / 2.0) - cp.sensor;
+                if (change < 0) {
+                    change = Math.max(-maxChange, change);
+                }
+                if (change > 0) {
+                    change = Math.min(maxChange, change);
+                }
+                point.sensor = cp.sensor + change;
+                point.prev = cp;
+                point.depth = cp.depth + 1;
+                queue.offer(point);
+                // System.out.println("Offered: " + point);
+            }
+            count++;
+        }
+        System.out.println("Done planning");
+
+        queue.clear();
+
+        while (best != null) {
+            p.add(0, indexToPosition(best.x, best.y));            
+            best = best.prev;
+        }
+
+        return p;
+    }
+
+    /**
+     * Intuition here is the bigger the gap the more important, but further curr is from 
+     * midpoint of gap the worse.
+     * 
+     * @todo Take into account multiple visits
+     * 
+     * @param l
+     * @param u
+     * @param c
+     * @return 
+     */
+    private double getValue(double l, double u, double c) {
+        double d = u - l;
+        double m = (u + l) / 2.0;
+        double v = Math.abs(m - c);
+        return Math.max(0.0, d - v);
+    }
+
+    private class Point implements Comparable {
+
+        int x, y;
+        int depth = 0;
+        double value = 0.0;
+        double sensor = 0.0;
+        Point prev = null;
+
+        public Point(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o instanceof Point) {
+                Point op = (Point) o;
+                return op.x == x && op.y == y;
+            }
+            return super.equals(o);
+        }
+
+        public int compareTo(Object t) {
+            if (t instanceof Point) {
+                Point tp = (Point) t;
+                if (tp.depth >= horizon) {
+                    if (depth >= horizon) {
+                        return 0;
+                    } else {
+                        return -1;
+                    }
+                } else if (depth >= horizon) {
+                    return 1;
+                } else if (tp.value > value) {
+                    return 1;
+                } else if (tp.value < value) {
+                    return -1;
+                } else {
+                    return 0;
+                }
+            }
+            return 0;
+        }
+
+        public String toString() {
+            return "[" + x + "," + y + "] -> " + prev;
+        }
+    }
+
+    ArrayList<Point> getExpansions(int x, int y, int divisions) {
+        ArrayList<Point> ps = new ArrayList<Point>();
+        for (int dx = -1; dx < 2; dx += 1) {
+            for (int dy = -1; dy < 2; dy += 1) {
+                int nx = x + dx;
+                int ny = y + dy;
+
+                // @todo Should staying still be prevented?
+                if (nx >= 0 && nx < divisions && ny >= 0 && ny < divisions && !(nx == x && ny == y)) {
+                    Point p = new Point(nx, ny);
+                    ps.add(p);
+                }
+            }
+        }
+        return ps;
+    }
 }

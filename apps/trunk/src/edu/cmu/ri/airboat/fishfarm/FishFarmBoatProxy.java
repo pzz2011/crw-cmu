@@ -11,8 +11,10 @@ import edu.cmu.ri.crw.SensorListener;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.SensorData;
+import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.LatLon;
 import gov.nasa.worldwind.geom.Position;
+import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.Color;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
@@ -70,7 +72,7 @@ public class FishFarmBoatProxy {
             HashMap<String, Object> seen = new HashMap<String, Object>();
 
             public void receivedSensor(SensorData sd) {
-                dm.addData(sd, proxy.getPose());
+                dm.addData(proxy, sd, proxy.getPose());
             }
         });
 
@@ -108,6 +110,14 @@ public class FishFarmBoatProxy {
 
     public LatLon getLatLon() {
         return proxy.getCurrLoc();
+    }
+
+    public double getNorthing() {
+        return UTMCoord.fromLatLon(proxy.getCurrLoc().latitude, proxy.getCurrLoc().longitude).getNorthing();
+    }
+
+    public double getEasting() {
+        return UTMCoord.fromLatLon(proxy.getCurrLoc().latitude, proxy.getCurrLoc().longitude).getEasting();
     }
 
     public String toString() {

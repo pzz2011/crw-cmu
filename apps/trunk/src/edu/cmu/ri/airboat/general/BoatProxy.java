@@ -180,6 +180,8 @@ public class BoatProxy extends Thread {
 
                 while (true) {
 
+                    double [] prev = null;
+                    
                     if (currLoc != null) {
                         SensorData sd = new SensorData();
                         // @todo Observation
@@ -191,12 +193,16 @@ public class BoatProxy extends Thread {
 
                         sd.data = new double[4];
                         for (int i = 0; i < sd.data.length; i++) {
-                            sd.data[i] = Math.abs(currLoc.longitude.degrees); //  + rand.nextDouble();
+                            if (prev == null)
+                                sd.data[i] = Math.abs(currLoc.longitude.degrees); //  + rand.nextDouble();
+                            else 
+                                sd.data[i] = (Math.abs(currLoc.longitude.degrees) + prev[i])/2.0;
                         }
 
                         if (_sensorListener != null) {
                             _sensorListener.receivedSensor(sd);
                         }
+                        prev = sd.data;
                     }
 
                     try {
