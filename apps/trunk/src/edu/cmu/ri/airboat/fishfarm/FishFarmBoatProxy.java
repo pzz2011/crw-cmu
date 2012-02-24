@@ -84,13 +84,14 @@ public class FishFarmBoatProxy {
 
                 if (ws.equals(WaypointState.DONE)) {
 
+                    waypointWatchdog.lastWaypointTime = System.currentTimeMillis();
+
                     System.out.println("Waypoint done");
+                    
                     if (isAutonomous) {
                         actAutonomous();
-                    }
-
+                    }                    
                 }
-
             }
         });
         this.dm = dm;
@@ -137,15 +138,52 @@ public class FishFarmBoatProxy {
         proxy.setWaypoints(p);
     }
 
+    // Watchdog thread stuff
+    WaypointWatchDog waypointWatchdog = new WaypointWatchDog();
+    class WaypointWatchDog extends Thread {
+
+        boolean running = false;
+        public long lastWaypointTime = 0L;
+
+        public void run() {
+            while (running) {
+                try {
+                    sleep(5000);
+                } catch (InterruptedException e) {
+                }
+                if (running && isAutonomous) {
+                    long currTime = System.currentTimeMillis();
+                    // Abhinav, you might want to play with this number which is how long between waypoints before it panics and replans
+                    if (currTime - lastWaypointTime > 20000L) {
+                        System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> TIMED OUT");
+                        actAutonomous();
+                    }
+                }
+            }
+        }
+
+        public void start() {
+            running = true;
+            super.start();
+        }
+
+        public void safeStop() {
+            running = false;
+        }
+    };
+    // END Watchdog thread stuff
+
     public void setAutonomous(boolean selected) {
         isAutonomous = selected;
         if (selected) {
             repo.addAutonomous(this);
             actAutonomous();
+            waypointWatchdog.start();
         } else {
             // @todo this stops the camera, which is fine here, but probably not required behavior
             proxy.stopBoat();
             repo.removeAutonomous(this);
+            waypointWatchdog.safeStop();
         }
 
     }
@@ -158,6 +196,7 @@ public class FishFarmBoatProxy {
         System.out.println("GETTING PLAN");
         ArrayList<Position> p = repo.getAutonomyPath(this);
         proxy.setWaypoints(p);
+        waypointWatchdog.lastWaypointTime = System.currentTimeMillis();
     }
 
     public AsyncVehicleServer getVehicleServer() {
