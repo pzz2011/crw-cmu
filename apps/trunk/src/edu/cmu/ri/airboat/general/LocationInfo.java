@@ -13,15 +13,19 @@ import java.util.ListIterator;
  * @author pscerri
  */
 public class LocationInfo {
+
     double mean = 0.0;
     double tot = 0.0;
     int count = 0;
     ArrayList<Observation> obs = new ArrayList<Observation>();
-
+    double lowerBound = 0.0;
+    double upperBound = 0.0;
     public double interpolationValue = 0.0;
     public double interpolationContributions = 0.0;
-    
-    public LocationInfo() {        
+
+    public LocationInfo(double l, double u) {
+        lowerBound = l;
+        upperBound = u;
     }
 
     public double getInterpolatedValue() {
@@ -31,13 +35,26 @@ public class LocationInfo {
             return 0.0;
         }
     }
-    
+
     public void addObs(Observation o) {
         obs.add(o);
         tot += o.getValue();
         count++;
         mean = tot / count;
         // System.out.println("Count now " + count + " and mean " + mean);
+
+        // System.out.print(lowerBound + " - " + upperBound + " " + o.getValue() + " " + o.getGradient());
+        if (o.getGradient() > 0.0) {
+            if (o.getValue() > lowerBound) {
+                lowerBound = o.getValue();
+            }
+        } else if (o.getGradient() < 0.0) {
+            if (o.getValue() < upperBound) {
+                upperBound = o.getValue();
+            }
+        }
+        // System.out.println(" " + lowerBound + " " + upperBound);
+        // @todo Notice we do nothing with 0.0 gradient, which could help a lot
     }
 
     public double getMean() {
@@ -50,7 +67,7 @@ public class LocationInfo {
 
     public ArrayList<Observation> getObs() {
         return obs;
-    }    
+    }
 
     public double getStdDev() {
         double ss = 0.0;
@@ -78,5 +95,24 @@ public class LocationInfo {
         }
         return d;
     }
-    
+
+    public double getBoundsMidpoint() {
+        return (lowerBound + upperBound) / 2.0;
+    }
+
+    public double getLowerBound() {
+        return lowerBound;
+    }
+
+    public void setLowerBound(double lowerBound) {
+        this.lowerBound = lowerBound;
+    }
+
+    public double getUpperBound() {
+        return upperBound;
+    }
+
+    public void setUpperBound(double upperBound) {
+        this.upperBound = upperBound;
+    }
 }

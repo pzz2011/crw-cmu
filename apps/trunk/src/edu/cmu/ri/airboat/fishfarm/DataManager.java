@@ -5,10 +5,10 @@
 package edu.cmu.ri.airboat.fishfarm;
 
 import edu.cmu.ri.airboat.fishfarm.DataRepository.ImageType;
+import edu.cmu.ri.airboat.general.BoatProxy;
 import edu.cmu.ri.crw.data.SensorData;
 import edu.cmu.ri.crw.data.UtmPose;
 import gov.nasa.worldwind.geom.LatLon;
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -112,11 +112,19 @@ public class DataManager extends JPanel {
         return (int) (dx * fromMin);
     }
 
-    void addData(SensorData sd, UtmPose pose) {
+    void addData(BoatProxy proxy, SensorData sd, UtmPose pose) {
         // System.out.println("Data manager got it");
-        repo.addData(sd, pose);
+        repo.addData(proxy, sd, pose);
     }
 
+    double setUpperBound (double u) {
+        return repo.setUpperFilterBound(u);
+    }
+    
+    double setLowerBound (double l) {
+        return repo.setLowerFilterBound(l);
+    }
+    
     public void setExtent(LatLon min, LatLon max) {
         System.out.println("Extent set: " + min + " " + max);
         this.min = min;
