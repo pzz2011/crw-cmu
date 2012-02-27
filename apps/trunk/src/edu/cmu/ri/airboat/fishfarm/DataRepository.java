@@ -436,7 +436,7 @@ public class DataRepository {
                     upper[i][j] = data[i][j].getUpperBound();
                 }
             }
-            p = BoundedFilterPlanner.getBoundedPlan(x, y, currReading, lower, upper);
+            p = getBoundedPlan(x, y, currReading, lower, upper);
         }
 
         return p;
