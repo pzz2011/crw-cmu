@@ -192,9 +192,16 @@ public class FishFarmBoatProxy {
         return isAutonomous;
     }
 
+    ArrayList<Position> currPlan = null;
+
+    public ArrayList<Position> getCurrPlan() {
+        return currPlan;
+    }
+    
     private void actAutonomous() {
         System.out.println("GETTING PLAN");
         ArrayList<Position> p = repo.getAutonomyPath(this);
+        currPlan = p;
         proxy.setWaypoints(p);
         waypointWatchdog.lastWaypointTime = System.currentTimeMillis();
     }

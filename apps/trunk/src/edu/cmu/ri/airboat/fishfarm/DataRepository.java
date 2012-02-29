@@ -191,40 +191,72 @@ public class DataRepository {
     public void setIndexOfInterest(int index) {
         indexOfInterest = index;
     }
-    private static Hashtable<String, Double> prevValues = new Hashtable<String, Double>();
-
+    private static Hashtable<String, ArrayList<Double>> prevValues = new Hashtable<String, ArrayList<Double>>();
     private String sensorToDisplay = "WATERCANARY";
     private int indexToDisplay = 0;
-    
+    private int filterWindow = 4;
+
     void addData(BoatProxy proxy, SensorData sd, UtmPose _pose) {
         rawData.add(sd);
 
         if (sensorToDisplay.equalsIgnoreCase(sd.type.toString()) && latestTP != null) {
             latestTP.setText(sensorToDisplay + " = " + sd.data[indexToDisplay]);
         }
-        
+
         for (int i = 0; i < sd.data.length; i++) {
             String sensorName = "Sensor" + sd.type;
             String key = sensorName + i + proxy.toString();
             Observation o = new Observation(sensorName, sd.data[i], UtmPoseToDouble(_pose.pose), _pose.origin.zone, _pose.origin.isNorth);
 
-            double gradient = 0.0;
+            double gradient = valueToGradient(key, sd.data[i]);
             // Set the gradient
-            Double d = prevValues.get(key);
-            if (d != null) {
-                if (d > sd.data[i]) {
-                    gradient = -1.0;
-                } else if (d < sd.data[i]) {
-                    gradient = 1.0;
-                } else {
-                    gradient = 0.0;
-                }
-            }
-            prevValues.put(key, sd.data[i]);
             o.setGradient(gradient);
 
             newObservation(proxy, o, i);
         }
+    }
+
+    private double valueToGradient(String key, double value) {
+        double gradient = Double.NaN;
+        ArrayList<Double> ds = prevValues.get(key);
+        if (ds == null) {
+            ds = new ArrayList<Double>();
+            prevValues.put(key, ds);
+        }
+
+        ds.add(value);
+        while (ds.size() > filterWindow) {
+            ds.remove(0);
+        }
+
+        if (ds.size() >= filterWindow) {
+            boolean allUp = true, allDown = true, allSame = true;
+            double curr = ds.get(0);
+            for (int i = 1; i < ds.size(); i++) {
+                double next = ds.get(i);
+
+                if (next >= curr) {
+                    allDown = false;
+                } else if (next <= curr) {
+                    allDown = false;
+                } else if (next != curr) {
+                    allSame = false;
+                }
+
+                curr = next;
+            }
+
+            if (allUp) {
+                gradient = 1.0;
+            } else if (allDown) {
+                gradient = -1.0;
+            } else if (allSame) {
+                gradient = 0.0;
+            }
+
+        }
+
+        return gradient;
     }
 
     private double[] UtmPoseToDouble(Pose3D p) {
@@ -271,7 +303,11 @@ public class DataRepository {
             System.out.println("ADDED for " + proxy);
             lastObs.put(proxy, prevForProxy);
         }
+        try {
         prevForProxy.add(index, o.getValue());
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("NON TERMINAL issue with prevForProxy in DataRepository, index = " + index + ", size = " + prevForProxy.size());
+        }
 
         System.out.println("Obs\t" + o.variable + "\t" + index + "\t" + o.waypoint[0] + "\t" + o.waypoint[1] + "\t" + o.getValue() + "\t" + System.currentTimeMillis());
 
@@ -319,6 +355,8 @@ public class DataRepository {
 
     private LocationInfo[][] initLocInfo() {
         return new LocationInfo[divisions][divisions];
+
+
     }
 
     /*
@@ -960,7 +998,9 @@ public class DataRepository {
         queue.clear();
 
         while (best != null) {
-            p.add(0, indexToPosition(best.x, best.y));            
+            // Don't put in the starting point
+            if (best.prev != null)
+                p.add(0, indexToPosition(best.x, best.y));
             best = best.prev;
         }
 
@@ -983,6 +1023,8 @@ public class DataRepository {
         double m = (u + l) / 2.0;
         double v = Math.abs(m - c);
         return Math.max(0.0, d - v);
+
+
     }
 
     private class Point implements Comparable {

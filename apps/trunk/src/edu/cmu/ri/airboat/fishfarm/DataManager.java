@@ -9,6 +9,7 @@ import edu.cmu.ri.airboat.general.BoatProxy;
 import edu.cmu.ri.crw.data.SensorData;
 import edu.cmu.ri.crw.data.UtmPose;
 import gov.nasa.worldwind.geom.LatLon;
+import gov.nasa.worldwind.geom.Position;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -86,6 +87,22 @@ public class DataManager extends JPanel {
                 // System.out.println(angle + " to " + dx + ", " + dy);
                 
                 g.drawLine(x, y, x + dx, y - dy);                
+            }
+            ArrayList<Position> plan = fishFarmBoatProxy.getCurrPlan();
+            if (plan != null) {
+                Position curr = plan.get(0);
+                for (int i = 1; i < plan.size(); i++) {
+                    Position next = plan.get(i);
+                    int x1 = lonToScreenCoord(curr.longitude.degrees);
+                    int y1 = latToScreenCoord(curr.latitude.degrees);
+                    
+                    int x2 = lonToScreenCoord(next.longitude.degrees);
+                    int y2 = latToScreenCoord(next.latitude.degrees);
+                    
+                    g.drawLine(x1, y1, x2, y2);
+                    
+                    curr = next;
+                }
             }
         }
     }
