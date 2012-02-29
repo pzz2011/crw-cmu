@@ -87,10 +87,10 @@ public class FishFarmBoatProxy {
                     waypointWatchdog.lastWaypointTime = System.currentTimeMillis();
 
                     System.out.println("Waypoint done");
-                    
+
                     if (isAutonomous) {
                         actAutonomous();
-                    }                    
+                    }
                 }
             }
         });
@@ -137,9 +137,9 @@ public class FishFarmBoatProxy {
     public void setWaypoints(Iterable<Position> p) {
         proxy.setWaypoints(p);
     }
-
     // Watchdog thread stuff
     WaypointWatchDog waypointWatchdog = new WaypointWatchDog();
+
     class WaypointWatchDog extends Thread {
 
         boolean running = false;
@@ -163,8 +163,10 @@ public class FishFarmBoatProxy {
         }
 
         public void start() {
+            if (running = false) {
+                super.start();
+            }
             running = true;
-            super.start();
         }
 
         public void safeStop() {
@@ -191,13 +193,12 @@ public class FishFarmBoatProxy {
     public boolean isIsAutonomous() {
         return isAutonomous;
     }
-
     ArrayList<Position> currPlan = null;
 
     public ArrayList<Position> getCurrPlan() {
         return currPlan;
     }
-    
+
     private void actAutonomous() {
         System.out.println("GETTING PLAN");
         ArrayList<Position> p = repo.getAutonomyPath(this);
