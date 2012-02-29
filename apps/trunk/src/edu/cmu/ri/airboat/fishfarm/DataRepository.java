@@ -147,7 +147,7 @@ public class DataRepository {
         for (LocationInfo[][] ll : locInfo) {
             for (int i = 0; i < ll.length; i++) {
                 for (int j = 0; j < ll[i].length; j++) {
-                    if (ll != null && ll[i][j].getLowerBound() == prev) {
+                    if (ll[i][j] != null && ll[i][j].getLowerBound() == prev) {
                         ll[i][j].setLowerBound(ret);
                     }
                 }
@@ -177,7 +177,7 @@ public class DataRepository {
             for (int i = 0; i < ll.length; i++) {
                 for (int j = 0; j < ll[i].length; j++) {
 
-                    if (ll != null && ll[i][j].getUpperBound() == prev) {
+                    if (ll[i][j] != null && ll[i][j].getUpperBound() == prev) {
                         ll[i][j].setUpperBound(ret);
                     }
                 }
