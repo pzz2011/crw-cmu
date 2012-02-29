@@ -373,6 +373,9 @@ public class DataRepository {
     private AutonomyAlgorithm alg = AutonomyAlgorithm.Random;
 
     public void setAlg(AutonomyAlgorithm alg) {
+        
+        System.out.println("\n\n Set autonomy algorithm to: " + alg + "\n\n");
+        
         this.alg = alg;
         for (FishFarmBoatProxy proxy : autonomousProxies) {
             ArrayList<Position> path = getAutonomyPath(proxy);
