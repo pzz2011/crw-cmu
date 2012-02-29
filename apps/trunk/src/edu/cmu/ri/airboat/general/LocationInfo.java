@@ -52,6 +52,9 @@ public class LocationInfo {
             if (o.getValue() < upperBound) {
                 upperBound = o.getValue();
             }
+        } else if (o.getGradient() == 0.0) {
+            upperBound = o.getValue();
+            lowerBound = o.getValue();
         }
         // System.out.println(" " + lowerBound + " " + upperBound);
         // @todo Notice we do nothing with 0.0 gradient, which could help a lot
