@@ -307,18 +307,20 @@ public class DataRepository {
         prevForProxy.add(index, o.getValue());
         } catch (IndexOutOfBoundsException e) {
             System.out.println("NON TERMINAL issue with prevForProxy in DataRepository, index = " + index + ", size = " + prevForProxy.size());
-        }
-
-        System.out.println("Obs\t" + o.variable + "\t" + index + "\t" + o.waypoint[0] + "\t" + o.waypoint[1] + "\t" + o.getValue() + "\t" + System.currentTimeMillis());
+        }                 
 
         int bx = toXIndex(o.getWaypoint()[0]);
         int by = toYIndex(o.getWaypoint()[1]);
+        
+        System.out.println("Obs\t" + o.variable + "\t" + index + "\t" + bx + "\t" + by + "\t" + o.waypoint[0] + "\t" + o.waypoint[1] + "\t" + o.getValue() + "\t" + o.getGradient() + "\t" + System.currentTimeMillis());
 
+        
         try {
             if (li[bx][by] == null) {
                 li[bx][by] = new LocationInfo(lowerFilterBound, upperFilterBound);
             }
 
+            System.out.print("Bounds for\t" + bx + "\t" + by + "\t");
             li[bx][by].addObs(o);
 
             // System.out.println("Added obs to " + bx + " " + by + " mean " + li[bx][by].getMean() + " std. dev. " + li[bx][by].getStdDev() + " count " + li[bx][by].getCount());
@@ -956,7 +958,7 @@ public class DataRepository {
         Color.BLUE,
         Color.BLACK // 15
     };
-    final int horizon = 5;
+    final int horizon = 16;
     final double maxChange = 1.0;
     PriorityQueue<Point> queue = new PriorityQueue<Point>();
 
@@ -971,7 +973,7 @@ public class DataRepository {
         Point best = o;
 
         System.out.println("Starting planning");
-        while (!queue.isEmpty() && count < 10) {
+        while (!queue.isEmpty() && count < 10000) {
             Point cp = queue.poll();
             if (cp.value > o.value) {
                 best = cp;

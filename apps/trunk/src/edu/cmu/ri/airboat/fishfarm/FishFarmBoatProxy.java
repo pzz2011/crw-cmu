@@ -154,7 +154,7 @@ public class FishFarmBoatProxy {
                 if (running && isAutonomous) {
                     long currTime = System.currentTimeMillis();
                     // Abhinav, you might want to play with this number which is how long between waypoints before it panics and replans
-                    if (currTime - lastWaypointTime > 20000L) {
+                    if (currTime - lastWaypointTime > 60000L) {
                         System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> TIMED OUT");
                         actAutonomous();
                     }
