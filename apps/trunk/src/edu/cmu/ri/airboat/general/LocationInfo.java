@@ -43,7 +43,7 @@ public class LocationInfo {
         mean = tot / count;
         // System.out.println("Count now " + count + " and mean " + mean);
 
-        // System.out.print(lowerBound + " - " + upperBound + " " + o.getValue() + " " + o.getGradient());
+        System.out.print(lowerBound + " - " + upperBound + " " + o.getValue() + " " + o.getGradient());
         if (o.getGradient() > 0.0) {
             if (o.getValue() > lowerBound) {
                 lowerBound = o.getValue();
@@ -56,7 +56,7 @@ public class LocationInfo {
             upperBound = o.getValue();
             lowerBound = o.getValue();
         }
-        // System.out.println(" " + lowerBound + " " + upperBound);
+        System.out.println(" " + lowerBound + " " + upperBound);
         // @todo Notice we do nothing with 0.0 gradient, which could help a lot
     }
 
