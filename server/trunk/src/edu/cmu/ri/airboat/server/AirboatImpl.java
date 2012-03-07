@@ -41,7 +41,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 
 	private static final String logTag = AirboatImpl.class.getName();
 	public static final int UPDATE_INTERVAL_MS = 200;
-	public static final int NUM_SENSORS = 3;
+	public static final int NUM_SENSORS = 4;
 	public static final AirboatController DEFAULT_CONTROLLER = AirboatController.POINT_AND_SHOOT;
 
 	protected final SensorType[] _sensorTypes = new SensorType[NUM_SENSORS];
@@ -382,7 +382,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 			// Broadcast the sensor reading
 			try {
 				SensorData reading = new SensorData();
-				reading.channel = 1;
+				reading.channel = 3;
 				reading.data = new double[1];
 				reading.type = SensorType.UNKNOWN;
 				reading.data[0] = Double.parseDouble(cmd.get(1));
