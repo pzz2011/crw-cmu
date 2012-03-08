@@ -77,7 +77,8 @@ void setup()
   initSampler();
   initTE();
   initDepth();
-  initWaterCanary();
+  //initWaterCanary();
+  initDO();
 } 
 
 /**
@@ -109,7 +110,8 @@ void update()
   updateSampler();
   updateTE();
   updateDepth();
-  updateWaterCanary();
+  //updateWaterCanary();
+  updateDO();
 }
 
 /**
