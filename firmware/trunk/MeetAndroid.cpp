@@ -18,15 +18,19 @@
 */
 
 // Includes
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "Arduino.h"
+#else
 #include "WProgram.h"
-#include "HardwareSerial.h"
 #include "WConstants.h"
+#endif
+
+#include "HardwareSerial.h"
 #include "MeetAndroid.h"
 
 extern "C" {
 #include <stdlib.h>
 }
-
 
 
 // Private methods
@@ -260,9 +264,17 @@ double MeetAndroid::getDouble()
 }
 
 
+#if defined(ARDUINO) && ARDUINO >= 100
+size_t MeetAndroid::write(uint8_t b){
+	return Serial.print(b);
+}
+#else
 void MeetAndroid::write(uint8_t b){
 	Serial.print(b);
 }
+#endif
+	
+
 
 void MeetAndroid::send(char c ){
 	Serial.print(startFlag);
