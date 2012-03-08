@@ -18,6 +18,7 @@ import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Arrays;
 import java.util.PriorityQueue;
 import java.util.Random;
 import javax.swing.JTextPane;
@@ -246,12 +247,12 @@ public class DataRepository {
                 curr = next;
             }
 
-            if (allUp) {
-                gradient = 1.0;
+            if (allSame) {
+                gradient = 0.0;
             } else if (allDown) {
                 gradient = -1.0;
-            } else if (allSame) {
-                gradient = 0.0;
+            } else if (allUp) {
+                gradient = 1.0;
             }
 
         }
@@ -356,9 +357,14 @@ public class DataRepository {
     }
 
     private LocationInfo[][] initLocInfo() {
-        return new LocationInfo[divisions][divisions];
+        LocationInfo[][] newLocInfo = new LocationInfo[divisions][divisions];
+        for (int i = 0; i < divisions; i++){
+            for (int j = 0; j < divisions; j++){
+                newLocInfo[i][j] = new LocationInfo(lowerFilterBound, upperFilterBound);
+            }
+        }
 
-
+        return newLocInfo;
     }
 
     /*
