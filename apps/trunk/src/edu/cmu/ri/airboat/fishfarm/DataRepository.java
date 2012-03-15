@@ -17,8 +17,8 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Hashtable;
-import java.util.Arrays;
 import java.util.PriorityQueue;
 import java.util.Random;
 import javax.swing.JTextPane;
@@ -193,9 +193,10 @@ public class DataRepository {
         indexOfInterest = index;
     }
     private static Hashtable<String, ArrayList<Double>> prevValues = new Hashtable<String, ArrayList<Double>>();
+    private static Hashtable<String, MedianFilterSlidingWindow> filterHash = new Hashtable<String, MedianFilterSlidingWindow>();
     private String sensorToDisplay = "WATERCANARY";
     private int indexToDisplay = 0;
-    private int filterWindow = 4;
+    private int filterWindow = 30;
 
     void addData(BoatProxy proxy, SensorData sd, UtmPose _pose) {
         rawData.add(sd);
@@ -217,47 +218,126 @@ public class DataRepository {
         }
     }
 
+    public static void main(String[] argv) {
+        DataRepository repo = new DataRepository(LatLon.ZERO, LatLon.fromDegrees(2.0, 2.0));
+        Random rand = new Random();
+        for (int i = 0; i < 40; i++) {
+            double d = repo.valueToGradient("test", i * rand.nextDouble());
+            System.out.println("Gradient: " + d);
+        }
+    }
+
     private double valueToGradient(String key, double value) {
-        double gradient = Double.NaN;
-        ArrayList<Double> ds = prevValues.get(key);
-        if (ds == null) {
-            ds = new ArrayList<Double>();
-            prevValues.put(key, ds);
+        
+        MedianFilterSlidingWindow mf = filterHash.get(key);
+        if (mf == null) {
+            mf = new MedianFilterSlidingWindow();
+            filterHash.put(key, mf);
+        }
+        mf.addValue(value);
+
+        return mf.getGradient();
+        
+    }
+
+    private class MedianFilterSlidingWindow {
+
+        final int noWindows = 20;
+        final int windowSize = 11;
+        final double epsilon = 0.1;
+        int obsToDate = 0;
+        ArrayList<ArrayList<Double>> windows = new ArrayList<ArrayList<Double>>();
+
+        {
+            for (int i = 0; i < (noWindows + windowSize); i++) {
+                windows.add(new ArrayList<Double>());
+            }
         }
 
-        ds.add(value);
-        while (ds.size() > filterWindow) {
-            ds.remove(0);
-        }
+        public void addValue(double v) {
 
-        if (ds.size() >= filterWindow) {
-            boolean allUp = true, allDown = true, allSame = true;
-            double curr = ds.get(0);
-            for (int i = 1; i < ds.size(); i++) {
-                double next = ds.get(i);
+            obsToDate++;
 
-                if (next >= curr) {
-                    allDown = false;
-                } else if (next <= curr) {
-                    allDown = false;
-                } else if (next != curr) {
-                    allSame = false;
+            // Fill up the windows
+            for (int i = 0; i < obsToDate && i < windows.size(); i++) {
+                if (windows.get(i).size() < windowSize) {
+                    _add(windows.get(i), v);
                 }
-
-                curr = next;
             }
 
-            if (allSame) {
-                gradient = 0.0;
-            } else if (allDown) {
-                gradient = -1.0;
-            } else if (allUp) {
-                gradient = 1.0;
+            // Once windows are full start deleting the first
+            if (windows.get(noWindows).size() == windowSize) {
+                windows.remove(0);
+                windows.add(new ArrayList<Double>());
             }
 
+            for (int i = 0; i < windows.size(); i++) {
+                if (windows.get(i).size() > 0.0) {
+                    System.out.print(" " + median(windows.get(i)));
+                }
+            }
+            System.out.println("");
         }
 
-        return gradient;
+        private void _add(ArrayList<Double> window, double v) {
+            int i = 0;
+            while (window.size() > i && window.get(i) > v) {
+                i++;
+            }
+            window.add(i, v);
+        }
+
+        private double median(ArrayList<Double> window) {
+            return window.get((int) Math.floor(window.size() / 2));
+        }
+
+        /**
+         * "Stolen" from http://introcs.cs.princeton.edu/java/97data/LinearRegression.java.html
+         * @return 
+         */
+        private double _getGradient() {
+
+            double[] ys = new double[noWindows];
+            double sumY = 0.0, sumX = 0.0;
+
+            for (int i = 0; i < ys.length; i++) {
+                ys[i] = median(windows.get(i));
+                sumY += ys[i];
+                sumX += i;
+            }
+
+            double avgX = sumX / noWindows;
+            double avgY = sumY / noWindows;
+
+            double xxbar = 0.0, yybar = 0.0, xybar = 0.0;
+
+            for (int i = 0; i < noWindows; i++) {
+                xxbar += (i - avgX) * (i - avgX);
+                yybar += (ys[i] - avgY) * (ys[i] - avgY);
+                xybar += (i - avgX) * (ys[i] - avgY);
+            }
+            double beta1 = xybar / xxbar;
+            double beta0 = avgY - beta1 * avgX;
+
+            // print results
+            System.out.println("y   = " + beta1 + " * x + " + beta0);
+
+
+            return beta1;
+        }
+
+        private double getGradient() {
+            if (obsToDate < noWindows + windowSize) {
+                return 0.0;
+            } else {
+                double d = _getGradient();
+                if (Math.abs(d) > epsilon) {
+                    return Math.signum(d);
+                } else {
+                    return 0.0;
+                }
+            }
+        }
     }
 
     private double[] UtmPoseToDouble(Pose3D p) {
@@ -305,17 +385,17 @@ public class DataRepository {
             lastObs.put(proxy, prevForProxy);
         }
         try {
-        prevForProxy.add(index, o.getValue());
+            prevForProxy.add(index, o.getValue());
         } catch (IndexOutOfBoundsException e) {
             System.out.println("NON TERMINAL issue with prevForProxy in DataRepository, index = " + index + ", size = " + prevForProxy.size());
-        }                 
+        }
 
         int bx = toXIndex(o.getWaypoint()[0]);
         int by = toYIndex(o.getWaypoint()[1]);
-        
+
         System.out.println("Obs\t" + o.variable + "\t" + index + "\t" + bx + "\t" + by + "\t" + o.waypoint[0] + "\t" + o.waypoint[1] + "\t" + o.getValue() + "\t" + o.getGradient() + "\t" + System.currentTimeMillis());
 
-        
+
         try {
             if (li[bx][by] == null) {
                 li[bx][by] = new LocationInfo(lowerFilterBound, upperFilterBound);
@@ -358,8 +438,8 @@ public class DataRepository {
 
     private LocationInfo[][] initLocInfo() {
         LocationInfo[][] newLocInfo = new LocationInfo[divisions][divisions];
-        for (int i = 0; i < divisions; i++){
-            for (int j = 0; j < divisions; j++){
+        for (int i = 0; i < divisions; i++) {
+            for (int j = 0; j < divisions; j++) {
                 newLocInfo[i][j] = new LocationInfo(lowerFilterBound, upperFilterBound);
             }
         }
@@ -381,9 +461,9 @@ public class DataRepository {
     private AutonomyAlgorithm alg = AutonomyAlgorithm.Random;
 
     public void setAlg(AutonomyAlgorithm alg) {
-        
+
         System.out.println("\n\n Set autonomy algorithm to: " + alg + "\n\n");
-        
+
         this.alg = alg;
         for (FishFarmBoatProxy proxy : autonomousProxies) {
             ArrayList<Position> path = getAutonomyPath(proxy);
@@ -1010,8 +1090,9 @@ public class DataRepository {
 
         while (best != null) {
             // Don't put in the starting point
-            if (best.prev != null)
+            if (best.prev != null) {
                 p.add(0, indexToPosition(best.x, best.y));
+            }
             best = best.prev;
         }
 
