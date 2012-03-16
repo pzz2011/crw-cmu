@@ -188,7 +188,7 @@ public class BoatProxy extends Thread {
                         if (rand.nextBoolean()) {
                             sd.type = SensorType.TE;
                         } else {
-                            sd.type = SensorType.WATERCANARY;
+                            sd.type = SensorType.UNKNOWN;
                         }
 
                         sd.data = new double[4];

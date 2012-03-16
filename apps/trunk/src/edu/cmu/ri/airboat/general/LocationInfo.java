@@ -48,14 +48,24 @@ public class LocationInfo {
             if (o.getValue() > lowerBound) {
                 lowerBound = o.getValue();
             }
+            
+            if (o.getValue() > upperBound) {
+                System.out.println(">>>>>>>>>> Reassessing upper bound " + upperBound + " to " + o.getValue());
+                upperBound = o.getValue();
+            }
         } else if (o.getGradient() < 0.0) {
             if (o.getValue() < upperBound) {
                 upperBound = o.getValue();
             }
-        } else if (o.getGradient() == 0.0) {
+            
+            if (o.getValue() < lowerBound) {
+                System.out.println(">>>>>>>>>> Reassessing lower bound " + lowerBound + " to " + o.getValue());
+                lowerBound = o.getValue();
+            }
+        }/* else if (o.getGradient() == 0.0) {
             upperBound = o.getValue();
             lowerBound = o.getValue();
-        }
+        }*/
         System.out.println(" " + lowerBound + " " + upperBound);
         // @todo Notice we do nothing with 0.0 gradient, which could help a lot
     }
