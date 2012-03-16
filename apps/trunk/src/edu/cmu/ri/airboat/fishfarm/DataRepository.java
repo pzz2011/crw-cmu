@@ -15,12 +15,17 @@ import gov.nasa.worldwind.geom.coords.UTMCoord;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.PriorityQueue;
 import java.util.Random;
+import java.util.StringTokenizer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JTextPane;
 import robotutils.Pose3D;
 
@@ -219,16 +224,35 @@ public class DataRepository {
     }
 
     public static void main(String[] argv) {
-        DataRepository repo = new DataRepository(LatLon.ZERO, LatLon.fromDegrees(2.0, 2.0));
-        Random rand = new Random();
-        for (int i = 0; i < 40; i++) {
-            double d = repo.valueToGradient("test", i * rand.nextDouble());
-            System.out.println("Gradient: " + d);
+        try {
+            /*
+            DataRepository repo = new DataRepository(LatLon.ZERO, LatLon.fromDegrees(2.0, 2.0));
+            Random rand = new Random();
+            for (int i = 0; i < 40; i++) {
+                double d = repo.valueToGradient("test", i * rand.nextDouble());
+                System.out.println("Gradient: " + d);
+            }
+             */
+            DataRepository repo = new DataRepository(LatLon.ZERO, LatLon.fromDegrees(2.0, 2.0));
+            FileReader fr = new FileReader("/tmp/data");
+            BufferedReader br = new BufferedReader(fr);
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                StringTokenizer t = new StringTokenizer(line);
+                t.nextToken(); // "Obs"
+                String key = t.nextToken() + t.nextToken(); // Sensor name and index
+                t.nextToken(); t.nextToken(); // Lat lon
+                double v = Double.parseDouble(t.nextToken());
+                double d = repo.valueToGradient(key, v);
+                System.out.println("Gradient: " + key + " = " + d + " for " + filterHash.get(key).getDataAsString());
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(DataRepository.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
     private double valueToGradient(String key, double value) {
-        
+
         MedianFilterSlidingWindow mf = filterHash.get(key);
         if (mf == null) {
             mf = new MedianFilterSlidingWindow();
@@ -237,14 +261,14 @@ public class DataRepository {
         mf.addValue(value);
 
         return mf.getGradient();
-        
+
     }
 
     private class MedianFilterSlidingWindow {
 
         final int noWindows = 20;
         final int windowSize = 11;
-        final double epsilon = 0.1;
+        final double epsilon = 0.01;
         int obsToDate = 0;
         ArrayList<ArrayList<Double>> windows = new ArrayList<ArrayList<Double>>();
 
@@ -271,12 +295,15 @@ public class DataRepository {
                 windows.add(new ArrayList<Double>());
             }
 
+            /*
             for (int i = 0; i < windows.size(); i++) {
                 if (windows.get(i).size() > 0.0) {
                     System.out.print(" " + median(windows.get(i)));
                 }
             }
             System.out.println("");
+             * 
+             */
         }
 
         private void _add(ArrayList<Double> window, double v) {
@@ -291,6 +318,18 @@ public class DataRepository {
             return window.get((int) Math.floor(window.size() / 2));
         }
 
+        public String getDataAsString() {
+            StringBuilder sb = new StringBuilder();
+            if (obsToDate > noWindows + windowSize) {
+                for (int i = 0; i < noWindows; i++) {
+                    sb.append(median(windows.get(i)) + " ");                        
+                }
+            } else {
+                sb.append("Too early");                        
+            }
+            return sb.toString();
+        }
+        
         /**
          * "Stolen" from http://introcs.cs.princeton.edu/java/97data/LinearRegression.java.html
          * @return 
