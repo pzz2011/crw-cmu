@@ -204,22 +204,28 @@ public class DataRepository {
     private int filterWindow = 30;
 
     void addData(BoatProxy proxy, SensorData sd, UtmPose _pose) {
-        rawData.add(sd);
 
-        if (sensorToDisplay.equalsIgnoreCase(sd.type.toString()) && latestTP != null) {
-            latestTP.setText(sensorToDisplay + " = " + sd.data[indexToDisplay]);
-        }
+        try {
+            rawData.add(sd);
 
-        for (int i = 0; i < sd.data.length; i++) {
-            String sensorName = "Sensor" + sd.type;
-            String key = sensorName + i + proxy.toString();
-            Observation o = new Observation(sensorName, sd.data[i], UtmPoseToDouble(_pose.pose), _pose.origin.zone, _pose.origin.isNorth);
+            if (sensorToDisplay.equalsIgnoreCase(sd.type.toString()) && latestTP != null) {
+                latestTP.setText(sensorToDisplay + " = " + sd.data[indexToDisplay]);
+            }
 
-            double gradient = valueToGradient(key, sd.data[i]);
-            // Set the gradient
-            o.setGradient(gradient);
+            for (int i = 0; i < sd.data.length; i++) {
+                String sensorName = "Sensor" + sd.type;
+                String key = sensorName + i + proxy.toString();
+                Observation o = new Observation(sensorName, sd.data[i], UtmPoseToDouble(_pose.pose), _pose.origin.zone, _pose.origin.isNorth);
 
-            newObservation(proxy, o, i);
+                double gradient = valueToGradient(key, sd.data[i]);
+                // Set the gradient
+                o.setGradient(gradient);
+
+                newObservation(proxy, o, i);
+            }
+        } catch (NullPointerException e) {
+            System.out.println("Caught (and ignoring) null pointer exception in DataRepository.addData, printing stack trace");
+            e.printStackTrace();
         }
     }
 
@@ -229,8 +235,8 @@ public class DataRepository {
             DataRepository repo = new DataRepository(LatLon.ZERO, LatLon.fromDegrees(2.0, 2.0));
             Random rand = new Random();
             for (int i = 0; i < 40; i++) {
-                double d = repo.valueToGradient("test", i * rand.nextDouble());
-                System.out.println("Gradient: " + d);
+            double d = repo.valueToGradient("test", i * rand.nextDouble());
+            System.out.println("Gradient: " + d);
             }
              */
             DataRepository repo = new DataRepository(LatLon.ZERO, LatLon.fromDegrees(2.0, 2.0));
@@ -241,7 +247,8 @@ public class DataRepository {
                 StringTokenizer t = new StringTokenizer(line);
                 t.nextToken(); // "Obs"
                 String key = t.nextToken() + t.nextToken(); // Sensor name and index
-                t.nextToken(); t.nextToken(); // Lat lon
+                t.nextToken();
+                t.nextToken(); // Lat lon
                 double v = Double.parseDouble(t.nextToken());
                 double d = repo.valueToGradient(key, v);
                 System.out.println("Gradient: " + key + " = " + d + " for " + filterHash.get(key).getDataAsString());
@@ -297,9 +304,9 @@ public class DataRepository {
 
             /*
             for (int i = 0; i < windows.size(); i++) {
-                if (windows.get(i).size() > 0.0) {
-                    System.out.print(" " + median(windows.get(i)));
-                }
+            if (windows.get(i).size() > 0.0) {
+            System.out.print(" " + median(windows.get(i)));
+            }
             }
             System.out.println("");
              * 
@@ -322,14 +329,14 @@ public class DataRepository {
             StringBuilder sb = new StringBuilder();
             if (obsToDate > noWindows + windowSize) {
                 for (int i = 0; i < noWindows; i++) {
-                    sb.append(median(windows.get(i)) + " ");                        
+                    sb.append(median(windows.get(i)) + " ");
                 }
             } else {
-                sb.append("Too early");                        
+                sb.append("Too early");
             }
             return sb.toString();
         }
-        
+
         /**
          * "Stolen" from http://introcs.cs.princeton.edu/java/97data/LinearRegression.java.html
          * @return 
@@ -623,7 +630,7 @@ public class DataRepository {
             int ri = Math.min(divisions - 2, i);
 
             int xb = 0;
-            int xt = divisions;
+            int xt = divisions - 1;
 
             path.add(indexToPosition(xb, ri));
             path.add(indexToPosition(xt, ri));
