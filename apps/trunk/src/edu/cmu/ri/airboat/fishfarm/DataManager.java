@@ -89,7 +89,7 @@ public class DataManager extends JPanel {
                 g.drawLine(x, y, x + dx, y - dy);                
             }
             ArrayList<Position> plan = fishFarmBoatProxy.getCurrPlan();
-            if (plan != null) {
+            if (plan != null && plan.size() > 1) {
                 Position curr = plan.get(0);
                 for (int i = 1; i < plan.size(); i++) {
                     Position next = plan.get(i);
