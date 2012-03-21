@@ -27,7 +27,6 @@ import android.widget.TextView.OnEditorActionListener;
 import com.google.code.microlog4android.LoggerFactory;
 
 import edu.cmu.ri.crw.VehicleServer;
-import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.data.Twist;
 
 /**
