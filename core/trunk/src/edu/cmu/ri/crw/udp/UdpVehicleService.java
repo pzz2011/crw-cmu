@@ -163,11 +163,13 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     break;
                 case CMD_SET_POSE:
                     _vehicleServer.setPose(UdpConstants.readPose(req.stream));
-                    _udpServer.respond(resp); // Send void response
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp); // Send void response
                     break;
                 case CMD_GET_POSE:
                     UdpConstants.writePose(resp.stream, _vehicleServer.getPose());
-                    _udpServer.respond(resp);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp);
                     break;
                 case CMD_REGISTER_IMAGE_LISTENER:
                     synchronized(_imageListeners) {
@@ -178,7 +180,8 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     byte[] image = _vehicleServer.captureImage(req.stream.readInt(), req.stream.readInt());
                     resp.stream.writeInt(image.length);
                     resp.stream.write(image);
-                    _udpServer.respond(resp);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp);
                     break;
                 case CMD_REGISTER_CAMERA_LISTENER:
                     synchronized(_cameraListeners) {
@@ -189,15 +192,18 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     _vehicleServer.startCamera(
                             req.stream.readInt(), req.stream.readDouble(),
                             req.stream.readInt(), req.stream.readInt());
-                    _udpServer.respond(resp); // Send void response
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp); // Send void response
                     break;
                 case CMD_STOP_CAMERA:
                     _vehicleServer.stopCamera();
-                    _udpServer.respond(resp); // Send void response
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp); // Send void response
                     break;
                 case CMD_GET_CAMERA_STATUS:
                     resp.stream.writeByte(_vehicleServer.getCameraStatus().ordinal());
-                    _udpServer.respond(resp); 
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp); 
                     break;
                 case CMD_REGISTER_SENSOR_LISTENER:
                     synchronized(_sensorListeners) {
@@ -217,15 +223,18 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                 case CMD_SET_SENSOR_TYPE:
                     _vehicleServer.setSensorType(req.stream.readInt(), 
                             VehicleServer.SensorType.values()[req.stream.readByte()]);
-                    _udpServer.respond(resp); // Send void response
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp); // Send void response
                     break;
                 case CMD_GET_SENSOR_TYPE:
                     resp.stream.writeByte(_vehicleServer.getSensorType(req.stream.readInt()).ordinal());
-                    _udpServer.respond(resp); 
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp); 
                     break;
                 case CMD_GET_NUM_SENSORS:
                     resp.stream.writeInt(_vehicleServer.getNumSensors());
-                    _udpServer.respond(resp);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp);
                     break;
                 case CMD_REGISTER_VELOCITY_LISTENER:
                     synchronized(_velocityListeners) {
@@ -234,11 +243,13 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     break;
                 case CMD_SET_VELOCITY:
                     _vehicleServer.setVelocity(UdpConstants.readTwist(req.stream));
-                    _udpServer.respond(resp); // Send void response
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp); // Send void response
                     break;
                 case CMD_GET_VELOCITY:
                     UdpConstants.writeTwist(resp.stream, _vehicleServer.getVelocity());
-                    _udpServer.respond(resp);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp);
                     break;
                 case CMD_REGISTER_WAYPOINT_LISTENER:
                     synchronized(_waypointListeners) {
@@ -251,11 +262,13 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                         swPoses[i] = UdpConstants.readPose(req.stream);
                     }
                     _vehicleServer.startWaypoints(swPoses, req.stream.readUTF());
-                    _udpServer.respond(resp); // Send void response
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp); // Send void response
                     break;
                 case CMD_STOP_WAYPOINTS:
                     _vehicleServer.stopWaypoints();
-                    _udpServer.respond(resp); // Send void response
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp); // Send void response
                     break;
                 case CMD_GET_WAYPOINTS:
                     UtmPose[] gwPoses = _vehicleServer.getWaypoints();
@@ -263,23 +276,28 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     for (int i = 0; i < gwPoses.length; ++i) {
                         UdpConstants.writePose(resp.stream, gwPoses[i]);
                     }
-                    _udpServer.respond(resp);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp);
                     break;
                 case CMD_GET_WAYPOINT_STATUS:
                     resp.stream.writeByte(_vehicleServer.getWaypointStatus().ordinal());
-                    _udpServer.respond(resp);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp);
                     break;
                 case CMD_IS_CONNECTED:
                     resp.stream.writeBoolean((_vehicleServer != null) && _vehicleServer.isConnected());
-                    _udpServer.respond(resp);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp);
                     break;
                 case CMD_IS_AUTONOMOUS:
                     resp.stream.writeBoolean(_vehicleServer.isAutonomous());
-                    _udpServer.respond(resp);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp);
                     break;
                 case CMD_SET_AUTONOMOUS:
                     _vehicleServer.setAutonomous(req.stream.readBoolean());
-                    _udpServer.respond(resp); // Send void response
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp); // Send void response
                     break;
                 case CMD_SET_GAINS:
                     int sgAxis = req.stream.readInt();
@@ -288,7 +306,8 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                         sgGains[i] = req.stream.readDouble();
                     }
                     _vehicleServer.setGains(sgAxis, sgGains);
-                    _udpServer.respond(resp);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp);
                     break;
                 case CMD_GET_GAINS:
                     double[] ggGains = _vehicleServer.getGains(req.stream.readInt());
@@ -296,7 +315,8 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     for (int i = 0; i < ggGains.length; ++i) {
                         resp.stream.writeDouble(ggGains[i]);
                     }
-                    _udpServer.respond(resp);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(resp);
                     break;
                 case CMD_CONNECT:
                     // Unpack the forwarded server
@@ -307,7 +327,8 @@ public class UdpVehicleService implements UdpServer.RequestHandler {
                     // Send off a one-time command to the forwarded server
                     Response r = new Response(req.ticket, addr);
                     r.stream.writeUTF(UdpConstants.COMMAND.CMD_CONNECT.str);
-                    _udpServer.respond(r);
+                    if (resp.ticket != UdpConstants.NO_TICKET)
+                        _udpServer.respond(r);
                     break;
                 default:
                     String warning = "Ignoring unknown command: " + command;
