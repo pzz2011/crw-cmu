@@ -12,8 +12,8 @@ import edu.cmu.ri.airboat.client.gui.DrivePanel;
 import edu.cmu.ri.airboat.client.gui.PosePanel;
 import edu.cmu.ri.airboat.client.gui.SimpleWorldPanel;
 import edu.cmu.ri.airboat.client.gui.WaypointPanel;
+import edu.cmu.ri.crw.AsyncVehicleServer;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
-import edu.cmu.ri.crw.VehicleServer;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import javax.swing.BorderFactory;
@@ -107,7 +107,7 @@ public class BoatDebugPanel extends javax.swing.JPanel {
             add(cameraPanel);
         }
 
-        public void setVehicle(VehicleServer vehicle) {
+        public void setVehicle(AsyncVehicleServer vehicle) {
             posePanel.setVehicle(vehicle);
             waypointPanel.setVehicle(vehicle);
             cameraPanel.setVehicle(vehicle);
@@ -152,7 +152,7 @@ public class BoatDebugPanel extends javax.swing.JPanel {
             add(pidRudderPanel);
         }
 
-        public void setVehicle(VehicleServer vehicle) {
+        public void setVehicle(AsyncVehicleServer vehicle) {
             pidThrustPanel.setVehicle(vehicle);
             pidRudderPanel.setVehicle(vehicle);
             drivePanel.setVehicle(vehicle);
@@ -171,7 +171,7 @@ public class BoatDebugPanel extends javax.swing.JPanel {
      *
      * @param vehicle
      */
-    public void setServer(VehicleServer vehicle) {
+    public void setServer(AsyncVehicleServer vehicle) {
 
         // When the connection is changed, update all subcomponents
         _cmdPanel.setVehicle(vehicle);
@@ -181,7 +181,7 @@ public class BoatDebugPanel extends javax.swing.JPanel {
     public static void main(String args[]) {
 
         // Create a simulated boat
-        final VehicleServer server = new SimpleBoatSimulator();
+        final AsyncVehicleServer server = AsyncVehicleServer.Util.toAsync(new SimpleBoatSimulator());
         
         // Start up the debugger GUI
         java.awt.EventQueue.invokeLater(new Runnable() {

@@ -12,13 +12,16 @@
 package edu.cmu.ri.airboat.client.gui;
 
 import edu.cmu.ri.airboat.client.UtmUtils;
-import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.AsyncVehicleServer;
+import edu.cmu.ri.crw.FunctionObserver;
+import edu.cmu.ri.crw.FunctionObserver.FunctionError;
 import edu.cmu.ri.crw.VehicleServer.WaypointState;
 import edu.cmu.ri.crw.WaypointListener;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
+import java.awt.Color;
 import java.awt.event.MouseAdapter;
 import java.text.DecimalFormat;
 import robotutils.Pose3D;
@@ -44,7 +47,7 @@ public class WaypointPanel extends AbstractAirboatPanel {
     
     
     @Override
-    public void setVehicle(VehicleServer vehicle) {
+    public void setVehicle(AsyncVehicleServer vehicle) {
         super.setVehicle(vehicle);
         
         _vehicle.addWaypointListener(new WaypointListener() {
@@ -53,7 +56,7 @@ public class WaypointPanel extends AbstractAirboatPanel {
                     completedBox.setSelected(true);
                 }
             }
-        });
+        }, null);
     }
 
     /** This method is called from within the constructor to
@@ -144,18 +147,63 @@ public class WaypointPanel extends AbstractAirboatPanel {
         if (_vehicle == null)
             return;
 
-        completedBox.setSelected(false);
+        UtmPose[] wpPose = new UtmPose[1];
         synchronized(_waypointLock) {
-            _vehicle.startWaypoints(new UtmPose[]{_waypoint}, "POINT_AND_SHOOT");
+            wpPose[0] = _waypoint;
         }
+        
+        sendButton.setEnabled(false);
+        sendButton.setSelected(true);
+        
+        _vehicle.startWaypoints(wpPose, "POINT_AND_SHOOT", new FunctionObserver<Void>() {
+
+            public void completed(Void v) {
+                completedBox.setSelected(false);
+                
+                sendButton.setBackground(Color.GREEN);
+                sendButton.setOpaque(true);
+                
+                sendButton.setEnabled(true);
+                sendButton.setSelected(false);
+            }
+
+            public void failed(FunctionError fe) {
+                sendButton.setBackground(Color.PINK);
+                sendButton.setOpaque(true);
+                
+                sendButton.setEnabled(true);
+                sendButton.setSelected(false);
+            }
+        });
     }//GEN-LAST:event_sendButtonActionPerformed
 
     private void cancelButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cancelButtonActionPerformed
         if (_vehicle == null)
             return;
 
-        completedBox.setSelected(false);
-        _vehicle.stopWaypoints();
+        cancelButton.setEnabled(false);
+        cancelButton.setSelected(true);
+        
+        _vehicle.stopWaypoints(new FunctionObserver<Void>() {
+
+            public void completed(Void v) {
+                completedBox.setSelected(false);
+                
+                cancelButton.setBackground(Color.GREEN);
+                cancelButton.setOpaque(true);
+                
+                cancelButton.setEnabled(true);
+                cancelButton.setSelected(false);
+            }
+
+            public void failed(FunctionError fe) {
+                cancelButton.setBackground(Color.PINK);
+                cancelButton.setOpaque(true);
+                
+                cancelButton.setEnabled(true);
+                cancelButton.setSelected(false);
+            }
+        });
     }//GEN-LAST:event_cancelButtonActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -209,33 +257,46 @@ public class WaypointPanel extends AbstractAirboatPanel {
     @Override
     protected void update() {
         if (_vehicle != null) {
-            UtmPose[] currWps = _vehicle.getWaypoints();
-            if (currWps == null || currWps.length < 1)
-                return;
-            UtmPose currWp = currWps[0];
-            if (currWp == null)
-                return;
+            _vehicle.getWaypoints(new FunctionObserver<UtmPose[]>() {
 
-            currWaypointText.setText("[" + 
-                    UTM_FORMAT.format(currWp.pose.getX()) + ", " +
-                    UTM_FORMAT.format(currWp.pose.getY()) + ", " +
-                    UTM_FORMAT.format(currWp.pose.getZ()) + "] " +
-                    currWp.origin.zone + " " + (currWp.origin.isNorth ? "North" : "South"));
+                public void completed(UtmPose[] currWps) {
+                    if (currWps == null || currWps.length < 1) {
+                        return;
+                    }
+                    
+                    UtmPose currWp = currWps[0];
+                    if (currWp == null) {
+                        return;
+                    }
+                    
+                    if (currWaypointText != null) {
+                        currWaypointText.setText("["
+                                + UTM_FORMAT.format(currWp.pose.getX()) + ", "
+                                + UTM_FORMAT.format(currWp.pose.getY()) + ", "
+                                + UTM_FORMAT.format(currWp.pose.getZ()) + "] "
+                                + currWp.origin.zone + " " + (currWp.origin.isNorth ? "North" : "South"));
+                    }
 
-            // Set marker position on globe map
-            if (_worldPanel != null && currWp.origin.zone != 0) {
-                try {
-                    String wwHemi = (currWp.origin.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
-                    UTMCoord boatPos = UTMCoord.fromUTM(currWp.origin.zone, wwHemi, currWp.pose.getX(), currWp.pose.getY());
-                    _worldPanel.waypoint.getAttributes().setOpacity(1.0);
-                    _worldPanel.waypoint.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), 0.0));
-                } catch (Exception e) {
-                    _worldPanel.waypoint.getAttributes().setOpacity(0.0);
+                    // Set marker position on globe map
+                    if (_worldPanel != null && currWp.origin.zone != 0) {
+                        try {
+                            String wwHemi = (currWp.origin.isNorth) ? "gov.nasa.worldwind.avkey.North" : "gov.nasa.worldwind.avkey.South";
+                            UTMCoord boatPos = UTMCoord.fromUTM(currWp.origin.zone, wwHemi, currWp.pose.getX(), currWp.pose.getY());
+                            _worldPanel.waypoint.getAttributes().setOpacity(1.0);
+                            _worldPanel.waypoint.setPosition(new Position(boatPos.getLatitude(), boatPos.getLongitude(), 0.0));
+                        } catch (Exception e) {
+                            _worldPanel.waypoint.getAttributes().setOpacity(0.0);
+                        }
+                        _worldPanel.repaint();
+                    }
+
+                    WaypointPanel.this.repaint();
                 }
-                _worldPanel.repaint();
-            }
 
-            WaypointPanel.this.repaint();
+                public void failed(FunctionError fe) {
+                    // TODO: maybe report something here
+                }
+            });
         }
     }
 }

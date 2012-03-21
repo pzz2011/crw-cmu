@@ -13,7 +13,7 @@ import edu.cmu.ri.airboat.client.gui.DrivePanel;
 import edu.cmu.ri.airboat.client.gui.PosePanel;
 import edu.cmu.ri.airboat.client.gui.SimpleWorldPanel;
 import edu.cmu.ri.airboat.client.gui.WaypointPanel;
-import edu.cmu.ri.crw.CrwSecurityManager;
+import edu.cmu.ri.crw.AsyncVehicleServer;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.udp.UdpVehicleService;
@@ -119,7 +119,7 @@ public class BoatDebugger extends javax.swing.JFrame {
             add(cameraPanel);
         }
 
-        public void setVehicle(VehicleServer vehicle) {
+        public void setVehicle(AsyncVehicleServer vehicle) {
             posePanel.setVehicle(vehicle);
             waypointPanel.setVehicle(vehicle);
             cameraPanel.setVehicle(vehicle);
@@ -164,7 +164,7 @@ public class BoatDebugger extends javax.swing.JFrame {
             add(pidRudderPanel);
         }
 
-        public void setVehicle(VehicleServer vehicle) {
+        public void setVehicle(AsyncVehicleServer vehicle) {
             pidThrustPanel.setVehicle(vehicle);
             pidRudderPanel.setVehicle(vehicle);
             drivePanel.setVehicle(vehicle);
@@ -180,7 +180,7 @@ public class BoatDebugger extends javax.swing.JFrame {
     private ConnectionPanel.ConnectionListener _connectionListener =
             new ConnectionPanel.ConnectionListener() {
 
-        public void connectionChanged(VehicleServer vehicle) {
+        public void connectionChanged(AsyncVehicleServer vehicle) {
 
             // When the connection is changed, update all subcomponents
             _cmdPanel.setVehicle(vehicle);

@@ -11,13 +11,16 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
+import edu.cmu.ri.crw.AsyncVehicleServer;
+import edu.cmu.ri.crw.FunctionObserver;
+import edu.cmu.ri.crw.FunctionObserver.FunctionError;
 import edu.cmu.ri.crw.PoseListener;
-import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.geom.coords.UTMCoord;
+import java.awt.Color;
 import java.text.DecimalFormat;
 import robotutils.Pose3D;
 
@@ -158,7 +161,27 @@ public class PosePanel extends AbstractAirboatPanel {
             Utm origin = new Utm(wpUtm.getZone(), wpUtm.getHemisphere().contains("North"));
             UtmPose utmPose = new UtmPose(pose, origin);
 
-            _vehicle.setPose(utmPose);
+            setPoseButton.setEnabled(false);
+            setPoseButton.setSelected(true);
+            
+            _vehicle.setPose(utmPose, new FunctionObserver<Void>() {
+
+                public void completed(Void v) {
+                    setPoseButton.setBackground(Color.GREEN);
+                    setPoseButton.setOpaque(true);
+
+                    setPoseButton.setEnabled(true);
+                    setPoseButton.setSelected(false);
+                }
+
+                public void failed(FunctionError fe) {
+                    setPoseButton.setBackground(Color.PINK);
+                    setPoseButton.setOpaque(true);
+
+                    setPoseButton.setEnabled(true);
+                    setPoseButton.setSelected(false);
+                }
+            });
         }
     }//GEN-LAST:event_setPoseButtonActionPerformed
 
@@ -199,12 +222,12 @@ public class PosePanel extends AbstractAirboatPanel {
     }
 
     @Override
-    public void setVehicle(VehicleServer vehicle) {
+    public void setVehicle(AsyncVehicleServer vehicle) {
         if (_vehicle != null)
-            _vehicle.removePoseListener(_poseListener);
+            _vehicle.removePoseListener(_poseListener, null);
 
         super.setVehicle(vehicle);
-        vehicle.addPoseListener(_poseListener);
+        vehicle.addPoseListener(_poseListener, null);
     }
 
     private final PoseListener _poseListener = new PoseListener() {

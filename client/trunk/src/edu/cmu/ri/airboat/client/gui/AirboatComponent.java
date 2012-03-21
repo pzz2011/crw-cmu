@@ -5,7 +5,7 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
-import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.AsyncVehicleServer;
 
 /**
  * Generic interface used to describe GUI elements that directly interact with
@@ -15,6 +15,6 @@ import edu.cmu.ri.crw.VehicleServer;
  */
 public interface AirboatComponent {
 
-    public void setVehicle(VehicleServer vehicle);
+    public void setVehicle(AsyncVehicleServer vehicle);
     public void setUpdateRate(long period_ms);
 }
