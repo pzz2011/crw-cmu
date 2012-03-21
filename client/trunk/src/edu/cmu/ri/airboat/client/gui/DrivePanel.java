@@ -136,10 +136,17 @@ public class DrivePanel extends AbstractAirboatPanel {
 
     private void jAutonomyBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jAutonomyBoxActionPerformed
         if (_vehicle != null) {
-            _vehicle.setAutonomous(!jAutonomyBox.isSelected(), null);
+            final boolean value = !jAutonomyBox.isSelected();
+            _vehicle.setAutonomous(value, new FunctionObserver<Void>() {
+
+                public void completed(Void v) {
+                    jAutonomyBox.setSelected(value);
+                }
+
+                public void failed(FunctionError fe) {}
+            });
         }
     }//GEN-LAST:event_jAutonomyBoxActionPerformed
-
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JCheckBox jAutonomyBox;
@@ -219,30 +226,34 @@ public class DrivePanel extends AbstractAirboatPanel {
             _vehicle.isAutonomous(new FunctionObserver<Boolean>() {
 
                 public void completed(Boolean v) {
+                    jAutonomyBox.setEnabled(true);
                     jAutonomyBox.setSelected(v);
                 }
 
                 public void failed(FunctionError fe) {
-                    jAutonomyBox.setSelected(false);
+                    jAutonomyBox.setEnabled(false);
                 }
             });
             
             _vehicle.isConnected(new FunctionObserver<Boolean>() {
 
                 public void completed(Boolean v) {
+                    jConnectedBox.setEnabled(true);
                     jConnectedBox.setSelected(v);
                 }
 
                 public void failed(FunctionError fe) {
-                    jConnectedBox.setSelected(false);
+                    jConnectedBox.setEnabled(false);
                 }
             });
         } else {
             if (jAutonomyBox != null) {
+                jAutonomyBox.setEnabled(false);
                 jAutonomyBox.setSelected(false);
             }
             
             if (jConnectedBox != null) {
+                jConnectedBox.setEnabled(false);
                 jConnectedBox.setSelected(false);
             }
         }
