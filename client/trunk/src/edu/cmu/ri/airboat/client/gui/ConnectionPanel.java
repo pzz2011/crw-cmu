@@ -70,18 +70,26 @@ public class ConnectionPanel extends javax.swing.JPanel {
             @Override
             public void run() {
                 if (_vehicle == null) {
+                    connectedBox.setEnabled(false);
                     connectedBox.setSelected(false);
+                    
+                    autonomousBox.setEnabled(false);
                     autonomousBox.setSelected(false);
+                    
                     connectCombo.setBackground(Color.PINK);
                 } else {
                     _vehicle.isConnected(new FunctionObserver<Boolean>() {
 
                         public void completed(Boolean v) {
+                            connectedBox.setEnabled(true);
                             connectedBox.setSelected(v);
+                            
                             connectCombo.setBackground(Color.GREEN);
                         }
 
                         public void failed(FunctionError fe) {
+                            connectedBox.setEnabled(false);
+                            
                             connectCombo.setBackground(Color.PINK);
                         }
                     });
@@ -89,11 +97,15 @@ public class ConnectionPanel extends javax.swing.JPanel {
                     _vehicle.isAutonomous(new FunctionObserver<Boolean>() {
 
                         public void completed(Boolean v) {
-                            connectCombo.setBackground(Color.GREEN);
+                            autonomousBox.setEnabled(true);
                             autonomousBox.setSelected(v);
+                            
+                            connectCombo.setBackground(Color.GREEN);
                         }
 
                         public void failed(FunctionError fe) {
+                            autonomousBox.setEnabled(false);
+                            
                             connectCombo.setBackground(Color.PINK);
                         }
                     });
@@ -245,7 +257,6 @@ public class ConnectionPanel extends javax.swing.JPanel {
     private void connectComboActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectComboActionPerformed
         synchronized(this) {
             // Create a new proxy server that accesses the vehicle
-            UdpVehicleServer vehicle = null;
             try {
                 // Set vehicle to new address
                 String addr = ((String)connectCombo.getSelectedItem()).split("-")[0].trim();
@@ -269,7 +280,15 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
     private void autonomousBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_autonomousBoxActionPerformed
         if (evt.getActionCommand().equals("toggle")) {
-            _vehicle.setAutonomous(!autonomousBox.isSelected(), null);
+            final boolean value = !autonomousBox.isSelected();
+            _vehicle.setAutonomous(value, new FunctionObserver<Void>() {
+
+                public void completed(Void v) {
+                    autonomousBox.setSelected(value);  
+                }
+
+                public void failed(FunctionError fe) {}
+            });
         }
     }//GEN-LAST:event_autonomousBoxActionPerformed
 
