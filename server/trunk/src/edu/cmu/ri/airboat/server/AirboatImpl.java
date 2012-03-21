@@ -710,7 +710,7 @@ public class AirboatImpl extends AbstractVehicleServer {
 				return _isAutonomous.get() ? WaypointState.PAUSED
 						: WaypointState.GOING;
 			} else {
-				return WaypointState.OFF;
+				return WaypointState.DONE;
 			}
 		}
 	}
