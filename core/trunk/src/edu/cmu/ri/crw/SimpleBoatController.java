@@ -44,21 +44,23 @@ public enum SimpleBoatController {
             angle = normalizeAngle(angle);
 
             // Choose driving behavior depending on direction and where we are
-            if (Math.abs(angle) > 1.0) {
-
-                // If we are facing away, turn around first
-                twist.dx(0.5);
-                twist.drz(Math.max(Math.min(angle / 1.0, 1.0), -1.0));
-            } else if (distanceSq >= 9.0) {
-
-                // If we are far away, drive forward and turn
-                twist.dx(Math.min(distanceSq / 10.0, 1.0));
-                twist.drz(Math.max(Math.min(angle / 10.0, 1.0), -1.0));
-            } else {
+            if (distanceSq <= 9.0) {
                 
                 // If we are "at" the destination, de-queue a waypoint
                 server.startWaypoints(Arrays.copyOfRange(waypoints, 1, waypoints.length), 
                         SimpleBoatController.POINT_AND_SHOOT.toString());
+                
+            } else if (Math.abs(angle) > 1.0) {
+
+                // If we are facing away, turn around first
+                twist.dx(0.5);
+                twist.drz(Math.max(Math.min(angle / 1.0, 1.0), -1.0));
+                
+            } else {
+
+                // If we are far away, drive forward and turn
+                twist.dx(Math.min(distanceSq / 10.0, 1.0));
+                twist.drz(Math.max(Math.min(angle / 10.0, 1.0), -1.0));
             }
 
             // Set the desired velocity
