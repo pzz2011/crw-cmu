@@ -163,7 +163,6 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
         connectCombo.setEditable(true);
         connectCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "No Vehicle", "localhost:11411 - Simulator" }));
-        connectCombo.setOpaque(true);
         connectCombo.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 connectComboActionPerformed(evt);
@@ -175,10 +174,14 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
         autonomousBox.setForeground(new java.awt.Color(51, 51, 51));
         autonomousBox.setText("Autonomous Mode");
+        autonomousBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                autonomousBoxActionPerformed(evt);
+            }
+        });
 
         registryCombo.setEditable(true);
         registryCombo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "No Registry", "athiri.cimds.ri.cmu.edu:6077" }));
-        registryCombo.setOpaque(true);
         registryCombo.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 registryComboActionPerformed(evt);
@@ -193,8 +196,8 @@ public class ConnectionPanel extends javax.swing.JPanel {
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
-            .add(org.jdesktop.layout.GroupLayout.TRAILING, connectedBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 223, Short.MAX_VALUE)
-            .add(autonomousBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 223, Short.MAX_VALUE)
+            .add(org.jdesktop.layout.GroupLayout.TRAILING, connectedBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 232, Short.MAX_VALUE)
+            .add(autonomousBox, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 232, Short.MAX_VALUE)
             .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
                 .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
                     .add(vehicleLabel)
@@ -265,6 +268,12 @@ public class ConnectionPanel extends javax.swing.JPanel {
             }
         }
     }//GEN-LAST:event_connectComboActionPerformed
+
+    private void autonomousBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_autonomousBoxActionPerformed
+        if (evt.getActionCommand().equals("toggle")) {
+            _vehicle.setAutonomous(!autonomousBox.isSelected(), null);
+        }
+    }//GEN-LAST:event_autonomousBoxActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

@@ -16,8 +16,8 @@
   <Layout>
     <DimensionLayout dim="0">
       <Group type="103" groupAlignment="0" attributes="0">
-          <Component id="connectedBox" alignment="1" pref="223" max="32767" attributes="0"/>
-          <Component id="autonomousBox" alignment="0" pref="223" max="32767" attributes="0"/>
+          <Component id="connectedBox" alignment="1" pref="232" max="32767" attributes="0"/>
+          <Component id="autonomousBox" alignment="0" pref="232" max="32767" attributes="0"/>
           <Group type="102" alignment="1" attributes="0">
               <Group type="103" groupAlignment="0" attributes="0">
                   <Component id="vehicleLabel" min="-2" max="-2" attributes="0"/>
@@ -61,7 +61,6 @@
             <StringItem index="1" value="localhost:11411 - Simulator"/>
           </StringArray>
         </Property>
-        <Property name="opaque" type="boolean" value="true"/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="connectComboActionPerformed"/>
@@ -85,6 +84,9 @@
         </Property>
         <Property name="text" type="java.lang.String" value="Autonomous Mode"/>
       </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="autonomousBoxActionPerformed"/>
+      </Events>
       <AuxValues>
         <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new ReadOnlyCheckBox();"/>
       </AuxValues>
@@ -98,7 +100,6 @@
             <StringItem index="1" value="athiri.cimds.ri.cmu.edu:6077"/>
           </StringArray>
         </Property>
-        <Property name="opaque" type="boolean" value="true"/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="registryComboActionPerformed"/>
