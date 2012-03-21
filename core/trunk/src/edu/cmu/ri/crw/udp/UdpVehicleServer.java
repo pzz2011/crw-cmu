@@ -406,7 +406,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     @Override
     public void setPose(UtmPose pose, FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -420,15 +422,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void getPose(FunctionObserver<UtmPose> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -441,8 +446,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
@@ -469,7 +475,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     @Override
     public void captureImage(int width, int height, FunctionObserver<byte[]> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -484,8 +492,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
@@ -512,7 +521,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     @Override
     public void startCamera(int numFrames, double interval, int width, int height, FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -529,15 +540,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void stopCamera(FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -550,15 +564,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void getCameraStatus(FunctionObserver<CameraState> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -571,8 +588,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
@@ -616,7 +634,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     @Override
     public void setSensorType(int channel, SensorType type, FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -631,15 +651,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void getSensorType(int channel, FunctionObserver<SensorType> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -653,15 +676,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void getNumSensors(FunctionObserver<Integer> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -674,8 +700,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
@@ -702,7 +729,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     @Override
     public void setVelocity(Twist velocity, FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -716,15 +745,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void getVelocity(FunctionObserver<Twist> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -737,8 +769,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
@@ -765,7 +798,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
     @Override
     public void startWaypoints(UtmPose[] waypoints, String controller, FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -783,15 +818,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void stopWaypoints(FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -804,15 +842,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void getWaypoints(FunctionObserver<UtmPose[]> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -825,15 +866,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void getWaypointStatus(FunctionObserver<WaypointState> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -846,15 +890,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void isConnected(FunctionObserver<Boolean> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -867,15 +914,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void isAutonomous(FunctionObserver<Boolean> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -888,15 +938,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void setAutonomous(boolean auto, FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -910,15 +963,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void setGains(int axis, double[] gains, FunctionObserver<Void> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -936,15 +992,18 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 
     @Override
     public void getGains(int axis, FunctionObserver<double[]> obs) {
         if (_vehicleServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -957,8 +1016,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
     
@@ -970,7 +1030,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
      */
     public void getVehicleServices(FunctionObserver<Map<SocketAddress, String>> obs) {
         if (_registryServer == null) {
-            obs.failed(FunctionObserver.FunctionError.ERROR);
+            if (obs != null) {
+                obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
             return;
         }
         
@@ -983,8 +1045,9 @@ public class UdpVehicleServer implements AsyncVehicleServer, UdpServer.RequestHa
             _udpServer.respond(response);
         } catch (IOException e) {
             // TODO: Should I also flag something somewhere?
-            if (obs != null)
+            if (obs != null) {
                 obs.failed(FunctionObserver.FunctionError.ERROR);
+            }
         }
     }
 }
