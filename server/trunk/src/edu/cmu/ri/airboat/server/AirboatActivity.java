@@ -166,7 +166,7 @@ public class AirboatActivity extends Activity {
 				
 				@Override
 				protected Integer doInBackground(Void... urls) {
-					int textBkgnd = 0xFFFFCCCC;
+					int textBkgnd = 0xAAAA0000;
 					
 					_isUpdated.set(true);
 					_isUpdating.set(true);
@@ -177,7 +177,7 @@ public class AirboatActivity extends Activity {
 						InetSocketAddress addr = CrwNetworkUtils.toInetSocketAddress(text);
 						
 						if (addr != null && addr.getAddress().isReachable(500))
-							textBkgnd = 0xFFCCFFCC;
+							textBkgnd = 0xAA00AA00;
 				    } catch (IOException e) {}
 				    
 				    return textBkgnd;
@@ -294,7 +294,7 @@ public class AirboatActivity extends Activity {
 				
 				@Override
 				protected Integer doInBackground(Void... urls) {
-					int textBkgnd = 0xFFFFCCCC;
+					int textBkgnd = 0xAAAA0000;
 					
 					_isUpdated.set(true);
 					_isUpdating.set(true);
@@ -303,7 +303,7 @@ public class AirboatActivity extends Activity {
 						// Try to open the host name in the text box, 
 						// if it succeeds, change color accordingly
 						if (hostname.trim().length() != 0 && InetAddress.getByName(hostname).isReachable(500))
-				        	textBkgnd = 0xFFCCFFCC;
+				        	textBkgnd = 0xAA00AA00;
 				    } catch (IOException e) {}
 				    
 				    return textBkgnd;
