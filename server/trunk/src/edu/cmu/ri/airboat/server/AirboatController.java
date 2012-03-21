@@ -51,7 +51,7 @@ public enum AirboatController {
 			if (Math.abs(angle) > 1.0) {
 
 				// If we are facing away, turn around first
-				twist.dx(0.5);
+				twist.dx(Math.min(distanceSq / 10.0, 1.0));
 				twist.drz(Math.max(Math.min(angle / 0.5, 1.0), -1.0));
 			} else if (distanceSq >= 9.0) {
 
