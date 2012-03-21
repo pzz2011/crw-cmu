@@ -453,7 +453,6 @@ public class AirboatService extends Service {
 
 		// Remove the data log (a new one will be created on restart)
 		if (_fileAppender != null) {
-			logger.removeAppender(_fileAppender);
 			try {
 				_fileAppender.close();
 			} catch (IOException e) {
