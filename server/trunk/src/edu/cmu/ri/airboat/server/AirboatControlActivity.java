@@ -220,7 +220,7 @@ public class AirboatControlActivity extends Activity {
 					
 				// Update the autonomous and connected values
 				connectedBox.setChecked(_airboatService.getServer().isConnected());
-				autonomousBox.setChecked(_airboatService.getServer().getWaypointStatus() == WaypointState.GOING);
+				autonomousBox.setChecked(_airboatService.getServer().isAutonomous());
 				
 				// Update the velocities
 				_velocities = _airboatService.getServer().getVelocity();
