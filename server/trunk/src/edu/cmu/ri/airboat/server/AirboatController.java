@@ -48,25 +48,27 @@ public enum AirboatController {
 			angle = normalizeAngle(angle);
 
 			// Choose driving behavior depending on direction and where we are
-			if (Math.abs(angle) > 1.0) {
-
-				// If we are facing away, turn around first
-				twist.dx(Math.min(distanceSq / 10.0, 1.0));
-				twist.drz(Math.max(Math.min(angle / 0.5, 1.0), -1.0));
-			} else if (distanceSq >= 9.0) {
-
-				// If we are far away, drive forward and turn
-				twist.dx(Math.min(distanceSq / 10.0, 1.0));
-				twist.drz(Math.max(Math.min(angle / 0.5, 1.0), -1.0));
-			} else {
-
-				// If we are "at" the destination, de-queue a waypoint
+			if (distanceSq <= 9.0) {
+				
+				// If we are "at" the destination, de-queue current waypoint
 				UtmPose[] queuedWaypoints = new UtmPose[waypoints.length - 1];
 				System.arraycopy(waypoints, 1, queuedWaypoints, 0,
 						queuedWaypoints.length);
 				server.startWaypoints(queuedWaypoints,
 						AirboatController.POINT_AND_SHOOT.toString());
-			}
+				
+			} else if (Math.abs(angle) > 1.0) {
+
+				// If we are facing away, turn around first
+				twist.dx(Math.min(distanceSq / 10.0, 2.0));
+				twist.drz(Math.max(Math.min(angle / 0.5, 1.0), -1.0));
+				
+			} else {
+
+				// If we are far away, drive forward and turn
+				twist.dx(Math.min(distanceSq / 10.0, 2.0));
+				twist.drz(Math.max(Math.min(angle / 0.5, 1.0), -1.0));
+			} 
 
 			// Set the desired velocity
 			server.setVelocity(twist);
