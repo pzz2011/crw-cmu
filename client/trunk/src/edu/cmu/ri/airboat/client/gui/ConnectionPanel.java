@@ -15,13 +15,11 @@ import edu.cmu.ri.crw.AsyncVehicleServer;
 import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.FunctionObserver;
 import edu.cmu.ri.crw.FunctionObserver.FunctionError;
-import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.udp.UdpVehicleServer;
 import java.awt.Color;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -286,7 +284,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
     // End of variables declaration//GEN-END:variables
 
     public static interface ConnectionListener {
-        public void connectionChanged(VehicleServer vehicle);
+        public void connectionChanged(AsyncVehicleServer vehicle);
     }
 
     private List<ConnectionListener> listeners = new ArrayList<ConnectionListener>();
@@ -301,7 +299,7 @@ public class ConnectionPanel extends javax.swing.JPanel {
 
     protected void fireConnectionListener(AsyncVehicleServer vehicle){
         for(int i = 0; i < listeners.size(); i++)
-            (listeners.get(i)).connectionChanged(AsyncVehicleServer.Util.toSync(vehicle)); // TODO: inefficient hack here
+            (listeners.get(i)).connectionChanged(vehicle);
     }
 }
 

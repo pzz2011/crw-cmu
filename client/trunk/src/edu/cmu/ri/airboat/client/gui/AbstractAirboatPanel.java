@@ -5,7 +5,7 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
-import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.AsyncVehicleServer;
 import java.util.Timer;
 import java.util.TimerTask;
 import javax.swing.JPanel;
@@ -20,7 +20,7 @@ public abstract class AbstractAirboatPanel extends JPanel implements AirboatComp
     public static int DEFAULT_UPDATE_PERIOD = 1000;
 
     protected Timer _timer = new Timer();
-    protected VehicleServer _vehicle = null;
+    protected AsyncVehicleServer _vehicle = null;
     
     public AbstractAirboatPanel() {
         _timer.scheduleAtFixedRate(new UpdateTask(), 0, DEFAULT_UPDATE_PERIOD);
@@ -33,7 +33,7 @@ public abstract class AbstractAirboatPanel extends JPanel implements AirboatComp
         }
     }
 
-    public void setVehicle(VehicleServer vehicle) {
+    public void setVehicle(AsyncVehicleServer vehicle) {
         _vehicle = vehicle;
     }
 

@@ -10,6 +10,8 @@ import edu.cmu.ri.airboat.client.gui.DrivePanel;
 import edu.cmu.ri.crw.AsyncVehicleServer;
 import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.CrwSecurityManager;
+import edu.cmu.ri.crw.FunctionObserver;
+import edu.cmu.ri.crw.FunctionObserver.FunctionError;
 import edu.cmu.ri.crw.SimpleBoatSimulator;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.udp.UdpVehicleServer;
@@ -72,7 +74,7 @@ public class BoatConfig {
             // Create a ROS proxy server that accesses the same object
             try {
                 SocketAddress serverAddr = CrwNetworkUtils.toInetSocketAddress(ipAddrStr);
-                final VehicleServer vehicle = AsyncVehicleServer.Util.toSync(new UdpVehicleServer(serverAddr));
+                final AsyncVehicleServer vehicle = new UdpVehicleServer(serverAddr);
 
                 // Connect the new controller to the GUI panels
                 thrustPanel.setVehicle(vehicle);
@@ -84,17 +86,21 @@ public class BoatConfig {
                 TimerTask connectionTask = new TimerTask() {
                     @Override
                     public void run() {
-                        try {
-                            vehicle.isAutonomous();
-                        } catch (Exception ex) {
-                            Logger.getLogger(BoatConfig.class.getName()).log(Level.SEVERE, null, ex);
-                            this.cancel();
+                        final TimerTask parent = this;
+                        
+                        vehicle.isAutonomous(new FunctionObserver<Boolean>() {
 
-                            synchronized(isConnected) {
-                                isConnected.set(false);
-                                isConnected.notifyAll();
+                            public void completed(Boolean v) { }
+
+                            public void failed(FunctionError fe) {
+                                parent.cancel();
+                                
+                                synchronized(isConnected) {
+                                    isConnected.set(false);
+                                    isConnected.notifyAll();
+                                }
                             }
-                        }
+                        });
                     }
                 };
 

@@ -11,15 +11,16 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
+import edu.cmu.ri.crw.AsyncVehicleServer;
+import edu.cmu.ri.crw.FunctionObserver;
+import edu.cmu.ri.crw.FunctionObserver.FunctionError;
 import edu.cmu.ri.crw.ImageListener;
-import edu.cmu.ri.crw.VehicleServer;
 import java.awt.Color;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
-import javax.swing.UIManager;
 
 /**
  *
@@ -33,7 +34,7 @@ public class CameraPanel extends AbstractAirboatPanel {
     }
 
     @Override
-    public void setVehicle(VehicleServer vehicle) {
+    public void setVehicle(AsyncVehicleServer vehicle) {
         super.setVehicle(vehicle);
         vehicle.addImageListener(new ImageListener() {
 
@@ -53,7 +54,7 @@ public class CameraPanel extends AbstractAirboatPanel {
                 }
 
             }
-        });
+        }, null);
     }
 
     /** This method is called from within the constructor to
@@ -132,12 +133,24 @@ public class CameraPanel extends AbstractAirboatPanel {
         startCaptureButton.setEnabled(false);
         startCaptureButton.setSelected(true);
 
-        // TODO: rename this button
-        _vehicle.startCamera(1, 2.0, 640, 480);
+        _vehicle.startCamera(1, 2.0, 640, 480, new FunctionObserver<Void>() {
 
-        startCaptureButton.setEnabled(true);
-        startCaptureButton.setSelected(false);
-        
+            public void completed(Void v) {
+                startCaptureButton.setBackground(Color.GREEN);
+                startCaptureButton.setOpaque(true);
+                
+                startCaptureButton.setEnabled(true);
+                startCaptureButton.setSelected(false);
+            }
+
+            public void failed(FunctionError fe) {
+                startCaptureButton.setBackground(Color.PINK);
+                startCaptureButton.setOpaque(true);
+                
+                startCaptureButton.setEnabled(true);
+                startCaptureButton.setSelected(false);
+            }
+        });
     }//GEN-LAST:event_startCaptureButtonActionPerformed
 
     private void stopCaptureButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stopCaptureButtonActionPerformed
@@ -148,11 +161,24 @@ public class CameraPanel extends AbstractAirboatPanel {
         stopCaptureButton.setEnabled(false);
         stopCaptureButton.setSelected(true);
 
-        // TODO: rename this button
-        _vehicle.stopCamera();
+        _vehicle.stopCamera(new FunctionObserver<Void>() {
 
-        stopCaptureButton.setEnabled(true);
-        stopCaptureButton.setSelected(false);
+            public void completed(Void v) {
+                stopCaptureButton.setBackground(Color.GREEN);
+                stopCaptureButton.setOpaque(true);
+                
+                stopCaptureButton.setEnabled(true);
+                stopCaptureButton.setSelected(false);
+            }
+
+            public void failed(FunctionError fe) {
+                stopCaptureButton.setBackground(Color.PINK);
+                stopCaptureButton.setOpaque(true);
+                
+                stopCaptureButton.setEnabled(true);
+                stopCaptureButton.setSelected(false);
+            }
+        });
     }//GEN-LAST:event_stopCaptureButtonActionPerformed
 
     private void captureButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_captureButtonActionPerformed
@@ -163,17 +189,24 @@ public class CameraPanel extends AbstractAirboatPanel {
         captureButton.setEnabled(false);
         captureButton.setSelected(true);
 
-        byte[] result = _vehicle.captureImage(640, 480);
-        if (result == null || result.length <= 0) {
-            captureButton.setBackground(Color.PINK);
-            captureButton.setOpaque(true);
-        } else {
-            captureButton.setBackground(Color.GREEN);
-            captureButton.setOpaque(false);
-        }
+        _vehicle.captureImage(640, 480, new FunctionObserver<byte[]>() {
 
-        captureButton.setEnabled(true);
-        captureButton.setSelected(false);
+            public void completed(byte[] result) {
+                captureButton.setBackground(Color.GREEN);
+                captureButton.setOpaque(true);
+                
+                captureButton.setEnabled(true);
+                captureButton.setSelected(false);
+            }
+
+            public void failed(FunctionError fe) {
+                captureButton.setBackground(Color.PINK);
+                captureButton.setOpaque(true);
+                
+                captureButton.setEnabled(true);
+                captureButton.setSelected(false);
+            }
+        });
     }//GEN-LAST:event_captureButtonActionPerformed
 
 

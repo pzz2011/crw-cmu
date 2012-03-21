@@ -4,18 +4,20 @@
  */
 package edu.cmu.ri.airboat.client.gui;
 
-import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.AsyncVehicleServer;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import javax.swing.JFrame;
 
 /**
- *
+ * TeleopFrame provides a simple control panel for manually steering the 
+ * boat.  It can be used by other applications to handle simple boat control.
+ * 
  * @author pkv
  */
 public class TeleopFrame extends JFrame {
 
-    public TeleopFrame(final VehicleServer vehicle) {
+    public TeleopFrame(final AsyncVehicleServer vehicle) {
 
         // Set up basic frame properties
         super("Airboat Teleop Frame");

@@ -172,7 +172,7 @@ public class PidPanel extends AbstractAirboatPanel {
                 (Double)pSpinner.getValue(),
                 (Double)iSpinner.getValue(),
                 (Double)dSpinner.getValue()
-            });
+            }, null);
             update();
         }
     }//GEN-LAST:event_setButtonActionPerformed

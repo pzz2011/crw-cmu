@@ -11,7 +11,9 @@
 
 package edu.cmu.ri.airboat.client.gui;
 
-import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.AsyncVehicleServer;
+import edu.cmu.ri.crw.FunctionObserver;
+import edu.cmu.ri.crw.FunctionObserver.FunctionError;
 import edu.cmu.ri.crw.VelocityListener;
 import edu.cmu.ri.crw.data.Twist;
 import java.util.TimerTask;
@@ -55,6 +57,8 @@ public class DrivePanel extends AbstractAirboatPanel {
         jThrust = new javax.swing.JSlider();
         jRudderBar = new javax.swing.JProgressBar();
         jThrustBar = new javax.swing.JProgressBar();
+        jAutonomyBox = new ReadOnlyCheckBox();
+        jConnectedBox = new ReadOnlyCheckBox();
 
         jRudder.addChangeListener(new javax.swing.event.ChangeListener() {
             public void stateChanged(javax.swing.event.ChangeEvent evt) {
@@ -74,6 +78,16 @@ public class DrivePanel extends AbstractAirboatPanel {
 
         jThrustBar.setOrientation(1);
 
+        jAutonomyBox.setText("Autonomous");
+        jAutonomyBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jAutonomyBoxActionPerformed(evt);
+            }
+        });
+
+        jConnectedBox.setForeground(new java.awt.Color(51, 51, 51));
+        jConnectedBox.setText("Connected");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -84,7 +98,11 @@ public class DrivePanel extends AbstractAirboatPanel {
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jThrust, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jThrustBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(jThrustBar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 75, Short.MAX_VALUE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(jAutonomyBox)
+                            .addComponent(jConnectedBox)))
                     .addComponent(jRudder, javax.swing.GroupLayout.DEFAULT_SIZE, 264, Short.MAX_VALUE)
                     .addComponent(jRudderBar, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 264, Short.MAX_VALUE))
                 .addContainerGap())
@@ -95,7 +113,11 @@ public class DrivePanel extends AbstractAirboatPanel {
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jThrustBar, javax.swing.GroupLayout.DEFAULT_SIZE, 151, Short.MAX_VALUE)
-                    .addComponent(jThrust, javax.swing.GroupLayout.DEFAULT_SIZE, 151, Short.MAX_VALUE))
+                    .addComponent(jThrust, javax.swing.GroupLayout.DEFAULT_SIZE, 151, Short.MAX_VALUE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jAutonomyBox)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jConnectedBox)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jRudder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -112,8 +134,16 @@ public class DrivePanel extends AbstractAirboatPanel {
         updateVelocity();
     }//GEN-LAST:event_jRudderStateChanged
 
+    private void jAutonomyBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jAutonomyBoxActionPerformed
+        if (_vehicle != null) {
+            _vehicle.setAutonomous(!jAutonomyBox.isSelected(), null);
+        }
+    }//GEN-LAST:event_jAutonomyBoxActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JCheckBox jAutonomyBox;
+    private javax.swing.JCheckBox jConnectedBox;
     private javax.swing.JSlider jRudder;
     private javax.swing.JProgressBar jRudderBar;
     private javax.swing.JSlider jThrust;
@@ -154,7 +184,7 @@ public class DrivePanel extends AbstractAirboatPanel {
             Twist twist = new Twist();
             twist.dx(fromProgressToRange(jThrust.getValue(), THRUST_MIN, THRUST_MAX));
             twist.drz(fromProgressToRange(jRudder.getValue(), RUDDER_MIN, RUDDER_MAX));
-            _vehicle.setVelocity(twist);
+            _vehicle.setVelocity(twist, null);
         }
     }
 
@@ -169,7 +199,7 @@ public class DrivePanel extends AbstractAirboatPanel {
     }
 
     @Override
-    public void setVehicle(VehicleServer vehicle) {
+    public void setVehicle(AsyncVehicleServer vehicle) {
         super.setVehicle(vehicle);
         vehicle.addVelocityListener(new VelocityListener() {
 
@@ -178,11 +208,43 @@ public class DrivePanel extends AbstractAirboatPanel {
                 jRudderBar.setValue(fromRangeToProgress(twist.drz(), RUDDER_MIN, RUDDER_MAX));
                 DrivePanel.this.repaint();
             }
-        });
+        }, null);
     }
 
-    @Override
-    protected void update() {
-        // No updates required here!
+    /**
+     * Performs periodic update of GUI elements
+     */
+    public void update() {
+        if (_vehicle != null) {
+            _vehicle.isAutonomous(new FunctionObserver<Boolean>() {
+
+                public void completed(Boolean v) {
+                    jAutonomyBox.setSelected(v);
+                }
+
+                public void failed(FunctionError fe) {
+                    jAutonomyBox.setSelected(false);
+                }
+            });
+            
+            _vehicle.isConnected(new FunctionObserver<Boolean>() {
+
+                public void completed(Boolean v) {
+                    jConnectedBox.setSelected(v);
+                }
+
+                public void failed(FunctionError fe) {
+                    jConnectedBox.setSelected(false);
+                }
+            });
+        } else {
+            if (jAutonomyBox != null) {
+                jAutonomyBox.setSelected(false);
+            }
+            
+            if (jConnectedBox != null) {
+                jConnectedBox.setSelected(false);
+            }
+        }
     }
 }
