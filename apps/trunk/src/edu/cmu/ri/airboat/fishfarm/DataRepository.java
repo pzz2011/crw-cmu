@@ -251,7 +251,7 @@ public class DataRepository {
                 t.nextToken(); // Lat lon
                 double v = Double.parseDouble(t.nextToken());
                 double d = repo.valueToGradient(key, v);
-                
+
             }
         } catch (IOException ex) {
             Logger.getLogger(DataRepository.class.getName()).log(Level.SEVERE, null, ex);
@@ -268,9 +268,9 @@ public class DataRepository {
         mf.addValue(value);
 
         double ret = mf.getGradient();
-        
+
         System.out.println("Gradient: " + key + " = " + ret + " for " + filterHash.get(key).getDataAsString());
-        
+
         return ret;
 
     }
@@ -306,15 +306,13 @@ public class DataRepository {
                 windows.add(new ArrayList<Double>());
             }
 
-            /*
+            System.out.print("MedianFilterOutput: ");
             for (int i = 0; i < windows.size(); i++) {
-            if (windows.get(i).size() > 0.0) {
-            System.out.print(" " + median(windows.get(i)));
-            }
+                if (windows.get(i).size() > 0.0) {
+                    System.out.print(" " + median(windows.get(i)));
+                }
             }
             System.out.println("");
-             * 
-             */
         }
 
         private void _add(ArrayList<Double> window, double v) {
@@ -527,17 +525,17 @@ public class DataRepository {
     private ArrayList<FishFarmBoatProxy> autonomousProxies = new ArrayList<FishFarmBoatProxy>();
 
     public ArrayList<Position> getAutonomyPath(FishFarmBoatProxy proxy) {
-        
+
         int x = toXIndex(proxy.getEasting());
         int y = toYIndex(proxy.getNorthing());
-        
+
         // if "out of extent" return a plan the brings it to the middle
         if (x < 0 || x > divisions || y < 0 || y > divisions) {
             ArrayList<Position> p = new ArrayList<Position>();
-            p.add(indexToPosition((int)(divisions/2), (int)(divisions/2)));
+            p.add(indexToPosition((int) (divisions / 2), (int) (divisions / 2)));
             return p;
         }
-        
+
         switch (alg) {
             case Random:
                 ArrayList<Position> p = new ArrayList<Position>();
@@ -1145,7 +1143,7 @@ public class DataRepository {
             }
             count++;
         }
-        
+
         System.out.println("Done planning: " + best);
 
         queue.clear();
@@ -1155,7 +1153,7 @@ public class DataRepository {
             if (best.prev != null) {
                 p.add(0, indexToPosition(best.x, best.y));
             }
-            best = best.prev;            
+            best = best.prev;
         }
 
         return p;

@@ -84,6 +84,7 @@ public class FishFarmBoatProxy {
 
                 if (ws.equals(WaypointState.DONE)) {
 
+                    /*
                     waypointWatchdog.lastWaypointTime = System.currentTimeMillis();
 
                     System.out.println("Waypoint done");
@@ -91,6 +92,8 @@ public class FishFarmBoatProxy {
                     if (isAutonomous) {
                         actAutonomous();
                     }
+                     * 
+                     */
                 }
             }
         });
@@ -136,10 +139,14 @@ public class FishFarmBoatProxy {
 
     public void setWaypoints(Iterable<Position> p) {
         proxy.setWaypoints(p);
+        // ABHINAV if the watchdog kicks in too much, increase this 20000L
+        timeoutTime = 20000L * proxy.getWaypoints().size();
     }
     // Watchdog thread stuff
     WaypointWatchDog waypointWatchdog = new WaypointWatchDog();
 
+    long timeoutTime = 60000L;
+    
     class WaypointWatchDog extends Thread {
 
         boolean running = false;
@@ -150,20 +157,21 @@ public class FishFarmBoatProxy {
                 try {
                     sleep(5000);
                 } catch (InterruptedException e) {
-                }
+                }               
                 if (running && isAutonomous) {
                     long currTime = System.currentTimeMillis();
                     // Abhinav, you might want to play with this number which is how long between waypoints before it panics and replans
-                    if (currTime - lastWaypointTime > 60000L) {
+                    if (currTime - lastWaypointTime > timeoutTime) {
                         System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> TIMED OUT");
                         actAutonomous();
-                    }
+                    } 
                 }
+                    
             }
         }
 
         public void start() {
-            if (running = false) {
+            if (running == false) {
                 super.start();
             }
             running = true;
