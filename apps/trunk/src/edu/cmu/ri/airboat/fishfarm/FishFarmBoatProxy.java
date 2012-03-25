@@ -83,8 +83,7 @@ public class FishFarmBoatProxy {
 
 
                 if (ws.equals(WaypointState.DONE)) {
-
-                    /*
+                    
                     waypointWatchdog.lastWaypointTime = System.currentTimeMillis();
 
                     System.out.println("Waypoint done");
@@ -92,8 +91,6 @@ public class FishFarmBoatProxy {
                     if (isAutonomous) {
                         actAutonomous();
                     }
-                     * 
-                     */
                 }
             }
         });
@@ -171,7 +168,7 @@ public class FishFarmBoatProxy {
         }
 
         public void start() {
-            if (running == false) {
+            if (running == false && !isAlive()) {
                 super.start();
             }
             running = true;
